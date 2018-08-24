@@ -1,11 +1,11 @@
 # coding: utf8
+import enum
 from schema import Base
 from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy import UniqueConstraint
-from sqlalchemy.dialects.postgresql import ENUM
+from sqlalchemy import Enum
 
-class Gender(ENUM):
-    name = 'Gender'
+class Gender(enum.Enum):
     male = 'Male'
     female = 'Female'
 
@@ -21,7 +21,7 @@ class Guest(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(50))
     surname = Column(String(50))
-    gender = Column(ENUM(Gender), default='Male')
+    gender = Column(Enum(Gender), default='Male')
     email = Column(String(255))
     passport = Column(String(255))
     birthdate = Column(Date)

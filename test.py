@@ -1,14 +1,19 @@
+# coding: utf8
+import configparser
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from schema import Base
 from schema import login
-from schema import guest
 
-engine = create_engine('postgresql://genesis@127.0.0.1/genesis', echo=True)
+# Load configuration
+config = configparser.ConfigParser()
+config.read('config.ini')
+database_uri = config['database']['URI']
+echo = config['database']['echo'] == 'True'
+
+# Connect to database
+engine = create_engine(database_uri, echo=echo)
 engine.connect()
-
-Base.metadata.drop_all(engine)
-Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
 session = Session()

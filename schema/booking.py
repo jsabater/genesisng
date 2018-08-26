@@ -12,19 +12,19 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 
 class BookingStatus(enum.Enum):
-    new = 'New'
-    pending = 'Pending'
-    confirmed = 'Confirmed'
-    cancelled = 'Cancelled'
-    closed = 'Closed'
+    New = 'New'
+    Pending = 'Pending'
+    Confirmed = 'Confirmed'
+    Cancelled = 'Cancelled'
+    Closed = 'Closed'
 
 class BookingMealPlan(enum.Enum):
-    room_only = 'RoomOnly'
-    bed_and_breakfast = 'BedAndBreakfast'
-    half_board = 'HalfBoard'
-    full_board = 'FullBoard'
-    all_inclusive = 'AllInclusive'
-    special = 'Special'
+    RoomOnly = 'RoomOnly'
+    BedAndBreakfast = 'BedAndBreakfast'
+    HalfBoard = 'HalfBoard'
+    FullBoard = 'FullBoard'
+    AllInclusive = 'AllInclusive'
+    Special = 'Special'
 
 class Booking(Base):
     __tablename__ = 'booking'

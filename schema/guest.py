@@ -6,8 +6,8 @@ from sqlalchemy import UniqueConstraint
 from sqlalchemy import Enum
 
 class Gender(enum.Enum):
-    male = 'Male'
-    female = 'Female'
+    Male = 'Male'
+    Female = 'Female'
 
 class Guest(Base):
     __tablename__ = 'guest'

@@ -1,7 +1,7 @@
 # coding: utf8
 import enum
 from datetime import date
-from schema import Base
+from genesisng.schema import Base
 from sqlalchemy import Column, Integer, Float, String, Date, func
 from sqlalchemy import DateTime
 from sqlalchemy import UniqueConstraint

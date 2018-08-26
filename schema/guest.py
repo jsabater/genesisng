@@ -1,6 +1,6 @@
 # coding: utf8
 import enum
-from schema import Base
+from genesisng.schema import Base
 from sqlalchemy import Column, Integer, String, Date
 from sqlalchemy import UniqueConstraint
 from sqlalchemy import Enum

@@ -1,5 +1,5 @@
 # coding: utf8
-from schema import Base
+from genesisng.schema import Base
 from sqlalchemy import Column, Boolean, Integer, Float, Date
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import ExcludeConstraint, DATERANGE, TSRANGE

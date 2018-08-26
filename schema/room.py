@@ -25,8 +25,8 @@ class Room(Base):
     deleted = Column(Date, default=None)
 
     def __repr__(self):
-        return "<Room(name='%s', floor='%s', room='%s', accommodates='%s')>" % (
-            self.name, self.floor_no, self.room_no, self.accommodates)
+        return "<Room(id='%s', name='%s', floor='%s', room='%s', accommodates='%s')>" % (
+            self.id, self.name, self.floor_no, self.room_no, self.accommodates)
 
     def __init__(self, sgl_beds, dbl_beds):
         self.sgl_beds = sgl_beds

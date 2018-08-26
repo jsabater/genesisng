@@ -19,6 +19,6 @@ class Login(Base):
     is_admin = Column(Boolean, default=False)
 
     def __repr__(self):
-        return "<Login(username='%s', name='%s', surname='%s', email='%s')>" % (
-            self.username, self.name, self.surname, self.email)
+        return "<Login(id='%s', username='%s', name='%s', surname='%s', email='%s')>" % (
+            self.id, self.username, self.name, self.surname, self.email)
 

@@ -62,8 +62,8 @@ class Booking(Base):
     room = relationship('Room')
 
     def __repr__(self):
-        return "<Booking(nights='%s', guests='%s', check_in='%s', check_out='%s')>" % (
-            self.nights, self.guests, self.check_in, self.check_out)
+        return "<Booking(id='%s', nights='%s', guests='%s', check_in='%s', check_out='%s')>" % (
+            self.id, self.nights, self.guests, self.check_in, self.check_out)
 
     def __init__(self, check_in, check_out):
         self.check_in = check_in

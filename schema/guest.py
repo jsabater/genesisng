@@ -36,6 +36,6 @@ class Guest(Base):
     deleted = Column(Date, default=None)
 
     def __repr__(self):
-        return "<Guest(name='%s', surname='%s', email='%s')>" % (
-            self.name, self.surname, self.email)
+        return "<Guest(id='%s', name='%s', surname='%s', email='%s')>" % (
+            self.id, self.name, self.surname, self.email)
 

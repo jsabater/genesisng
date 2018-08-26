@@ -32,8 +32,8 @@ class Rate(Base):
     published = Column(Boolean, default=False)
 
     def __repr__(self):
-        return "<Rate(date_from='%s', date_to='%s', published='%s')>" % (
-            self.date_from, self.date_to, self.published)
+        return "<Rate(id='%s', date_from='%s', date_to='%s', published='%s')>" % (
+            self.id, self.date_from, self.date_to, self.published)
 
     def __init__(self, date_from, date_to):
         self.date_from = date_from

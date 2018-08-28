@@ -32,23 +32,24 @@ class List(Service):
 
     class SimpleIO(object):
         input_required = ()
-        output_required = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
+        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
 
     def handle(self):
         conn = self.kvdb.conn.get('genesisng:database:connection')
         self.logger.info('Getting a list of customers.')
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            result = session.query(Login).all()
-
-            self.response.payload = result
-
+            result = session.query(Login).order_by(Login.id)
+            output = []
+            for row in result:
+                output.append(row)
+            self.logger.info(output)
+            self.response.payload[:] = output
 
 class Create(Service):
 
     class SimpleIO(object):
-        input_required = ('username', 'password', 'name', 'surname', 'email')
-        input_optional = ('is_admin')
+        input_required = ('username', 'password', 'name', 'surname', 'email', 'is_admin')
         output_required = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
 
     def handle(self):
@@ -56,8 +57,7 @@ class Create(Service):
         
         # Create a Login instance and populate it with input parameters
         params = self.request.input
-        login = Login(username=params.username, password=params.password, name=params.name, surname=params.surname, email=params.email)
-        login.is_admin = params.get('is_admin')
+        login = Login(username=params.username, password=params.password, name=params.name, surname=params.surname, email=params.email, is_admin=params.is_admin)
 
         self.logger.info('Creating a login: {}' . format(params))
 

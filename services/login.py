@@ -13,9 +13,7 @@ class GetLogin(Service):
         output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
 
     def handle(self):
-        # TODO: Add this to a configuration file an use the value
-        # https://zato.io/docs/progguide/service-local-config.html
-        out_name = 'Genesis'
+        out_name = self.kvdb.conn.get('genesisng:database:connection')
         id = self.request.input.id
         self.logger.info('Checking for a login with id: %s' % id)
 
@@ -38,9 +36,7 @@ class NewLogin(Service):
         output_required = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
 
     def handle(self):
-        # TODO: Add this to a configuration file an use the value
-        # https://zato.io/docs/progguide/service-local-config.html
-        out_name = 'Genesis'
+        out_name = self.kvdb.conn.get('genesisng:database:connection')
         
         # Create a Login instance and populate it with input parameters
         i = self.request.input
@@ -55,4 +51,5 @@ class NewLogin(Service):
 
             self.response.status_code = CREATED
             self.response.payload = l
-            self.response.headers['Location'] = '/genesisng/logins/%s' % l.id
+            url = self.kvdb.conn.get('genesisng:location:logins')
+            self.response.headers['Location'] = '%s/%s' % (url, l.id)

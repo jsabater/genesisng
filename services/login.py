@@ -2,10 +2,12 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 from contextlib import closing
-from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
-from zato.server.service import Service
+from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, BAD_REQUEST
+from zato.server.service import Service, Boolean, Integer
+# from zato.server.service import AsIs, Boolean, Integer, Unicode, Service
 from genesisng.schema.login import Login
 from sqlalchemy.exc import IntegrityError
+from urlparse import parse_qs
 
 class Get(Service):
     """Service class to get a login by id through channel /genesisng/logins/get/{id}."""
@@ -34,14 +36,45 @@ class List(Service):
 
     class SimpleIO:
         input_required = ()
+        input_optional = ('page', 'size', 'sort_by', 'order_by')
         output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
         output_repeat = True
 
     def handle(self):
         conn = self.kvdb.conn.get('genesisng:database:connection')
+        default_page_size = int(self.kvdb.conn.get('genesisng:database:default_page_size'))
+        max_page_size = int(self.kvdb.conn.get('genesisng:database:max_page_size'))
 
+        # Pagination is always mandatory
+        page = 1
+        size = default_page_size
+
+        # Check for parameters in the query string
+        qs = parse_qs(self.wsgi_environ['QUERY_STRING'])
+        if qs:
+
+            # Handle pagination
+            try:
+                page = int(qs.get('page')[0])
+                size = int(qs.get('size')[0])
+            except ValueError:
+                # Assume default values instead of returning 400 Bad Request
+                self.logger.info('Except!')
+                pass
+
+            page = 1 if page < 1 else page
+            size = default_page_size if size < 1 else size
+            size = default_page_size if size > max_page_size else size
+
+        # Calculate limit and offset
+        limit = size
+        offset = size * (page - 1)
+
+        # sort_by = qs.get('sort_by')
+        # order_by = qs.get('order_by')
+        
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            result = session.query(Login).order_by(Login.id)
+            result = session.query(Login).order_by(Login.id).offset(offset).limit(limit)
             self.response.payload[:] = result if result else []
 
 class Create(Service):
@@ -49,15 +82,17 @@ class Create(Service):
 
     class SimpleIO:
         input_required = ('username', 'password', 'name', 'surname', 'email')
-        input_optional = ('is_admin')
+        input_optional = (Boolean('is_admin'))
         output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
 
     def handle(self):
+        # TODO: Use Cerberus to validate input?
+        # http://docs.python-cerberus.org/en/stable/
         conn = self.kvdb.conn.get('genesisng:database:connection')
+
         p = self.request.input
         l = Login(username=p.username, password=p.password, name=p.name, surname=p.surname, email=p.email)
         l.is_admin = p.get('is_admin', False)
-        # l.is_admin = p.get('is_admin', False) in ('True', 'true')
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             try:
@@ -72,13 +107,15 @@ class Create(Service):
                 # Constraint prevents duplication of username or emails.
                 session.rollback()
                 self.response.status_code = CONFLICT
+                # TODO: Return well-formed error response
+                # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
                 self.response.payload = ''
 
 class Delete(Service):
     """Service class to delete an existing login through channel /genesisng/logins/delete/{id}"""
 
     class SimpleIO:
-        input_required = ('id')
+        input_required = (Integer('id'))
 
     def handle(self):
         conn = self.kvdb.conn.get('genesisng:database:connection')
@@ -102,6 +139,8 @@ class Update(Service):
         input_required = ('id')
         input_optional = ('username', 'password', 'name', 'surname', 'email', 'is_admin')
         output_required = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
+        allow_empty_required = True
+        skip_empty_keys = True
 
     def handle(self):
         conn = self.kvdb.conn.get('genesisng:database:connection')

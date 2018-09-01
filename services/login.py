@@ -44,10 +44,17 @@ class List(Service):
         conn = self.kvdb.conn.get('genesisng:database:connection')
         default_page_size = int(self.kvdb.conn.get('genesisng:database:default_page_size'))
         max_page_size = int(self.kvdb.conn.get('genesisng:database:max_page_size'))
+        # TODO: Have a default order_by and sort_by in the KVDB?
+        default_order_by = 'id'
+        default_sort_by = 'asc'
 
         # Pagination is always mandatory
         page = 1
         size = default_page_size
+
+        # Sorting is always mandatory
+        order_by = default_order_by
+        sort_by = default_sort_by
 
         # Check for parameters in the query string
         qs = parse_qs(self.wsgi_environ['QUERY_STRING'])
@@ -55,26 +62,46 @@ class List(Service):
 
             # Handle pagination
             try:
-                page = int(qs.get('page')[0])
-                size = int(qs.get('size')[0])
-            except ValueError:
+                page = int(qs['page'][0])
+                page = 1 if page < 1 else page
+
+                size = int(qs['size'][0])
+                size = default_page_size if size < 1 else size
+                size = default_page_size if size > max_page_size else size
+            except (ValueError, KeyError, IndexError):
                 # Assume default values instead of returning 400 Bad Request
-                self.logger.info('Except!')
                 pass
 
-            page = 1 if page < 1 else page
-            size = default_page_size if size < 1 else size
-            size = default_page_size if size > max_page_size else size
+            # Handle sorting
+            try:
+                order_by = qs['order_by'][0].lower()
+                # Fields allowed for ordering are id, username, name, surname and email
+                if order_by not in ('id', 'username', 'name', 'surname', 'email'):
+                    order_by = default_order_by
+
+                sort_by = qs['sort_by'][0].lower()
+                sort_by = default_sort_by if sort_by not in ('asc', 'desc') else sort_by
+            except (ValueError, KeyError, IndexError):
+                # Assume default values instead of returning 400 Bad Request
+                pass
 
         # Calculate limit and offset
         limit = size
         offset = size * (page - 1)
 
-        # sort_by = qs.get('sort_by')
-        # order_by = qs.get('order_by')
-        
+        # Calculate criteria and direction
+        criteria = order_by
+        direction = sort_by
+
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            result = session.query(Login).order_by(Login.id).offset(offset).limit(limit)
+            query = session.query(Login)
+            if direction == 'asc':
+                query = query.order_by(Login.__table__.columns[criteria].asc())
+            else:
+                query = query.order_by(Login.__table__.columns[criteria].desc())
+            query = query.offset(offset)
+            query = query.limit(limit)
+            result = query.all()
             self.response.payload[:] = result if result else []
 
 class Create(Service):
@@ -139,7 +166,6 @@ class Update(Service):
         input_required = ('id')
         input_optional = ('username', 'password', 'name', 'surname', 'email', 'is_admin')
         output_required = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
-        allow_empty_required = True
         skip_empty_keys = True
 
     def handle(self):

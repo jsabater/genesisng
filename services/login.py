@@ -6,6 +6,7 @@ from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, BAD_REQUEST
 from zato.server.service import Service, Boolean, Integer
 # from zato.server.service import AsIs, Boolean, Integer, Unicode, Service
 from genesisng.schema.login import Login
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from urlparse import parse_qs
 
@@ -36,7 +37,7 @@ class List(Service):
 
     class SimpleIO:
         input_required = ()
-        input_optional = ('page', 'size', 'sort_by', 'order_by')
+        input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters', 'search')
         output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
         output_repeat = True
 
@@ -56,9 +57,18 @@ class List(Service):
         order_by = default_order_by
         sort_by = default_sort_by
 
+        # Filtering is optional
+        filters = []
+
+        # Search is optional
+        search = None
+
         # Check for parameters in the query string
         qs = parse_qs(self.wsgi_environ['QUERY_STRING'])
         if qs:
+
+            # Values of the dict from parse_qs are in a list because there might be multiple values.
+            # We just want the first one.
 
             # Handle pagination
             try:
@@ -85,6 +95,26 @@ class List(Service):
                 # Assume default values instead of returning 400 Bad Request
                 pass
 
+            # Handle filtering
+            try:
+                for f in qs['filters']:
+                    field, operator, value = f.split('|')
+                    if field not in ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin'):
+                        raise ValueError('Field %s is not allowed for filtering' % field)
+                    if operator not in ('lt', 'lte', 'eq', 'ne', 'gte', 'gt'):
+                        raise ValueError('Operator %s is not allowed for filtering' % operator)
+                    filters.append((field, operator, value))
+            except (ValueError, KeyError):
+                # Do not apply any filtering instead of returning 400 Bad Request
+                pass
+
+            # Handle search
+            try:
+                search = qs['search'][0]
+            except (ValueError, KeyError):
+                # Do not search for terms instead of returning 400 Bad Request
+                pass
+
         # Calculate limit and offset
         limit = size
         offset = size * (page - 1)
@@ -93,8 +123,43 @@ class List(Service):
         criteria = order_by
         direction = sort_by
 
+        # Prepare filters
+        # TODO: Use sqlalchemy-filters?
+        # https://pypi.org/project/sqlalchemy-filters/
+        conditions = []
+        for f in filters:
+            field, operator, value = f
+            if operator == 'lt':
+                conditions.append(Login.__table__.columns[field] < value)
+            elif operator == 'lte':
+                conditions.append(Login.__table__.columns[field] <= value)
+            elif operator == 'eq':
+                conditions.append(Login.__table__.columns[field] == value)
+            elif operator == 'ne':
+                conditions.append(Login.__table__.columns[field] != value)
+            elif operator == 'gte':
+                conditions.append(Login.__table__.columns[field] >= value)
+            elif operator == 'gt':
+                conditions.append(Login.__table__.columns[field] > value)
+
+        # Prepare search
+        # When using match (Login.name.match(term)) we require tsquery indexes
+        # At the moment we are using ILIKE
+        if search:
+            term = '%' + search + '%'
+
+        # Execute query
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(Login)
+            for c in conditions:
+                query = query.filter(c)
+            if search:
+                query = query.filter(or_(
+                    Login.username.ilike(term),
+                    Login.name.ilike(term),
+                    Login.surname.ilike(term),
+                    Login.email.ilike(term)
+                ))
             if direction == 'asc':
                 query = query.order_by(Login.__table__.columns[criteria].asc())
             else:

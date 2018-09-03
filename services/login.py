@@ -166,6 +166,7 @@ class List(Service):
                 query = query.order_by(Login.__table__.columns[criteria].desc())
             query = query.offset(offset)
             query = query.limit(limit)
+            # TODO: Add COUNT(*) OVER() to query
             result = query.all()
             self.response.payload[:] = result if result else []
 

@@ -6,7 +6,7 @@ from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, BAD_REQUEST
 from zato.server.service import Service, Boolean, Integer
 # from zato.server.service import AsIs, Boolean, Integer, Unicode, Service
 from genesisng.schema.login import Login
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.exc import IntegrityError
 from urlparse import parse_qs
 
@@ -150,7 +150,7 @@ class List(Service):
 
         # Execute query
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            query = session.query(Login)
+            query = session.query(Login, func.count(Login.id).over().label('count'))
             for c in conditions:
                 query = query.filter(c)
             if search:
@@ -166,7 +166,6 @@ class List(Service):
                 query = query.order_by(Login.__table__.columns[criteria].desc())
             query = query.offset(offset)
             query = query.limit(limit)
-            # TODO: Add COUNT(*) OVER() to query
             result = query.all()
             self.response.payload[:] = result if result else []
 

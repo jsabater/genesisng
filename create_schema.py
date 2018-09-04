@@ -1,11 +1,12 @@
 # coding: utf8
 import configparser
 from sqlalchemy import create_engine
-from schema import Base
+from genesisng.schema import *
+from genesisng.schema import Base
 
 # Load configuration
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read('genesisng/config.ini')
 database_uri = config['database']['URI']
 echo = config['database']['echo'] == 'True'
 

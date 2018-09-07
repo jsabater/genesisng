@@ -37,7 +37,7 @@ class List(Service):
 
     class SimpleIO:
         input_required = ()
-        input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters', 'search')
+        input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters', 'search', 'fields')
         output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
         output_repeat = True
 
@@ -58,7 +58,12 @@ class List(Service):
         sort_by = default_sort_by
 
         # Filtering is optional
+        # Format: filters=field|operator|value (multiple)
         filters = []
+
+        # Fields projection is optional
+        # Format: fields=field (multiple)
+        fields = []
 
         # Search is optional
         search = None
@@ -115,6 +120,16 @@ class List(Service):
                 # Do not search for terms instead of returning 400 Bad Request
                 pass
 
+            # Handle fields projection
+            try:
+                for field in qs['fields']:
+                    if field not in ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin'):
+                        raise ValueError('Field %s is not allowed for projection' % field)
+                    fields.append(field)
+            except (ValueError, KeyError):
+                # Do not apply any fields projection instead of returning 400 Bad Request
+                pass
+
         # Calculate limit and offset
         limit = size
         offset = size * (page - 1)
@@ -148,9 +163,17 @@ class List(Service):
         if search:
             term = '%' + search + '%'
 
+        # Prepare fields projection
+        columns = []
+        if not fields:
+            fields = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
+        columns = [Login.__table__.columns[field] for field in fields]
+
         # Execute query
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            query = session.query(Login, func.count(Login.id).over().label('count'))
+            query = session.query(func.count().over().label('count'))
+            for c in columns:
+                query = query.add_columns(c)
             for c in conditions:
                 query = query.filter(c)
             if search:

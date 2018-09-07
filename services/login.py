@@ -40,6 +40,7 @@ class List(Service):
         input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters', 'search', 'fields')
         output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
         output_repeat = True
+        skip_empty_keys = True
 
     def handle(self):
         conn = self.kvdb.conn.get('genesisng:database:connection')

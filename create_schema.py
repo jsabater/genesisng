@@ -6,7 +6,7 @@ from genesisng.schema import Base
 
 # Load configuration
 config = configparser.ConfigParser()
-config.read('genesisng/config.ini')
+config.read('config.ini')
 database_uri = config['database']['URI']
 echo = config['database']['echo'] == 'True'
 

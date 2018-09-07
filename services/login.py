@@ -36,10 +36,9 @@ class List(Service):
     """Service class to get a list of all logins in the system through channel /genesisng/logins/list."""
 
     class SimpleIO:
-        input_required = ()
         input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters', 'search', 'fields')
         output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
-        output_repeat = True
+        output_repeated = True
         skip_empty_keys = True
 
     def handle(self):

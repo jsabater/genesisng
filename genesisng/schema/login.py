@@ -13,6 +13,8 @@ class Login(Base):
         Index('ix_trgm_login_surname', 'surname', postgresql_using='gin', postgresql_ops={'surname': 'gin_trgm_ops'}),
     )
 
+    # SQLAlchemy automatically creates the table column using the SERIAL type
+    # which triggers the creation of a sequence automatically.
     id = Column(Integer, primary_key=True)
     username = Column(String(20), index=True, unique=True)
     password = Column(String(255))

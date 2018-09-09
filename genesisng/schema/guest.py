@@ -1,19 +1,33 @@
 # coding: utf8
-import enum
 from genesisng.schema import Base
-from sqlalchemy import Column, Integer, String, Date
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import Column, Integer, String, Date, DateTime
+from sqlalchemy import UniqueConstraint, Index
+from sqlalchemy.dialects import postgresql
 from sqlalchemy import Enum
+import enum
 
-class Gender(enum.Enum):
-    Male = 'Male'
-    Female = 'Female'
+# class Gender(str, enum.Enum):
+#     Male: str = 'Male'
+#     Female: str = 'Female'
+
+class Gender(str, enum.Enum):
+    Male = 1
+    Female = 2
 
 class Guest(Base):
     __tablename__ = 'guest'
     __rels__ = []
     __table_args__ = (
-        UniqueConstraint('email', name='guest_email'),
+        Index('ix_trgm_guest_name', 'name', postgresql_using='gin', postgresql_ops={'name': 'gin_trgm_ops'}),
+        Index('ix_trgm_guest_surname', 'surname', postgresql_using='gin', postgresql_ops={'surname': 'gin_trgm_ops'}),
+        Index('ix_trgm_guest_email', 'email', postgresql_using='gin', postgresql_ops={'email': 'gin_trgm_ops'}),
+        Index('ix_trgm_guest_address1', 'address1', postgresql_using='gin', postgresql_ops={'address1': 'gin_trgm_ops'}),
+        Index('ix_trgm_guest_address2', 'address2', postgresql_using='gin', postgresql_ops={'address2': 'gin_trgm_ops'}),
+        Index('ix_trgm_guest_locality', 'locality', postgresql_using='gin', postgresql_ops={'locality': 'gin_trgm_ops'}),
+        Index('ix_trgm_guest_postcode', 'postcode', postgresql_using='gin', postgresql_ops={'postcode': 'gin_trgm_ops'}),
+        Index('ix_trgm_guest_province', 'province', postgresql_using='gin', postgresql_ops={'province': 'gin_trgm_ops'}),
+        Index('ix_trgm_guest_home_phone', 'home_phone', postgresql_using='gin', postgresql_ops={'home_phone': 'gin_trgm_ops'}),
+        Index('ix_trgm_guest_mobile_phone', 'mobile_phone', postgresql_using='gin', postgresql_ops={'mobile_phone': 'gin_trgm_ops'}),
     )
 
     # SQLAlchemy automatically creates the table column using the SERIAL type
@@ -22,7 +36,7 @@ class Guest(Base):
     name = Column(String(50))
     surname = Column(String(50))
     gender = Column(Enum(Gender), default='Male')
-    email = Column(String(255))
+    email = Column(String(255), index=True, unique=True)
     passport = Column(String(255))
     birthdate = Column(Date)
     address1 = Column(String(50))
@@ -30,12 +44,11 @@ class Guest(Base):
     locality = Column(String(50))
     postcode = Column(String(10))
     province = Column(String(50))
-    country = Column(String(2))
+    country = Column(String(2), index=True)
     home_phone = Column(String(50))
     mobile_phone = Column(String(50))
-    deleted = Column(Date, default=None)
+    deleted = Column(DateTime, default=None, index=True)
 
     def __repr__(self):
         return "<Guest(id='%s', name='%s', surname='%s', email='%s')>" % (
             self.id, self.name, self.surname, self.email)
-

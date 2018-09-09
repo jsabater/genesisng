@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import absolute_import, division, print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, BAD_REQUEST
 from zato.server.service import Service, Boolean, Integer
-# from zato.server.service import AsIs, Boolean, Integer, Unicode, Service
 from genesisng.schema.login import Login
 from sqlalchemy import or_, func
 from sqlalchemy.exc import IntegrityError
@@ -15,7 +13,6 @@ class Get(Service):
 
     class SimpleIO:
         input_required = ('id')
-        # Cannot use output_required because Zato throws an exception when we return NOT_FOUND
         output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
 
     def handle(self):

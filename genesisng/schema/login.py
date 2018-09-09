@@ -16,7 +16,7 @@ class Login(Base):
 
     # SQLAlchemy automatically creates the table column using the SERIAL type
     # which triggers the creation of a sequence automatically.
-    # Username and email must be unique
+    # Username and e-mail must be unique
     # B-tree indexes on sorting fields to speed up operations and reduce memory consumption
     # https://www.postgresql.org/docs/current/static/indexes-ordering.html
     id = Column(Integer, primary_key=True)

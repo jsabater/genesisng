@@ -4,8 +4,8 @@ DROP FUNCTION IF EXISTS IIF(BOOLEAN, DATE, DATE);
 
 -- Bookings
 DROP TABLE IF EXISTS booking;
-DROP TYPE BookingStatus;
-DROP TYPE BookingMealPlan;
+DROP TYPE IF EXISTS BookingStatus;
+DROP TYPE IF EXISTS BookingMealPlan;
 
 -- Rates
 DROP TABLE IF EXISTS rate;
@@ -16,12 +16,8 @@ DROP FUNCTION IF EXISTS ROOM_ACCOMMODATION();
 
 -- Guests
 DROP TABLE IF EXISTS guest;
-DROP TYPE Gender;
+DROP TYPE IF EXISTS Gender;
 
 -- Users
 DROP TABLE IF EXISTS login;
-
-
-
-
 

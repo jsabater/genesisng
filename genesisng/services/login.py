@@ -13,7 +13,7 @@ class Get(Service):
 
     class SimpleIO:
         input_required = ('id')
-        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
+        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted')
 
     def handle(self):
         conn = self.kvdb.conn.get('genesisng:database:connection')
@@ -29,12 +29,100 @@ class Get(Service):
                 self.response.status_code = NOT_FOUND
                 self.response.payload = ''
 
+class Create(Service):
+    """Service class to create a new login through channel /genesisng/logins/create."""
+
+    class SimpleIO:
+        input_required = ('username', 'password', 'name', 'surname', 'email')
+        input_optional = (Boolean('is_admin'))
+        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted')
+
+    def handle(self):
+        # TODO: Use Cerberus to validate input?
+        # http://docs.python-cerberus.org/en/stable/
+        conn = self.kvdb.conn.get('genesisng:database:connection')
+
+        p = self.request.input
+        l = Login(username=p.username, password=p.password, name=p.name, surname=p.surname, email=p.email)
+        l.is_admin = p.get('is_admin', False)
+
+        with closing(self.outgoing.sql.get(conn).session()) as session:
+            try:
+                session.add(l)
+                session.commit()
+                self.response.status_code = CREATED
+                self.response.payload = l
+                url = self.kvdb.conn.get('genesisng:location:logins')
+                self.response.headers['Location'] = '%s/%s' % (url, l.id)
+
+            except IntegrityError as e:
+                # Constraint prevents duplication of username or emails.
+                session.rollback()
+                self.response.status_code = CONFLICT
+                # TODO: Return well-formed error response
+                # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
+                self.response.payload = ''
+
+class Delete(Service):
+    """Service class to delete an existing login through channel /genesisng/logins/delete/{id}"""
+
+    class SimpleIO:
+        input_required = (Integer('id'))
+
+    def handle(self):
+        conn = self.kvdb.conn.get('genesisng:database:connection')
+        id_ = self.request.input.id
+
+        with closing(self.outgoing.sql.get(conn).session()) as session:
+            deleted = session.query(Login).filter(Login.id == id_).delete()
+            session.commit()
+
+            if deleted:
+                self.response.status_code = NO_CONTENT
+                self.response.payload = ''
+            else:
+                self.response.status_code = NOT_FOUND
+                self.response.payload = ''
+
+class Update(Service):
+    """Service class to update an existing login through channel /genesisng/logins/update/{id}"""
+
+    class SimpleIO:
+        input_required = ('id')
+        input_optional = ('username', 'password', 'name', 'surname', 'email', 'is_admin')
+        output_required = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted')
+        skip_empty_keys = True
+
+    def handle(self):
+        conn = self.kvdb.conn.get('genesisng:database:connection')
+        id_ = self.request.input.id
+        p = self.request.input
+        l = Login(id=id_, username=p.username, password=p.password, name=p.name, surname=p.surname, email=p.email, is_admin=p.is_admin)
+
+        with closing(self.outgoing.sql.get(conn).session()) as session:
+            result = session.query(Login).filter(Login.id == id_).one_or_none()
+
+            if result:
+                # Update dictionary keys
+                result.username = l.username
+                result.password = l.password
+                result.name = l.name
+                result.surname = l.surname
+                result.email = l.email
+                result.is_admin = l.is_admin
+                session.commit()
+                self.response.status_code = OK
+                self.response.payload = result
+            else:
+                self.response.status_code = NOT_FOUND
+                self.response.payload = ''
+
 class List(Service):
     """Service class to get a list of all logins in the system through channel /genesisng/logins/list."""
 
     class SimpleIO:
         input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters', 'search', 'fields')
-        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
+        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted')
         output_repeated = True
         skip_empty_keys = True
 
@@ -101,7 +189,7 @@ class List(Service):
             try:
                 for f in qs['filters']:
                     field, operator, value = f.split('|')
-                    if field not in ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin'):
+                    if field not in ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted'):
                         raise ValueError('Field %s is not allowed for filtering' % field)
                     if operator not in ('lt', 'lte', 'eq', 'ne', 'gte', 'gt'):
                         raise ValueError('Operator %s is not allowed for filtering' % operator)
@@ -120,7 +208,7 @@ class List(Service):
             # Handle fields projection
             try:
                 for field in qs['fields']:
-                    if field not in ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin'):
+                    if field not in ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted'):
                         raise ValueError('Field %s is not allowed for projection' % field)
                     fields.append(field)
             except (ValueError, KeyError):
@@ -163,7 +251,7 @@ class List(Service):
         # Prepare fields projection
         columns = []
         if not fields:
-            fields = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
+            fields = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted')
         columns = [Login.__table__.columns[field] for field in fields]
 
         # Execute query
@@ -188,91 +276,3 @@ class List(Service):
             query = query.limit(limit)
             result = query.all()
             self.response.payload[:] = result if result else []
-
-class Create(Service):
-    """Service class to create a new login through channel /genesisng/logins/create."""
-
-    class SimpleIO:
-        input_required = ('username', 'password', 'name', 'surname', 'email')
-        input_optional = (Boolean('is_admin'))
-        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
-
-    def handle(self):
-        # TODO: Use Cerberus to validate input?
-        # http://docs.python-cerberus.org/en/stable/
-        conn = self.kvdb.conn.get('genesisng:database:connection')
-
-        p = self.request.input
-        l = Login(username=p.username, password=p.password, name=p.name, surname=p.surname, email=p.email)
-        l.is_admin = p.get('is_admin', False)
-
-        with closing(self.outgoing.sql.get(conn).session()) as session:
-            try:
-                session.add(l)
-                session.commit()
-                self.response.status_code = CREATED
-                self.response.payload = l
-                url = self.kvdb.conn.get('genesisng:location:logins')
-                self.response.headers['Location'] = '%s/%s' % (url, l.id)
-
-            except IntegrityError as e:
-                # Constraint prevents duplication of username or emails.
-                session.rollback()
-                self.response.status_code = CONFLICT
-                # TODO: Return well-formed error response
-                # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
-                self.response.payload = ''
-
-class Delete(Service):
-    """Service class to delete an existing login through channel /genesisng/logins/delete/{id}"""
-
-    class SimpleIO:
-        input_required = (Integer('id'))
-
-    def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
-        id_ = self.request.input.id
-
-        with closing(self.outgoing.sql.get(conn).session()) as session:
-            deleted = session.query(Login).filter(Login.id == id_).delete()
-            session.commit()
-
-            if deleted:
-                self.response.status_code = NO_CONTENT
-                self.response.payload = ''
-            else:
-                self.response.status_code = NOT_FOUND
-                self.response.payload = ''
-
-class Update(Service):
-    """Service class to update an existing login through channel /genesisng/logins/update/{id}"""
-
-    class SimpleIO:
-        input_required = ('id')
-        input_optional = ('username', 'password', 'name', 'surname', 'email', 'is_admin')
-        output_required = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
-        skip_empty_keys = True
-
-    def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
-        id_ = self.request.input.id
-        p = self.request.input
-        l = Login(id=id_, username=p.username, password=p.password, name=p.name, surname=p.surname, email=p.email, is_admin=p.is_admin)
-
-        with closing(self.outgoing.sql.get(conn).session()) as session:
-            result = session.query(Login).filter(Login.id == id_).one_or_none()
-
-            if result:
-                # Update dictionary keys
-                result.username = l.username
-                result.password = l.password
-                result.name = l.name
-                result.surname = l.surname
-                result.email = l.email
-                result.is_admin = l.is_admin
-                session.commit()
-                self.response.status_code = OK
-                self.response.payload = result
-            else:
-                self.response.status_code = NOT_FOUND
-                self.response.payload = ''

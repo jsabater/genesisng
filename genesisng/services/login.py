@@ -90,6 +90,7 @@ class Update(Service):
     class SimpleIO:
         input_required = ('id')
         input_optional = ('username', 'password', 'name', 'surname', 'email', 'is_admin')
+        # XXX: Should output_required be output_optional given we can return NOT_FOUND?
         output_required = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
         skip_empty_keys = True
 
@@ -156,9 +157,6 @@ class List(Service):
         # Check for parameters in the query string
         qs = parse_qs(self.wsgi_environ['QUERY_STRING'])
         if qs:
-
-            # Values of the dict from parse_qs are in a list because there might be multiple values.
-            # We just want the first one.
 
             # Handle pagination
             try:

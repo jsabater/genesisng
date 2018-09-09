@@ -241,8 +241,6 @@ class List(Service):
                 conditions.append(Login.__table__.columns[field] > value)
 
         # Prepare search
-        # When using match (Login.name.match(term)) we require tsquery indexes
-        # At the moment we are using ILIKE
         if search:
             term = '%' + search + '%'
 

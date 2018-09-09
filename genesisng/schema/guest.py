@@ -32,19 +32,22 @@ class Guest(Base):
 
     # SQLAlchemy automatically creates the table column using the SERIAL type
     # which triggers the creation of a sequence automatically.
+    # E-mail must be unique
+    # B-tree indexes on sorting fields to speed up operations and reduce memory consumption
+    # https://www.postgresql.org/docs/current/static/indexes-ordering.html
     id = Column(Integer, primary_key=True)
-    name = Column(String(50))
-    surname = Column(String(50))
-    gender = Column(Enum(Gender), default='Male')
+    name = Column(String(50), index=True)
+    surname = Column(String(50), index=True)
+    gender = Column(Enum(Gender), index=True, default='Male')
     email = Column(String(255), index=True, unique=True)
     passport = Column(String(255))
-    birthdate = Column(Date)
+    birthdate = Column(Date, index=True)
     address1 = Column(String(50))
     address2 = Column(String(50))
     locality = Column(String(50))
     postcode = Column(String(10))
     province = Column(String(50))
-    country = Column(String(2), index=True)
+    country = Column(String(2), index=True, index=True)
     home_phone = Column(String(50))
     mobile_phone = Column(String(50))
     deleted = Column(DateTime, default=None, index=True)

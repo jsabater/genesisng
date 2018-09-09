@@ -4,7 +4,7 @@ from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, BAD_REQUEST
 from zato.server.service import Service, Boolean, Integer
 from genesisng.schema.login import Login
-from sqlalchemy import or_, func
+from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from urlparse import parse_qs
 
@@ -21,6 +21,30 @@ class Get(Service):
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Login).filter(Login.id == id_).one_or_none()
+
+            if result:
+                self.response.status_code = OK
+                self.response.payload = result
+            else:
+                self.response.status_code = NOT_FOUND
+                self.response.payload = ''
+
+class Validate(Service):
+    """Service class to validate credentials through channel /genesisng/logins/validate/{id}."""
+
+    class SimpleIO:
+        input_required = ('username', 'password')
+        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
+
+    def handle(self):
+        conn = self.kvdb.conn.get('genesisng:database:connection')
+        username = self.request.input.username
+        password = self.request.input.password
+
+        with closing(self.outgoing.sql.get(conn).session()) as session:
+            result = session.query(Login).\
+                filter(and_(Login.username == username, Login.password == password)).\
+                one_or_none()
 
             if result:
                 self.response.status_code = OK

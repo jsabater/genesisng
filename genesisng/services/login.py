@@ -13,7 +13,7 @@ class Get(Service):
 
     class SimpleIO:
         input_required = ('id')
-        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted')
+        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
 
     def handle(self):
         conn = self.kvdb.conn.get('genesisng:database:connection')
@@ -35,7 +35,7 @@ class Create(Service):
     class SimpleIO:
         input_required = ('username', 'password', 'name', 'surname', 'email')
         input_optional = (Boolean('is_admin'))
-        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted')
+        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
 
     def handle(self):
         # TODO: Use Cerberus to validate input?
@@ -90,7 +90,7 @@ class Update(Service):
     class SimpleIO:
         input_required = ('id')
         input_optional = ('username', 'password', 'name', 'surname', 'email', 'is_admin')
-        output_required = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted')
+        output_required = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
         skip_empty_keys = True
 
     def handle(self):
@@ -122,7 +122,7 @@ class List(Service):
 
     class SimpleIO:
         input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters', 'search', 'fields')
-        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted')
+        output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
         output_repeated = True
         skip_empty_keys = True
 
@@ -189,7 +189,7 @@ class List(Service):
             try:
                 for f in qs['filters']:
                     field, operator, value = f.split('|')
-                    if field not in ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted'):
+                    if field not in ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin'):
                         raise ValueError('Field %s is not allowed for filtering' % field)
                     if operator not in ('lt', 'lte', 'eq', 'ne', 'gte', 'gt'):
                         raise ValueError('Operator %s is not allowed for filtering' % operator)
@@ -208,7 +208,7 @@ class List(Service):
             # Handle fields projection
             try:
                 for field in qs['fields']:
-                    if field not in ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted'):
+                    if field not in ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin'):
                         raise ValueError('Field %s is not allowed for projection' % field)
                     fields.append(field)
             except (ValueError, KeyError):
@@ -251,7 +251,7 @@ class List(Service):
         # Prepare fields projection
         columns = []
         if not fields:
-            fields = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin', 'deleted')
+            fields = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
         columns = [Login.__table__.columns[field] for field in fields]
 
         # Execute query

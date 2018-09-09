@@ -22,7 +22,6 @@ class Login(Base):
     surname = Column(String(50))
     email = Column(String(255), index=True, unique=True)
     is_admin = Column(Boolean, default=False)
-    deleted = Column(DateTime, default=None, index=True)
 
     def __repr__(self):
         return "<Login(id='%s', username='%s', name='%s', surname='%s', email='%s')>" % (

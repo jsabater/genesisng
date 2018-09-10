@@ -47,7 +47,7 @@ class Guest(Base):
     locality = Column(String(50))
     postcode = Column(String(10))
     province = Column(String(50))
-    country = Column(String(2), index=True, index=True)
+    country = Column(String(2), index=True)
     home_phone = Column(String(50))
     mobile_phone = Column(String(50))
     deleted = Column(DateTime, default=None, index=True)

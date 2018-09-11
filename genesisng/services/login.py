@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, BAD_REQUEST
-from zato.server.service import Service, Boolean, Integer
+from zato.server.service import Service, Boolean, Integer, AsIs
 from genesisng.schema.login import Login
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
@@ -33,7 +33,7 @@ class Validate(Service):
     """Service class to validate credentials through channel /genesisng/logins/validate/{id}."""
 
     class SimpleIO:
-        input_required = ('username', 'password')
+        input_required = ('username', AsIs('password'))
         output_optional = ('id', 'username', 'password', 'name', 'surname', 'email', 'is_admin')
 
     def handle(self):

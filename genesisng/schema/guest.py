@@ -2,6 +2,7 @@
 from genesisng.schema import Base
 from sqlalchemy import Column, Integer, String, Date, DateTime
 from sqlalchemy import Index, Enum
+from sqlalchemy.ext.hybrid import hybrid_property
 import enum
 
 # class Gender(str, enum.Enum):
@@ -68,3 +69,7 @@ class Guest(Base):
     def __repr__(self):
         return "<Guest(id='%s', name='%s', surname='%s', email='%s')>" % (
             self.id, self.name, self.surname, self.email)
+
+    @hybrid_property
+    def fullname(self):
+        return '%s %s' % (self.name, self.surname)

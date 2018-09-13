@@ -1,14 +1,18 @@
 # coding: utf8
 from genesisng.schema import Base
-from sqlalchemy import Column, Integer, Float, String, Date
+from sqlalchemy import Column, Integer, Float, String, DateTime
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
+from uuid import uuid4
+
 
 class Room(Base):
     __tablename__ = 'room'
     __rels__ = []
     __table_args__ = (
+        # Combination of floor number and room number must be unique.
         UniqueConstraint('floor_no', 'room_no', name='room_floor_no_room_no'),
+        # The sum of beds must be a positive integer.
         CheckConstraint('sgl_beds + dbl_beds > 0'),
     )
 
@@ -20,19 +24,25 @@ class Room(Base):
     name = Column(String(100), index=True)
     sgl_beds = Column(Integer, default=0, index=True)
     dbl_beds = Column(Integer, default=0, index=True)
-    supplement = Column(Float, nullable=False)
-    code = Column(String(20), unique=True, nullable=False, comment='Unique code used to link to images')
-    deleted = Column(Date, default=None)
+    supplement = Column(Float, default=0, nullable=False)
+    code = Column(String(20), unique=True, default=uuid4(),
+                  comment='Unique code used to link to images')
+    deleted = Column(DateTime, default=None)
 
     def __repr__(self):
-        return "<Room(id='%s', name='%s', floor='%s', room='%s', accommodates='%s')>" % (
-            self.id, self.name, self.floor_no, self.room_no, self.accommodates)
+        return "<Room(id='%s', number='%s', accommodates='%s')>" % (
+            self.id, self.number, self.accommodates)
 
-    def __init__(self, sgl_beds, dbl_beds):
+    def __init__(self, sgl_beds, dbl_beds, floor_no, room_no):
         self.sgl_beds = sgl_beds
         self.dbl_beds = dbl_beds
+        self.floor_no = floor_no
+        self.room_no = room_no
 
     @hybrid_property
     def accommodates(self):
         return self.sgl_beds + self.dbl_beds * 2
 
+    @hybrid_property
+    def number(self):
+        return '%d%02d' % (self.floor_no, self.room_no)

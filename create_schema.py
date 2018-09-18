@@ -6,7 +6,7 @@ from genesisng.schema import Base
 
 # Load configuration
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read('genesisng/config.ini')
 database_uri = config['database']['URI']
 echo = config['database']['echo'] == 'True'
 
@@ -19,3 +19,4 @@ Base.metadata.create_all(engine)
 
 # Close connection
 connection.close()
+

@@ -24,8 +24,8 @@ class Room(Base):
     name = Column(String(100), index=True)
     sgl_beds = Column(Integer, default=0, index=True)
     dbl_beds = Column(Integer, default=0, index=True)
-    supplement = Column(Float, default=0, nullable=False)
-    code = Column(String(20), unique=True, default=uuid4(),
+    supplement = Column(Float, nullable=False, default=0)
+    code = Column(String(20), nullable=False, default=uuid4(), unique=True,
                   comment='Unique code used to link to images')
     deleted = Column(DateTime, default=None)
 

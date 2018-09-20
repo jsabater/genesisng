@@ -1,7 +1,6 @@
 # coding: utf8
 import enum
-from datetime import date
-from genesisng.schema import Base
+from base import Base
 from sqlalchemy import Column, Integer, Float, String, Date, func
 from sqlalchemy import DateTime
 from sqlalchemy import UniqueConstraint
@@ -11,12 +10,14 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 
+
 class BookingStatus(enum.Enum):
     New = 'New'
     Pending = 'Pending'
     Confirmed = 'Confirmed'
     Cancelled = 'Cancelled'
     Closed = 'Closed'
+
 
 class BookingMealPlan(enum.Enum):
     RoomOnly = 'RoomOnly'
@@ -26,12 +27,15 @@ class BookingMealPlan(enum.Enum):
     AllInclusive = 'AllInclusive'
     Special = 'Special'
 
+
 class Booking(Base):
     __tablename__ = 'booking'
     __rels__ = []
-    __table_args__ = (
-        UniqueConstraint('id_guest', 'id_room', 'check_in',
-            name='booking_id_guest_id_room_check_in'),
+    __table_args__ = (UniqueConstraint(
+        'id_guest',
+        'id_room',
+        'check_in',
+        name='booking_id_guest_id_room_check_in'),
     )
 
     # SQLAlchemy automatically creates the table column using the SERIAL type
@@ -72,4 +76,3 @@ class Booking(Base):
     @hybrid_property
     def nights(self):
         return (self.check_out - self.check_in).days
-

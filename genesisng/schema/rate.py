@@ -1,5 +1,5 @@
 # coding: utf8
-from genesisng.schema import Base
+from base import Base
 from sqlalchemy import Column, Boolean, Integer, Float, Date
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
@@ -12,16 +12,15 @@ class Rate(Base):
     __tablename__ = 'rate'
     __rels__ = []
     __table_args__ = (
-        UniqueConstraint('date_from', 'date_to',
-                         name='rate_date_from_date_to'),
+        UniqueConstraint(
+            'date_from', 'date_to', name='rate_date_from_date_to'),
         CheckConstraint('date_from < date_to'),
         # Prevent dates from overlapping by using an exclusion constraint and
         # the overlap operator (&&) for the daterange type
-        ExcludeConstraint(
-            (Column(quoted_name('daterange(date_from, date_to)',
-                                quote=False)), '&&'),
-            using='gist', name='rate_date_range'
-        ),
+        ExcludeConstraint((Column(
+            quoted_name('daterange(date_from, date_to)', quote=False)), '&&'),
+                          using='gist',
+                          name='rate_date_range'),
     )
 
     # SQLAlchemy automatically creates the table column using the SERIAL type

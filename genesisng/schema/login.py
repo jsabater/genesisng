@@ -1,5 +1,5 @@
 # coding: utf8
-from genesisng.schema import Base
+from base import Base
 from sqlalchemy import Column, Boolean, Integer, String, Index
 
 

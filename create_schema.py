@@ -19,4 +19,3 @@ Base.metadata.create_all(engine)
 
 # Close connection
 connection.close()
-

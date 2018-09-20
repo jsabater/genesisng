@@ -20,7 +20,7 @@ class Get(Service):
                            'email', 'is_admin')
 
     def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
+        conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
@@ -44,7 +44,7 @@ class Validate(Service):
                            'email', 'is_admin')
 
     def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
+        conn = self.user_config.genesisng.database.connection
         username = self.request.input.username
         password = self.request.input.password
 
@@ -75,11 +75,15 @@ class Create(Service):
     def handle(self):
         # TODO: Use Cerberus to validate input?
         # http://docs.python-cerberus.org/en/stable/
-        conn = self.kvdb.conn.get('genesisng:database:connection')
+        conn = self.user_config.genesisng.database.connection
 
         p = self.request.input
-        login = Login(username=p.username, password=p.password, name=p.name,
-                      surname=p.surname, email=p.email)
+        login = Login(
+            username=p.username,
+            password=p.password,
+            name=p.name,
+            surname=p.surname,
+            email=p.email)
         login.is_admin = p.get('is_admin', False)
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
@@ -88,7 +92,7 @@ class Create(Service):
                 session.commit()
                 self.response.status_code = CREATED
                 self.response.payload = login
-                url = self.kvdb.conn.get('genesisng:location:logins')
+                url = self.user_config.genesisng.location.logins
                 self.response.headers['Location'] = '%s/%s' % (url, login.id)
 
             except IntegrityError:
@@ -108,7 +112,7 @@ class Delete(Service):
         input_required = (Integer('id'))
 
     def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
+        conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
@@ -138,12 +142,17 @@ class Update(Service):
         skip_empty_keys = True
 
     def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
+        conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
         p = self.request.input
-        login = Login(id=id_, username=p.username, password=p.password,
-                      name=p.name, surname=p.surname, email=p.email,
-                      is_admin=p.is_admin)
+        login = Login(
+            id=id_,
+            username=p.username,
+            password=p.password,
+            name=p.name,
+            surname=p.surname,
+            email=p.email,
+            is_admin=p.is_admin)
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Login).filter(Login.id == id_).one_or_none()
@@ -177,11 +186,10 @@ class List(Service):
         skip_empty_keys = True
 
     def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
-        default_page_size = int(self.kvdb.conn.
-                                get('genesisng:database:default_page_size'))
-        max_page_size = int(self.kvdb.conn.get(
-            'genesisng:database:max_page_size'))
+        conn = self.user_config.genesisng.database.connection
+        default_page_size = int(
+            self.user_config.genesisng.database.default_page_size)
+        max_page_size = int(self.user_config.genesisng.database.max_page_size)
         # TODO: Have a default order_by and sort_by in the KVDB?
         default_order_by = 'id'
         default_sort_by = 'asc'
@@ -309,8 +317,8 @@ class List(Service):
         # Prepare fields projection
         columns = []
         if not fields:
-            fields = ('id', 'username', 'password', 'name',
-                      'surname', 'email', 'is_admin')
+            fields = ('id', 'username', 'password', 'name', 'surname', 'email',
+                      'is_admin')
         columns = [Login.__table__.columns[f] for f in fields]
 
         # Execute query
@@ -321,12 +329,10 @@ class List(Service):
             for c in conditions:
                 query = query.filter(c)
             if search:
-                query = query.filter(or_(
-                    Login.username.ilike(term),
-                    Login.name.ilike(term),
-                    Login.surname.ilike(term),
-                    Login.email.ilike(term)
-                ))
+                query = query.filter(
+                    or_(
+                        Login.username.ilike(term), Login.name.ilike(term),
+                        Login.surname.ilike(term), Login.email.ilike(term)))
             if direction == 'asc':
                 query = query.order_by(Login.__table__.columns[criteria].asc())
             else:

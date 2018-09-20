@@ -23,7 +23,7 @@ class Get(Service):
                            'home_phone', 'mobile_phone', 'deleted')
 
     def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
+        conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
@@ -57,7 +57,7 @@ class Create(Service):
     def handle(self):
         # TODO: Use Cerberus to validate input?
         # http://docs.python-cerberus.org/en/stable/
-        conn = self.kvdb.conn.get('genesisng:database:connection')
+        conn = self.user_config.genesisng.database.connection
 
         p = self.request.input
         guest = Guest(name=p.name, surname=p.surname, gender=p.gender,
@@ -75,7 +75,7 @@ class Create(Service):
                 session.commit()
                 self.response.status_code = CREATED
                 self.response.payload = guest
-                url = self.kvdb.conn.get('genesisng:location:guests')
+                url = self.user_config.genesisng.location.guests
                 self.response.headers['Location'] = '%s/%s' % (url, guest.id)
 
             except IntegrityError:
@@ -95,7 +95,7 @@ class Delete(Service):
         input_required = (Integer('id'))
 
     def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
+        conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
@@ -130,7 +130,7 @@ class Update(Service):
         skip_empty_keys = True
 
     def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
+        conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
         p = self.request.input
         guest = Guest(id=id_, name=p.name, surname=p.surname, gender=p.gender,
@@ -185,11 +185,10 @@ class List(Service):
         skip_empty_keys = True
 
     def handle(self):
-        conn = self.kvdb.conn.get('genesisng:database:connection')
-        default_page_size = int(self.kvdb.conn.get(
-            'genesisng:database:default_page_size'))
-        max_page_size = int(self.kvdb.conn.get(
-            'genesisng:database:max_page_size'))
+        conn = self.user_config.genesisng.database.connection
+        default_page_size = int(
+            self.user_config.genesisng.database.default_page_size)
+        max_page_size = int(self.user_config.genesisng.database.max_page_size)
 
         # TODO: Have a default order_by and sort_by in the KVDB?
         default_order_by = 'id'

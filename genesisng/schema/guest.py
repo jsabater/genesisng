@@ -10,7 +10,7 @@ import enum
 #     Female: str = 'Female'
 
 
-class Gender(str, enum.Enum):
+class Gender(enum.Enum):
     Male = 1
     Female = 2
 

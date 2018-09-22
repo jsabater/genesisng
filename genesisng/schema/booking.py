@@ -3,7 +3,7 @@ import enum
 from base import Base
 from sqlalchemy import Column, Integer, Float, String, Date, func
 from sqlalchemy import DateTime
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy import Enum
 from sqlalchemy import ForeignKey
@@ -31,11 +31,15 @@ class BookingMealPlan(enum.Enum):
 class Booking(Base):
     __tablename__ = 'booking'
     __rels__ = []
-    __table_args__ = (UniqueConstraint(
-        'id_guest',
-        'id_room',
-        'check_in',
-        name='booking_id_guest_id_room_check_in'),
+    __table_args__ = (
+        # FIXME: Prevent overlappings using dates as well
+        UniqueConstraint(
+            'id_guest',
+            'id_room',
+            'check_in',
+            name='booking_id_guest_id_room_check_in'),
+        # Never check out before checking in
+        CheckConstraint('check_in < check_out'),
     )
 
     # SQLAlchemy automatically creates the table column using the SERIAL type
@@ -44,22 +48,27 @@ class Booking(Base):
     id_guest = Column(Integer, ForeignKey('guest.id'))
     id_room = Column(Integer, ForeignKey('room.id'))
     reserved = Column(DateTime, server_default=func.now())
-    guests = Column(Integer)
+    guests = Column(Integer, default=1)
     check_in = Column(Date, index=True)
     check_out = Column(Date, index=True)
     checked_in = Column(DateTime)
     checked_out = Column(DateTime)
-    cancelled = Column(DateTime)
-    base_price = Column(Float)
-    taxes_percentage = Column(Float)
-    taxes_value = Column(Float)
-    total_price = Column(Float)
-    locator = Column(String(50), index=True, unique=True)
-    pin = Column(String(50))
+    cancelled = Column(DateTime, default=None)
+    base_price = Column(Float, default=0)
+    taxes_percentage = Column(Float, default=0)
+    taxes_value = Column(Float, default=0)
+    total_price = Column(Float, default=0)
+    locator = Column(String(50), nullable=False, index=True, unique=True)
+    pin = Column(String(50), nullable=False)
     status = Column(Enum(BookingStatus), default='New')
     meal_plan = Column(Enum(BookingMealPlan), default='BedAndBreakfast')
     additional_services = Column(HSTORE)
-    uuid = Column(String(255))
+    uuid = Column(
+        String(255),
+        nullable=False,
+        index=True,
+        unique=True,
+        comment='Unique code used to detect duplicates')
     deleted = Column(Date, default=None)
 
     guest = relationship('Guest')

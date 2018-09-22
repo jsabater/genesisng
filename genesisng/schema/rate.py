@@ -35,9 +35,9 @@ class Rate(Base):
         return "<Rate(id='%s', date_from='%s', date_to='%s', published='%s')>" % (
             self.id, self.date_from, self.date_to, self.published)
 
-    def __init__(self, date_from, date_to):
-        self.date_from = date_from
-        self.date_to = date_to
+    # def __init__(self, date_from, date_to):
+    #     self.date_from = date_from
+    #     self.date_to = date_to
 
     @hybrid_property
     def days(self):

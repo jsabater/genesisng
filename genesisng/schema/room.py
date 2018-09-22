@@ -37,11 +37,11 @@ class Room(Base):
         return "<Room(id='%s', number='%s', accommodates='%s')>" % (
             self.id, self.number, self.accommodates)
 
-    def __init__(self, sgl_beds, dbl_beds, floor_no, room_no):
-        self.sgl_beds = sgl_beds
-        self.dbl_beds = dbl_beds
-        self.floor_no = floor_no
-        self.room_no = room_no
+    # def __init__(self, sgl_beds, dbl_beds, floor_no, room_no):
+    #     self.sgl_beds = sgl_beds
+    #     self.dbl_beds = dbl_beds
+    #     self.floor_no = floor_no
+    #     self.room_no = room_no
 
     @hybrid_property
     def accommodates(self):

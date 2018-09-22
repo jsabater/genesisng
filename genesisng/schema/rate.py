@@ -4,7 +4,6 @@ from sqlalchemy import Column, Boolean, Integer, Float, Date
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
-from psycopg2.extras import DateRange
 from sqlalchemy.sql.elements import quoted_name
 
 
@@ -26,10 +25,10 @@ class Rate(Base):
     # SQLAlchemy automatically creates the table column using the SERIAL type
     # which triggers the creation of a sequence automatically.
     id = Column(Integer, primary_key=True)
-    date_from = Column(Date)
-    date_to = Column(Date)
-    base_price = Column(Float)
-    bed_price = Column(Float)
+    date_from = Column(Date, nullable=False)
+    date_to = Column(Date, nullable=False)
+    base_price = Column(Float, default=0)
+    bed_price = Column(Float, default=0)
     published = Column(Boolean, default=False)
 
     def __repr__(self):
@@ -41,5 +40,6 @@ class Rate(Base):
         self.date_to = date_to
 
     @hybrid_property
-    def date_range(self):
-        return DateRange(self.date_from, self.date_to)
+    def days(self):
+        """Return the number of days in the date range of this rate."""
+        return (self.date_to - self.date_from).days

@@ -12,20 +12,20 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class BookingStatus(enum.Enum):
-    New = 'New'
-    Pending = 'Pending'
-    Confirmed = 'Confirmed'
-    Cancelled = 'Cancelled'
-    Closed = 'Closed'
+    New = 1
+    Pending = 2
+    Confirmed = 3
+    Cancelled = 4
+    Closed = 5
 
 
 class BookingMealPlan(enum.Enum):
-    RoomOnly = 'RoomOnly'
-    BedAndBreakfast = 'BedAndBreakfast'
-    HalfBoard = 'HalfBoard'
-    FullBoard = 'FullBoard'
-    AllInclusive = 'AllInclusive'
-    Special = 'Special'
+    RoomOnly = 1
+    BedAndBreakfast = 2
+    HalfBoard = 3
+    FullBoard = 4
+    AllInclusive = 5
+    Special = 6
 
 
 class Booking(Base):

@@ -3,6 +3,7 @@ from base import Base
 from sqlalchemy import Column, Integer, Float, String, DateTime
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
 from uuid import uuid4
 
 
@@ -32,6 +33,8 @@ class Room(Base):
         unique=True,
         comment='Unique code used to link to images')
     deleted = Column(DateTime, default=None)
+
+    bookings = relationship('Booking', back_populates='room')
 
     def __repr__(self):
         return "<Room(id='%s', number='%s', accommodates='%s')>" % (

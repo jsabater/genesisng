@@ -3,6 +3,7 @@ from base import Base
 from sqlalchemy import Column, Integer, String, Date, DateTime
 from sqlalchemy import Index, Enum
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
 import enum
 
 # class Gender(str, enum.Enum):
@@ -65,6 +66,8 @@ class Guest(Base):
     home_phone = Column(String(50), default=None)
     mobile_phone = Column(String(50), default=None)
     deleted = Column(DateTime, index=True, default=None)
+
+    bookings = relationship('Booking', back_populates='guest')
 
     def __repr__(self):
         return "<Guest(id='%s', name='%s', surname='%s', email='%s')>" % (

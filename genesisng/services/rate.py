@@ -5,10 +5,9 @@ from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service, Integer, Boolean
 from genesisng.schema.rate import Rate
-from sqlalchemy import or_, and_, func
+from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from urlparse import parse_qs
-from datetime import datetime
 
 
 class Get(Service):
@@ -177,12 +176,7 @@ class List(Service):
         # Format: filters=field|operator|value (multiple)
         filters = []
 
-        # Fields projection is not allowed
-        # Format: fields=field (multiple)
-        # fields = []
-
-        # Search is not allowed
-        # search = None
+        # Fields projection and search are not allowed
 
         # Check for parameters in the query string
         qs = parse_qs(self.wsgi_environ['QUERY_STRING'])

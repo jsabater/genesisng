@@ -1,8 +1,11 @@
 # coding: utf8
+from __future__ import absolute_import, division
+from __future__ import print_function, unicode_literals
 import configparser
 from sqlalchemy import create_engine
 from genesisng.schema import *
-from genesisng.schema import Base
+from genesisng.schema.base import Base
+
 
 # Load configuration
 config = configparser.ConfigParser()

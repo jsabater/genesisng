@@ -5,6 +5,7 @@ from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service, Integer
 from genesisng.schema.guest import Guest
+from genesisng.schema.booking import Booking
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from urlparse import parse_qs
@@ -175,8 +176,8 @@ class List(Service):
     """Channel /genesisng/guests/list."""
 
     class SimpleIO:
-        input_optional = ('page', 'size', 'sort_by',
-                          'order_by', 'filters', 'search', 'fields')
+        input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters',
+                          'search', 'fields')
         output_optional = ('id', 'name', 'surname', 'gender', 'email',
                            'passport', 'birthdate', 'address1', 'address2',
                            'locality', 'postcode', 'province', 'country',
@@ -357,5 +358,33 @@ class List(Service):
                     Guest.__table__.columns[criteria].desc())
             query = query.offset(offset)
             query = query.limit(limit)
+            result = query.all()
+            self.response.payload[:] = result if result else []
+
+
+class Bookings(Service):
+    """Service class to get a list of all bookings from a guest."""
+    """Channel /genesisng/guests/get/{id}/bookings."""
+
+    class SimpleIO:
+        input_required = ('id_guest', 'id_booking')
+        # output_optional = ()
+        output_repeated = True
+        skip_empty_keys = True
+
+    def handle(self):
+        conn = self.user_config.genesisng.database.connection
+        id_guest = self.request.input.id_guest
+        id_booking = self.request.input.id_booking
+
+        # Execute query
+        with closing(self.outgoing.sql.get(conn).session()) as session:
+            query = session.query(func.count().over().label('count'))
+            query = query.add_entity(Guest)
+            query = query.add_entity(Booking)
+            query = query.filter(Booking.id_guest == Guest.id)
+            query = query.filter(Booking.id == id_booking)
+            query = query.filter(Booking.id_guest == id_guest)
+
             result = query.all()
             self.response.payload[:] = result if result else []

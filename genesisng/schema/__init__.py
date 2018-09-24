@@ -10,3 +10,4 @@ from . import booking
 
 
 __all__ = ['base', 'login', 'guest', 'room', 'rate', 'booking']
+

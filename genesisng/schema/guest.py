@@ -1,11 +1,10 @@
 # coding: utf8
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
-from base import Base
+from .base import Base
 from sqlalchemy import Column, Integer, String, Date, DateTime
 from sqlalchemy import Index, Enum
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
 import enum
 
 # class Gender(str, enum.Enum):
@@ -13,7 +12,7 @@ import enum
 #     Female: str = 'Female'
 
 
-class Gender(enum.Enum):
+class Gender(str, enum.Enum):
     Male = 1
     Female = 2
 
@@ -68,8 +67,6 @@ class Guest(Base):
     home_phone = Column(String(50), default=None)
     mobile_phone = Column(String(50), default=None)
     deleted = Column(DateTime, index=True, default=None)
-
-    bookings = relationship('Booking', back_populates='guest')
 
     def __repr__(self):
         return "<Guest(id='%s', name='%s', surname='%s', email='%s')>" % (

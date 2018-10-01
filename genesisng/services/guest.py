@@ -3,7 +3,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
-from zato.server.service import Service, Integer
+from zato.server.service import Service, Integer, Date, DateTime
 from genesisng.schema.guest import Guest
 from genesisng.schema.booking import Booking
 from sqlalchemy import or_, and_, func
@@ -14,18 +14,21 @@ from datetime import datetime
 
 class Get(Service):
     """Service class to get a guest by id."""
-    """Channel /genesisng/guests/get/{id}."""
+    """Channel /genesisng/guests/{id}/details."""
 
     class SimpleIO(object):
         input_required = ('id')
-        output_optional = ('id', 'name', 'surname', 'gender', 'email',
-                           'passport', 'birthdate', 'address1', 'address2',
+        output_optional = ('id', 'name',
+                           'surname', 'gender', 'email', 'passport',
+                           Date('birthdate'), 'address1', 'address2',
                            'locality', 'postcode', 'province', 'country',
-                           'home_phone', 'mobile_phone', 'deleted')
+                           'home_phone', 'mobile_phone', DateTime('deleted'))
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
+
+        self.logger.info("Executing /genesisng/guests/{id}/details")
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Guest).\
@@ -61,10 +64,17 @@ class Create(Service):
         conn = self.user_config.genesisng.database.connection
 
         p = self.request.input
-        guest = Guest(name=p.name, surname=p.surname, gender=p.gender,
-                      email=p.email, passport=p.passport, address1=p.address1,
-                      locality=p.locality, postcode=p.postcode,
-                      province=p.province, country=p.country)
+        guest = Guest(
+            name=p.name,
+            surname=p.surname,
+            gender=p.gender,
+            email=p.email,
+            passport=p.passport,
+            address1=p.address1,
+            locality=p.locality,
+            postcode=p.postcode,
+            province=p.province,
+            country=p.country)
         guest.address2 = p.get('address2', None)
         guest.birthdate = p.get('birthdate', None)
         guest.home_phone = p.get('home_phone', None)
@@ -77,7 +87,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = guest
                 url = self.user_config.genesisng.location.guests
-                self.response.headers['Location'] = '%s/%s' % (url, guest.id)
+                self.response.headers['Location'] = url.format(id, guest.id)
 
             except IntegrityError:
                 # Constraint prevents duplication of username or emails.
@@ -90,7 +100,7 @@ class Create(Service):
 
 class Delete(Service):
     """Service class to delete an existing guest."""
-    """Channel /genesisng/guests/delete/{id}"""
+    """Channel /genesisng/guests/{id}/delete"""
 
     class SimpleIO:
         input_required = (Integer('id'))
@@ -98,6 +108,8 @@ class Delete(Service):
     def handle(self):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
+
+        self.logger.info("Deleting guest with id: %s" % id_)
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Guest).\
@@ -116,7 +128,7 @@ class Delete(Service):
 
 class Update(Service):
     """Service class to update an existing guest."""
-    """Channel /genesisng/guests/update/{id}"""
+    """Channel /genesisng/guests/{id}/update"""
 
     class SimpleIO:
         input_required = ('id')
@@ -134,13 +146,22 @@ class Update(Service):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
         p = self.request.input
-        guest = Guest(id=id_, name=p.name, surname=p.surname, gender=p.gender,
-                      email=p.email, passport=p.passport,
-                      birthdate=p.birthdate, address1=p.address1,
-                      address2=p.address2, locality=p.locality,
-                      postcode=p.postcode, province=p.province,
-                      country=p.country, home_phone=p.home_phone,
-                      mobile_phone=p.mobile_phone)
+        guest = Guest(
+            id=id_,
+            name=p.name,
+            surname=p.surname,
+            gender=p.gender,
+            email=p.email,
+            passport=p.passport,
+            birthdate=p.birthdate,
+            address1=p.address1,
+            address2=p.address2,
+            locality=p.locality,
+            postcode=p.postcode,
+            province=p.province,
+            country=p.country,
+            home_phone=p.home_phone,
+            mobile_phone=p.mobile_phone)
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Guest).\
@@ -178,7 +199,7 @@ class List(Service):
     class SimpleIO:
         input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters',
                           'search', 'fields')
-        output_optional = ('id', 'name', 'surname', 'gender', 'email',
+        output_optional = ('count', 'id', 'name', 'surname', 'gender', 'email',
                            'passport', 'birthdate', 'address1', 'address2',
                            'locality', 'postcode', 'province', 'country',
                            'home_phone', 'mobile_phone', 'deleted')
@@ -338,19 +359,15 @@ class List(Service):
             for c in conditions:
                 query = query.filter(c)
             if search:
-                query = query.filter(or_(
-                    Guest.name.ilike(term),
-                    Guest.surname.ilike(term),
-                    Guest.email.ilike(term),
-                    Guest.address1.ilike(term),
-                    Guest.address2.ilike(term),
-                    Guest.address1.ilike(term),
-                    Guest.locality.ilike(term),
-                    Guest.postcode.ilike(term),
-                    Guest.province.ilike(term),
-                    Guest.home_phone.ilike(term),
-                    Guest.mobile_phone.ilike(term)
-                ))
+                query = query.filter(
+                    or_(
+                        Guest.name.ilike(term), Guest.surname.ilike(term),
+                        Guest.email.ilike(term), Guest.address1.ilike(term),
+                        Guest.address2.ilike(term), Guest.address1.ilike(term),
+                        Guest.locality.ilike(term), Guest.postcode.ilike(term),
+                        Guest.province.ilike(term),
+                        Guest.home_phone.ilike(term),
+                        Guest.mobile_phone.ilike(term)))
             if direction == 'asc':
                 query = query.order_by(Guest.__table__.columns[criteria].asc())
             else:
@@ -364,27 +381,35 @@ class List(Service):
 
 class Bookings(Service):
     """Service class to get a list of all bookings from a guest."""
-    """Channel /genesisng/guests/get/{id}/bookings."""
+    """Channel /genesisng/guests/{id}/bookings."""
 
     class SimpleIO:
-        input_required = ('id_guest', 'id_booking')
-        # output_optional = ()
+        input_required = ('id')
+        output_optional = ('count', 'id', 'id_guest', 'id_room',
+                           DateTime('reserved'), 'guests', Date('check_in'),
+                           Date('check_out'), DateTime('checked_in'),
+                           DateTime('checked_out'), DateTime('cancelled'),
+                           'base_price', 'taxes_percentage', 'taxes_value',
+                           'total_price', 'locator', 'pin', 'status',
+                           'meal_plan', 'additional_services', 'uuid',
+                           'deleted')
         output_repeated = True
         skip_empty_keys = True
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
-        id_guest = self.request.input.id_guest
-        id_booking = self.request.input.id_booking
+        id_ = self.request.input.id
+
+        self.logger.info("Executing /genesisng/guests/{id}/bookings")
 
         # Execute query
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(func.count().over().label('count'))
-            query = query.add_entity(Guest)
             query = query.add_entity(Booking)
-            query = query.filter(Booking.id_guest == Guest.id)
-            query = query.filter(Booking.id == id_booking)
-            query = query.filter(Booking.id_guest == id_guest)
-
+            query = query.filter(
+                and_(Guest.id == Booking.id_guest, Guest.deleted.is_(None),
+                     Booking.id_guest == id_))
             result = query.all()
+            for r in result:
+                self.logger.info(r)
             self.response.payload[:] = result if result else []

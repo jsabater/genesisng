@@ -4,4 +4,3 @@ from __future__ import print_function, unicode_literals
 
 __version__ = '0.1'
 __author__ = 'Jaume Sabater <jsabater@gmail.com>'
-

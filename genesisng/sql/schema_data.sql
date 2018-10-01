@@ -1873,7 +1873,7 @@ INSERT INTO booking (id_guest, id_room, reserved, guests, check_in, check_out, c
             (11, 1, '2016-01-25 14:43:00', 1, '2017-06-01', '2017-06-07', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAAK', '1234', 'Confirmed', 'BedAndBreakfast', '"PoolKit" => "1"', 'AAAAK'),
             (12, 2, '2016-01-25 14:43:00', 3, '2017-06-21', '2017-06-29', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAAL', '1234', 'Confirmed', 'BedAndBreakfast', '"PoolKit" => "1"', 'AAAAL'),
             (13, 3, '2016-01-25 14:43:00', 3, '2017-06-19', '2017-06-29', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAAM', '1234', 'Confirmed', 'BedAndBreakfast', '"PoolKit" => "1", "LateDinner" => "1"', 'AAAAM'),
-            (1, 4, '2016-01-25 14:43:00', 3, '2017-06-26', '2017-06-07', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAAN', '1234', 'Confirmed', 'BedAndBreakfast', '"PoolKit" => "1", "LateDinner" => "1"', 'AAAAN'),
+            (1, 4, '2016-01-25 14:43:00', 3, '2017-06-26', '2017-07-07', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAAN', '1234', 'Confirmed', 'BedAndBreakfast', '"PoolKit" => "1", "LateDinner" => "1"', 'AAAAN'),
             (2, 5, '2016-01-25 14:43:00', 3, '2017-08-07', '2017-08-08', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAAO', '1234', 'Confirmed', 'BedAndBreakfast', '"PoolKit" => "1", "LateDinner" => "1"', 'AAAAO'),
             (3, 1, '2016-01-25 14:43:00', 3, '2017-08-03', '2017-08-05', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAAP', '1234', 'Confirmed', 'BedAndBreakfast', '"PoolKit" => "1", "LateDinner" => "1"', 'AAAAP'),
             (4, 2, '2016-01-25 14:43:00', 3, '2017-08-02', '2017-08-12', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAAQ', '1234', 'Confirmed', 'BedAndBreakfast', '"PoolKit" => "1", "LateDinner" => "1"', 'AAAAQ'),

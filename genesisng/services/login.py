@@ -12,7 +12,7 @@ from urlparse import parse_qs
 
 class Get(Service):
     """Service class to get a login by id."""
-    """Channel /genesisng/logins/get/{id}."""
+    """Channel /genesisng/logins/{id}/details."""
 
     class SimpleIO:
         input_required = ('id')
@@ -93,7 +93,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = login
                 url = self.user_config.genesisng.location.logins
-                self.response.headers['Location'] = '%s/%s' % (url, login.id)
+                self.response.headers['Location'] = url.format(id, login.id)
 
             except IntegrityError:
                 # Constraint prevents duplication of username or emails.
@@ -106,7 +106,7 @@ class Create(Service):
 
 class Delete(Service):
     """Service class to delete an existing login."""
-    """Channel /genesisng/logins/delete/{id}."""
+    """Channel /genesisng/logins/{id}/delete."""
 
     class SimpleIO:
         input_required = (Integer('id'))
@@ -129,7 +129,7 @@ class Delete(Service):
 
 class Update(Service):
     """Service class to update an existing login."""
-    """Channel /genesisng/logins/update/{id}."""
+    """Channel /genesisng/logins/{id}/update."""
 
     class SimpleIO:
         input_required = ('id')

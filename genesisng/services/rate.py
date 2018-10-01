@@ -12,7 +12,7 @@ from urlparse import parse_qs
 
 class Get(Service):
     """Service class to get a rate by id."""
-    """Channel /genesisng/rates/get/{id}."""
+    """Channel /genesisng/rates/{id}/details."""
 
     class SimpleIO(object):
         input_required = ('id')
@@ -67,7 +67,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = rate
                 url = self.user_config.genesisng.location.rates
-                self.response.headers['Location'] = '%s/%s' % (url, rate.id)
+                self.response.headers['Location'] = url.format(id, rate.id)
 
             except IntegrityError:
                 # Constraint prevents overlapping dates.
@@ -80,7 +80,7 @@ class Create(Service):
 
 class Delete(Service):
     """Service class to delete an existing rate."""
-    """Channel /genesisng/rates/delete/{id}"""
+    """Channel /genesisng/rates/{id}/delete"""
 
     class SimpleIO:
         input_required = (Integer('id'))
@@ -103,7 +103,7 @@ class Delete(Service):
 
 class Update(Service):
     """Service class to update an existing rate."""
-    """Channel /genesisng/rates/update/{id}"""
+    """Channel /genesisng/rates/{id}/update"""
 
     class SimpleIO:
         input_required = ('id')

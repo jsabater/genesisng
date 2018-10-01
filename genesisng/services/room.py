@@ -13,7 +13,7 @@ from datetime import datetime
 
 class Get(Service):
     """Service class to get a room by id."""
-    """Channel /genesisng/rooms/get/{id}."""
+    """Channel /genesisng/rooms/{id}/details."""
 
     class SimpleIO:
         input_required = ('id')
@@ -69,7 +69,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = room
                 url = self.user_config.genesisng.location.rooms
-                self.response.headers['Location'] = '%s/%s' % (url, room.id)
+                self.response.headers['Location'] = url.format(id, room.id)
 
             except IntegrityError:
                 # Constraint prevents duplication of codes or room numbers.
@@ -82,7 +82,7 @@ class Create(Service):
 
 class Delete(Service):
     """Service class to delete an existing room."""
-    """Channel /genesisng/rooms/delete/{id}"""
+    """Channel /genesisng/rooms/{id}/delete"""
 
     class SimpleIO:
         input_required = (Integer('id'))
@@ -108,7 +108,7 @@ class Delete(Service):
 
 class Update(Service):
     """Service class to update an existing room."""
-    """Channel /genesisng/rooms/update/{id}"""
+    """Channel /genesisng/rooms/{id}/update"""
 
     class SimpleIO:
         input_required = ('id')

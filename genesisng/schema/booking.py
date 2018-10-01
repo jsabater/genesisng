@@ -2,17 +2,16 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 import enum
-from base import Base
+from .base import Base
 from sqlalchemy import Column, Integer, Float, String, Date, DateTime, func
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy import Enum
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 
 
-class BookingStatus(enum.Enum):
+class BookingStatus(str, enum.Enum):
     New = 1
     Pending = 2
     Confirmed = 3
@@ -20,7 +19,7 @@ class BookingStatus(enum.Enum):
     Closed = 5
 
 
-class BookingMealPlan(enum.Enum):
+class BookingMealPlan(str, enum.Enum):
     RoomOnly = 1
     BedAndBreakfast = 2
     HalfBoard = 3
@@ -72,16 +71,9 @@ class Booking(Base):
         comment='Unique code used to detect duplicates')
     deleted = Column(DateTime, default=None)
 
-    guest = relationship('Guest', backref='bookings')
-    room = relationship('Room', backref='bookings')
-
     def __repr__(self):
         return "<Booking(id='%s', nights='%s', guests='%s', check_in='%s', check_out='%s')>" % (
             self.id, self.nights, self.guests, self.check_in, self.check_out)
-
-    # def __init__(self, check_in, check_out):
-    #     self.check_in = check_in
-    #     self.check_out = check_out
 
     @hybrid_property
     def nights(self):

@@ -1,11 +1,10 @@
 # coding: utf8
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
-from base import Base
+from .base import Base
 from sqlalchemy import Column, Integer, Float, String, DateTime
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
 from uuid import uuid4
 
 
@@ -36,17 +35,9 @@ class Room(Base):
         comment='Unique code used to link to images')
     deleted = Column(DateTime, default=None)
 
-    bookings = relationship('Booking', back_populates='room')
-
     def __repr__(self):
         return "<Room(id='%s', number='%s', accommodates='%s')>" % (
             self.id, self.number, self.accommodates)
-
-    # def __init__(self, sgl_beds, dbl_beds, floor_no, room_no):
-    #     self.sgl_beds = sgl_beds
-    #     self.dbl_beds = dbl_beds
-    #     self.floor_no = floor_no
-    #     self.room_no = room_no
 
     @hybrid_property
     def accommodates(self):

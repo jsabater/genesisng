@@ -3,8 +3,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 import configparser
 from sqlalchemy import create_engine
-from genesisng.schema import *
-from genesisng.schema.base import Base
+from genesisng import schema
 
 
 # Load configuration
@@ -18,7 +17,7 @@ engine = create_engine(database_uri, echo=echo)
 connection = engine.connect()
 
 # Create schema
-Base.metadata.create_all(engine)
+schema.base.Base.metadata.create_all(engine)
 
 # Close connection
 connection.close()

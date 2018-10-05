@@ -17,18 +17,17 @@ class Get(Service):
     """Channel /genesisng/guests/{id}/details."""
 
     class SimpleIO(object):
-        input_required = ('id')
-        output_optional = ('id', 'name',
-                           'surname', 'gender', 'email', 'passport',
-                           Date('birthdate'), 'address1', 'address2',
-                           'locality', 'postcode', 'province', 'country',
-                           'home_phone', 'mobile_phone', DateTime('deleted'))
+        input_required = (Integer('id'))
+        output_required = ('id', 'name', 'surname', 'gender', 'email')
+        output_optional = ('passport', Date('birthdate'), 'address1',
+                           'address2', 'locality', 'postcode', 'province',
+                           'country', 'home_phone', 'mobile_phone',
+                           DateTime('deleted'))
+        skip_empty_keys = True
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
-
-        self.logger.info("Executing /genesisng/guests/{id}/details")
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Guest).\
@@ -48,15 +47,14 @@ class Create(Service):
     """Channel /genesisng/guests/create."""
 
     class SimpleIO:
-        input_required = ('name', 'surname', 'gender', 'email', 'passport',
-                          'address1', 'locality', 'postcode', 'province',
-                          'country')
-        input_optional = ('address2', 'birthdate', 'home_phone',
-                          'mobile_phone')
-        output_optional = ('id', 'name', 'surname', 'gender', 'email',
-                           'passport', 'birthdate', 'address1', 'address2',
-                           'locality', 'postcode', 'province', 'country',
-                           'home_phone', 'mobile_phone', 'deleted')
+        input_required = ('name', 'surname', 'gender', 'email')
+        input_optional = ('passport', 'address1', 'locality', 'postcode',
+                          'province', 'country')
+        output_required = ('id', 'name', 'surname', 'gender', 'email')
+        output_optional = ('passport', Date('birthdate'), 'address1',
+                           'address2', 'locality', 'postcode', 'province',
+                           'country', 'home_phone', 'mobile_phone')
+        skip_empty_keys = True
 
     def handle(self):
         # TODO: Use Cerberus to validate input?
@@ -131,15 +129,15 @@ class Update(Service):
     """Channel /genesisng/guests/{id}/update"""
 
     class SimpleIO:
-        input_required = ('id')
+        input_required = (Integer('id'))
         input_optional = ('name', 'surname', 'gender', 'email', 'passport',
                           'birthdate', 'address1', 'address2', 'locality',
                           'postcode', 'province', 'country', 'home_phone',
                           'mobile_phone')
-        output_optional = ('id', 'name', 'surname', 'gender', 'email',
-                           'passport', 'birthdate', 'address1', 'address2',
-                           'locality', 'postcode', 'province', 'country',
-                           'home_phone', 'mobile_phone', 'deleted')
+        output_required = ('id', 'name', 'surname', 'gender', 'email')
+        output_optional = ('passport', Date('birthdate'), 'address1',
+                           'address2', 'locality', 'postcode', 'province',
+                           'country', 'home_phone', 'mobile_phone')
         skip_empty_keys = True
 
     def handle(self):
@@ -197,14 +195,15 @@ class List(Service):
     """Channel /genesisng/guests/list."""
 
     class SimpleIO:
-        input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters',
-                          'search', 'fields')
-        output_optional = ('count', 'id', 'name', 'surname', 'gender', 'email',
-                           'passport', 'birthdate', 'address1', 'address2',
-                           'locality', 'postcode', 'province', 'country',
-                           'home_phone', 'mobile_phone', 'deleted')
-        output_repeated = True
+        input_optional = (Integer('page'), Integer('size'), 'sort_by',
+                          'order_by', 'filters', 'search', 'fields')
+        output_required = ('id', 'name', 'surname', 'gender', 'email')
+        output_optional = ('passport', Date('birthdate'), 'address1',
+                           'address2', 'locality', 'postcode', 'province',
+                           'country', 'home_phone', 'mobile_phone',
+                           DateTime('deleted'))
         skip_empty_keys = True
+        output_repeated = True
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -385,6 +384,8 @@ class Bookings(Service):
 
     class SimpleIO:
         input_required = ('id')
+        # TODO: Use ListOfDicts type to get return a JSON with the guest and
+        # his/her bookings as a list of dictionaries
         output_optional = ('count', 'id', 'id_guest', 'id_room',
                            DateTime('reserved'), 'guests', Date('check_in'),
                            Date('check_out'), DateTime('checked_in'),
@@ -413,3 +414,35 @@ class Bookings(Service):
             for r in result:
                 self.logger.info(r)
             self.response.payload[:] = result if result else []
+
+
+class Restore(Service):
+    """Service class to restore a deleted an existing guest."""
+    """Channel /genesisng/guests/{id}/restore"""
+
+    class SimpleIO:
+        input_required = (Integer('id'))
+        output_required = ('id', 'name', 'surname', 'gender', 'email')
+        output_optional = ('passport', Date('birthdate'), 'address1',
+                           'address2', 'locality', 'postcode', 'province',
+                           'country', 'home_phone', 'mobile_phone')
+        skip_empty_keys = True
+
+    def handle(self):
+        conn = self.user_config.genesisng.database.connection
+        id_ = self.request.input.id
+
+        with closing(self.outgoing.sql.get(conn).session()) as session:
+            result = session.query(Guest).\
+                filter(and_(Guest.id == id_, Guest.deleted.is_(None))).\
+                one_or_none()
+
+            if result:
+                # Update dictionary keys
+                result.deleted = None
+                session.commit()
+                self.response.status_code = OK
+                self.response.payload = result
+            else:
+                self.response.status_code = NOT_FOUND
+                self.response.payload = ''

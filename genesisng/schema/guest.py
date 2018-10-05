@@ -52,10 +52,10 @@ class Guest(Base):
     # consumption.
     # https://www.postgresql.org/docs/current/static/indexes-ordering.html
     id = Column(Integer, primary_key=True)
-    name = Column(String(50), index=True)
-    surname = Column(String(50), index=True)
+    name = Column(String(50), index=True, nullable=False)
+    surname = Column(String(50), index=True, nullable=False)
     gender = Column(Enum(Gender), index=True, default='Male')
-    email = Column(String(255), index=True, unique=True)
+    email = Column(String(255), index=True, unique=True, nullable=False)
     passport = Column(String(255))
     birthdate = Column(Date, index=True, default=None)
     address1 = Column(String(50))

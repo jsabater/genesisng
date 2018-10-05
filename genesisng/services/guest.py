@@ -3,7 +3,8 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
-from zato.server.service import Service, Integer, Date, DateTime
+from zato.server.service import Service
+from zato.server.service import Integer, Date, DateTime, Dict, ListOfDicts
 from genesisng.schema.guest import Guest
 from genesisng.schema.booking import Booking
 from sqlalchemy import or_, and_, func
@@ -21,8 +22,7 @@ class Get(Service):
         output_required = ('id', 'name', 'surname', 'gender', 'email')
         output_optional = ('passport', Date('birthdate'), 'address1',
                            'address2', 'locality', 'postcode', 'province',
-                           'country', 'home_phone', 'mobile_phone',
-                           DateTime('deleted'))
+                           'country', 'home_phone', 'mobile_phone')
         skip_empty_keys = True
 
     def handle(self):
@@ -383,17 +383,24 @@ class Bookings(Service):
     """Channel /genesisng/guests/{id}/bookings."""
 
     class SimpleIO:
-        input_required = ('id')
+        input_required = (Integer('id'))
         # TODO: Use ListOfDicts type to get return a JSON with the guest and
         # his/her bookings as a list of dictionaries
-        output_optional = ('count', 'id', 'id_guest', 'id_room',
-                           DateTime('reserved'), 'guests', Date('check_in'),
-                           Date('check_out'), DateTime('checked_in'),
-                           DateTime('checked_out'), DateTime('cancelled'),
-                           'base_price', 'taxes_percentage', 'taxes_value',
-                           'total_price', 'locator', 'pin', 'status',
-                           'meal_plan', 'additional_services', 'uuid',
-                           'deleted')
+        output_required = ('count', 'id', 'name', 'surname', 'gender', 'email')
+        output_optional = ('passport', Date('birthdate'), 'address1',
+                           'address2', 'locality', 'postcode', 'province',
+                           'country', 'home_phone', 'mobile_phone',
+                           ListOfDicts('bookings', 'id', 'id_guest', 'id_room',
+                                       DateTime('reserved'), 'guests',
+                                       Date('check_in'),
+                                       Date('check_out'),
+                                       DateTime('checked_in'),
+                                       DateTime('checked_out'),
+                                       DateTime('cancelled'),
+                                       'base_price', 'taxes_percentage',
+                                       'taxes_value', 'total_price', 'locator',
+                                       'pin', 'status', 'meal_plan',
+                                       Dict('additional_services'), 'uuid'))
         output_repeated = True
         skip_empty_keys = True
 
@@ -401,19 +408,34 @@ class Bookings(Service):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
 
-        self.logger.info("Executing /genesisng/guests/{id}/bookings")
+        result = {}
 
-        # Execute query
+        # Get guest data
+        input_data = {'id': id_}
+        response = self.invoke('guest.get', input_data, as_bunch=True)
+        self.logger.info(response)
+
+        # TODO: Check we have a guest or return empty
+
+        # Get list of bookings
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(func.count().over().label('count'))
             query = query.add_entity(Booking)
             query = query.filter(
                 and_(Guest.id == Booking.id_guest, Guest.deleted.is_(None),
                      Booking.id_guest == id_))
-            result = query.all()
-            for r in result:
-                self.logger.info(r)
-            self.response.payload[:] = result if result else []
+            bookings = query.all()
+
+            room_ids = []
+
+            for b in bookings:
+                room_ids.append(b.id_room)
+                self.logger.info(b)
+
+        # Get room data
+        # Invoke room.list
+
+        self.response.payload[:] = result if result else []
 
 
 class Restore(Service):

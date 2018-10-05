@@ -179,9 +179,9 @@ class List(Service):
     """Channel /genesisng/logins/list."""
 
     class SimpleIO:
-        input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters',
-                          'search', 'fields')
-        output_required = ('id', 'username')
+        input_optional = (Integer('page'), Integer('size'), 'sort_by',
+                          'order_by', 'filters', 'search', 'fields')
+        output_required = ('count', 'id', 'username')
         output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
         output_repeated = True
         skip_empty_keys = True

@@ -15,9 +15,10 @@ class Get(Service):
     """Channel /genesisng/logins/{id}/details."""
 
     class SimpleIO:
-        input_required = ('id')
-        output_optional = ('id', 'username', 'password', 'name', 'surname',
-                           'email', 'is_admin')
+        input_required = (Integer('id'))
+        output_required = ('id', 'username')
+        output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
+        skip_empty_keys = True
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -40,8 +41,9 @@ class Validate(Service):
 
     class SimpleIO:
         input_required = ('username', AsIs('password'))
-        output_optional = ('id', 'username', 'password', 'name', 'surname',
-                           'email', 'is_admin')
+        output_required = ('id', 'username')
+        output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
+        skip_empty_keys = True
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -67,10 +69,11 @@ class Create(Service):
     """Channel /genesisng/logins/create."""
 
     class SimpleIO:
-        input_required = ('username', 'password', 'name', 'surname', 'email')
-        input_optional = (Boolean('is_admin'))
-        output_optional = ('id', 'username', 'password', 'name', 'surname',
-                           'email', 'is_admin')
+        input_required = ('username', 'password')
+        input_optional = ('name', 'surname', 'email', Boolean('is_admin'))
+        output_required = ('id', 'username')
+        output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
+        skip_empty_keys = True
 
     def handle(self):
         # TODO: Use Cerberus to validate input?
@@ -132,13 +135,11 @@ class Update(Service):
     """Channel /genesisng/logins/{id}/update."""
 
     class SimpleIO:
-        input_required = ('id')
+        input_required = (Integer('id'))
         input_optional = ('username', 'password', 'name', 'surname', 'email',
                           'is_admin')
-        # XXX: Should output_required be output_optional given we can return
-        # NOT_FOUND?
-        output_required = ('id', 'username', 'password', 'name', 'surname',
-                           'email', 'is_admin')
+        output_required = ('id', 'username')
+        output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
         skip_empty_keys = True
 
     def handle(self):
@@ -180,8 +181,8 @@ class List(Service):
     class SimpleIO:
         input_optional = ('page', 'size', 'sort_by', 'order_by', 'filters',
                           'search', 'fields')
-        output_optional = ('id', 'username', 'password', 'name', 'surname',
-                           'email', 'is_admin')
+        output_required = ('id', 'username')
+        output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
         output_repeated = True
         skip_empty_keys = True
 

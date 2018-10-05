@@ -25,8 +25,8 @@ class Login(Base):
     # consumption.
     # https://www.postgresql.org/docs/current/static/indexes-ordering.html
     id = Column(Integer, primary_key=True)
-    username = Column(String(20), index=True, unique=True)
-    password = Column(String(255))
+    username = Column(String(20), index=True, unique=True, nullable=False)
+    password = Column(String(255), nullable=False)
     name = Column(String(50), index=True)
     surname = Column(String(50), index=True)
     email = Column(String(255), index=True, unique=True)

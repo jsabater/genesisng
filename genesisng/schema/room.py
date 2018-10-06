@@ -5,7 +5,17 @@ from .base import Base
 from sqlalchemy import Column, Integer, Float, String, DateTime
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
-from uuid import uuid4
+from hashids import hashids
+
+
+def generate_code(context):
+    # TODO: Add a salt value?
+    # hashids = Hashids(salt='this is my salt 1')
+    # hashid = hashids.encode(value)
+    return hashids.encode(context.current_parameters.get('floor_no'),
+                          context.current_parameters.get('room_no'),
+                          context.current_parameters.get('sgl_beds'),
+                          context.current_parameters.get('dbl_beds'))
 
 
 class Room(Base):
@@ -24,13 +34,13 @@ class Room(Base):
     floor_no = Column(Integer, nullable=False)
     room_no = Column(Integer, nullable=False)
     name = Column(String(100), index=True)
-    sgl_beds = Column(Integer, default=0, index=True)
-    dbl_beds = Column(Integer, default=0, index=True)
+    sgl_beds = Column(Integer, nullable=False, default=0, index=True)
+    dbl_beds = Column(Integer, nullable=False, default=0, index=True)
     supplement = Column(Float, nullable=False, default=0)
     code = Column(
-        String(20),
+        String(32),
         nullable=False,
-        default=uuid4(),
+        default=generate_code,
         unique=True,
         comment='Unique code used to link to images')
     deleted = Column(DateTime, default=None)

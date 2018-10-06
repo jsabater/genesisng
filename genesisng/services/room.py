@@ -3,7 +3,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
-from zato.server.service import Service, Integer
+from zato.server.service import Service, Integer, Float
 from genesisng.schema.room import Room
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
@@ -16,10 +16,11 @@ class Get(Service):
     """Channel /genesisng/rooms/{id}/details."""
 
     class SimpleIO:
-        input_required = ('id')
-        output_optional = ('id', 'floor_no', 'room_no', 'name', 'sgl_beds',
-                           'dbl_beds', 'supplement', 'code', 'accommodates',
-                           'number', 'deleted')
+        input_required = (Integer('id'))
+        output_required = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
+                           'supplement', 'code')
+        output_optional = ('name', 'accommodates', 'number')
+        skip_empty_keys = True
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -30,8 +31,6 @@ class Get(Service):
                 filter(and_(Room.id == id_, Room.deleted.is_(None))).\
                 one_or_none()
 
-            # FIXME: hybrid properties accommodates and number are not being
-            # returned as part of the payload.
             if result:
                 self.response.status_code = OK
                 self.response.payload = result
@@ -46,11 +45,12 @@ class Create(Service):
 
     class SimpleIO:
         input_required = ('floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
-                          'supplement', 'code')
+                          'supplement')
         input_optional = ('name')
-        output_optional = ('id', 'floor_no', 'room_no', 'name', 'sgl_beds',
-                           'dbl_beds', 'supplement', 'code', 'accommodates',
-                           'number', 'deleted')
+        output_required = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
+                           'supplement', 'code')
+        output_optional = ('name', 'accommodates', 'number')
+        skip_empty_keys = True
 
     def handle(self):
         # TODO: Use Cerberus to validate input?
@@ -75,7 +75,7 @@ class Create(Service):
                 # Constraint prevents duplication of codes or room numbers.
                 session.rollback()
                 self.response.status_code = CONFLICT
-                # TODO: Return well-formed error response
+                # TODO: Return well-formed error response?
                 # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
                 self.response.payload = ''
 
@@ -111,12 +111,13 @@ class Update(Service):
     """Channel /genesisng/rooms/{id}/update"""
 
     class SimpleIO:
-        input_required = ('id')
-        input_optional = ('floor_no', 'room_no', 'name', 'sgl_beds',
-                          'dbl_beds', 'supplement', 'code')
-        output_optional = ('id', 'floor_no', 'room_no', 'name', 'sgl_beds',
-                           'dbl_beds', 'supplement', 'code', 'accommodates',
-                           'number', 'deleted')
+        input_required = (Integer('id'))
+        input_optional = (Integer('floor_no'), Integer('room_no'), 'name',
+                          Integer('sgl_beds'), Integer('dbl_beds'),
+                          Float('supplement'), 'code')
+        output_required = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
+                           'supplement', 'code')
+        output_optional = ('name', 'accommodates', 'number')
         skip_empty_keys = True
 
     def handle(self):
@@ -154,13 +155,13 @@ class List(Service):
     """Channel /genesisng/rooms/list."""
 
     class SimpleIO:
-        input_optional = ('page', 'size', 'sort_by',
+        input_optional = (Integer('page'), Integer('size'), 'sort_by',
                           'order_by', 'filters', 'search', 'fields')
-        output_optional = ('id', 'floor_no', 'room_no', 'name', 'sgl_beds',
-                           'dbl_beds', 'supplement', 'code', 'accommodates',
-                           'number', 'deleted')
-        output_repeated = True
+        output_required = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
+                           'supplement', 'code')
+        output_optional = ('name', 'accommodates', 'number')
         skip_empty_keys = True
+        output_repeated = True
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection

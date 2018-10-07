@@ -4,7 +4,8 @@ from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service
-from zato.server.service import Integer, Date, DateTime, Dict, ListOfDicts
+from zato.server.service import Integer, Date, DateTime
+# from zato.server.service import Dict, ListOfDicts
 from genesisng.schema.guest import Guest
 from genesisng.schema.booking import Booking
 from sqlalchemy import or_, and_, func

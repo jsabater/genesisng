@@ -108,8 +108,6 @@ class Delete(Service):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
 
-        self.logger.info("Deleting guest with id: %s" % id_)
-
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Guest).\
                 filter(and_(Guest.id == id_, Guest.deleted.is_(None))).\
@@ -429,7 +427,7 @@ class Bookings(Service):
             query = query.add_entity(Booking)
             query = query.filter(
                 and_(Guest.id == Booking.id_guest, Guest.deleted.is_(None),
-                     Booking.id_guest == id_))
+                     Booking.id_guest == id_, Booking.deleted.is_(None)))
             bookings = query.all()
 
             room_ids = []

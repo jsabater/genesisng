@@ -380,6 +380,7 @@ class List(Service):
 
 class Bookings(Service):
     """Service class to get a list of all bookings from a guest."""
+    """Includes the guest details and the list of bookings and rooms."""
     """Channel /genesisng/guests/{id}/bookings."""
 
     class SimpleIO:
@@ -387,20 +388,20 @@ class Bookings(Service):
         # TODO: Use ListOfDicts type to get return a JSON with the guest and
         # his/her bookings as a list of dictionaries
         output_required = ('count', 'id', 'name', 'surname', 'gender', 'email')
-        output_optional = ('passport', Date('birthdate'), 'address1',
-                           'address2', 'locality', 'postcode', 'province',
-                           'country', 'home_phone', 'mobile_phone',
-                           ListOfDicts('bookings', 'id', 'id_guest', 'id_room',
-                                       DateTime('reserved'), 'guests',
-                                       Date('check_in'),
-                                       Date('check_out'),
-                                       DateTime('checked_in'),
-                                       DateTime('checked_out'),
-                                       DateTime('cancelled'),
-                                       'base_price', 'taxes_percentage',
-                                       'taxes_value', 'total_price', 'locator',
-                                       'pin', 'status', 'meal_plan',
-                                       Dict('additional_services'), 'uuid'))
+        # output_optional = ('passport', Date('birthdate'), 'address1',
+        #                    'address2', 'locality', 'postcode', 'province',
+        #                    'country', 'home_phone', 'mobile_phone',
+        #                    ListOfDicts('bookings', 'id', 'id_guest', 'id_room',
+        #                                DateTime('reserved'), 'guests',
+        #                                Date('check_in'),
+        #                                Date('check_out'),
+        #                                DateTime('checked_in'),
+        #                                DateTime('checked_out'),
+        #                                DateTime('cancelled'),
+        #                                'base_price', 'taxes_percentage',
+        #                                'taxes_value', 'total_price', 'locator',
+        #                                'pin', 'status', 'meal_plan',
+        #                                Dict('additional_services'), 'uuid'))
         output_repeated = True
         skip_empty_keys = True
 
@@ -416,8 +417,12 @@ class Bookings(Service):
         self.logger.info(response)
 
         # TODO: Check we have a guest or return empty
+        if response:
+            result = response
 
         # Get list of bookings
+        # TODO: Invoke bookings.list
+        result.bookings = []
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(func.count().over().label('count'))
             query = query.add_entity(Booking)
@@ -429,12 +434,21 @@ class Bookings(Service):
             room_ids = []
 
             for b in bookings:
-                room_ids.append(b.id_room)
+                result.bookings.append(b)
                 self.logger.info(b)
+                room_ids.append(b.id_room)
 
         # Get room data
-        # Invoke room.list
+        result.rooms = []
+        input_data = {'filters': []}
+        for r in room_ids:
+            input_data.filters.append('id|eq|%s' % r)
+        response = self.invoke('room.list', input_data, as_bunch=True)
+        self.logger.info(response)
+        for r in response:
+            result.rooms.append(r)
 
+        # Return dictinary with guest, bookings and rooms
         self.response.payload[:] = result if result else []
 
 

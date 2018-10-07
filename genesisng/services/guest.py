@@ -470,11 +470,11 @@ class Restore(Service):
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Guest).\
-                filter(and_(Guest.id == id_, Guest.deleted.is_(None))).\
+                filter(and_(Guest.id == id_, Guest.deleted.isnot(None))).\
                 one_or_none()
 
             if result:
-                # Update dictionary keys
+                # Update dictionary key
                 result.deleted = None
                 session.commit()
                 self.response.status_code = OK

@@ -2,11 +2,15 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 import enum
+from uuid import uuid4
+# from uuid import uuid4
 from .base import Base
 from sqlalchemy import Column, Integer, Float, String, Date, DateTime, func
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.dialects.postgresql import HSTORE
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Enum
+# from sqlalchemy import text
 from sqlalchemy import ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -33,11 +37,8 @@ class Booking(Base):
     __rels__ = []
     __table_args__ = (
         # FIXME: Prevent overlappings using dates as well
-        UniqueConstraint(
-            'id_guest',
-            'id_room',
-            'check_in',
-            name='booking_id_guest_id_room_check_in'),
+        UniqueConstraint('id_guest', 'id_room', 'check_in',
+                         name='booking_id_guest_id_room_check_in'),
         # Never check out before checking in
         CheckConstraint('check_in < check_out'),
     )
@@ -47,28 +48,27 @@ class Booking(Base):
     id = Column(Integer, primary_key=True)
     id_guest = Column(Integer, ForeignKey('guest.id'))
     id_room = Column(Integer, ForeignKey('room.id'))
-    reserved = Column(DateTime, server_default=func.now())
-    guests = Column(Integer, default=1)
-    check_in = Column(Date, index=True)
-    check_out = Column(Date, index=True)
+    reserved = Column(DateTime, nullable=False, server_default=func.now())
+    guests = Column(Integer, nullable=False, default=1)
+    check_in = Column(Date, nullable=False, index=True)
+    check_out = Column(Date, nullable=False, index=True)
     checked_in = Column(DateTime)
     checked_out = Column(DateTime)
     cancelled = Column(DateTime, default=None)
-    base_price = Column(Float, default=0)
-    taxes_percentage = Column(Float, default=0)
-    taxes_value = Column(Float, default=0)
-    total_price = Column(Float, default=0)
+    base_price = Column(Float, nullable=False, default=0)
+    taxes_percentage = Column(Float, nullable=False, default=0)
+    taxes_value = Column(Float, nullable=False, default=0)
+    total_price = Column(Float, nullable=False, default=0)
     locator = Column(String(50), nullable=False, index=True, unique=True)
     pin = Column(String(50), nullable=False)
-    status = Column(Enum(BookingStatus), default='New')
-    meal_plan = Column(Enum(BookingMealPlan), default='BedAndBreakfast')
-    additional_services = Column(HSTORE)
-    uuid = Column(
-        String(255),
-        nullable=False,
-        index=True,
-        unique=True,
-        comment='Unique code used to detect duplicates')
+    status = Column(Enum(BookingStatus), nullable=False, default='New')
+    meal_plan = Column(Enum(BookingMealPlan), nullable=False,
+                       default='BedAndBreakfast')
+    additional_services = Column(HSTORE, default={})
+    uuid = Column(UUID(as_uuid=True), nullable=False, index=True, unique=True,
+                  # server_default=text('uuid_generate_v4()'),
+                  default=uuid4,
+                  comment='Unique code used to detect duplicates')
     deleted = Column(DateTime, default=None)
 
     def __repr__(self):

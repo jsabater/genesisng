@@ -276,6 +276,7 @@ class Update(Service):
 class List(Service):
     """Service class to get a list of all bookings in the system."""
     """Channel /genesisng/bookings/list."""
+    """Search is not allowed."""
 
     class SimpleIO:
         input_optional = (Integer('page'), Integer('size'), 'sort_by',
@@ -315,9 +316,6 @@ class List(Service):
         # Fields projection is optional
         # Format: fields=field (multiple)
         fields = []
-
-        # Search is not allowed
-        search = None
 
         # Check for parameters in the query string
         qs = parse_qs(self.wsgi_environ['QUERY_STRING'])

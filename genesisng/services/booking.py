@@ -6,7 +6,7 @@ from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service
 from zato.server.service import Integer, Date, DateTime, Dict
 from genesisng.schema.booking import Booking
-from sqlalchemy import or_, and_, func
+from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
 from urlparse import parse_qs
 from datetime import datetime

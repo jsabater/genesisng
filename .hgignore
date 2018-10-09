@@ -1,4 +1,15 @@
 syntax: glob
+
+# Compiled Python modules
 *.pyc
+
+# Sublime Text editor project files
 *.sublime-project
 *.sublime-workspace
+
+# Setuptools distribution folder
+/dist/
+
+# Python egg metadata, regenerated from source files by setuptools
+*.egg-info
+

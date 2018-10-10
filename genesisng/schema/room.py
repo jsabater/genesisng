@@ -5,7 +5,7 @@ from .base import Base
 from sqlalchemy import Column, Integer, Float, String, DateTime
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
-from hashids import hashids
+import hashids
 
 
 def generate_code(context):

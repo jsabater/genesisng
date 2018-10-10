@@ -180,8 +180,9 @@ class List(Service):
     class SimpleIO:
         input_optional = (Integer('page'), Integer('size'), 'sort_by',
                           'order_by', 'filters', 'search', 'fields')
-        output_required = ('count', 'id', 'username')
-        output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
+        output_required = ('count', )
+        output_optional = ('id', 'username', 'password', 'name', 'surname',
+                           'email', 'is_admin')
         output_repeated = True
         skip_empty_keys = True
 

@@ -15,7 +15,7 @@ class Get(Service):
     """Channel /genesisng/logins/{id}/get."""
 
     class SimpleIO:
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
         output_required = ('id', 'username')
         output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
         skip_empty_keys = True
@@ -69,8 +69,9 @@ class Create(Service):
     """Channel /genesisng/logins/create."""
 
     class SimpleIO:
-        input_required = ('username', 'password')
-        input_optional = ('name', 'surname', 'email', Boolean('is_admin'))
+        input_required = ('username', AsIs('password'))
+        input_optional = ('name', 'surname', 'email',
+                          Boolean('is_admin', default=False))
         output_required = ('id', 'username')
         output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
         skip_empty_keys = True
@@ -86,8 +87,8 @@ class Create(Service):
             password=p.password,
             name=p.name,
             surname=p.surname,
-            email=p.email)
-        login.is_admin = p.get('is_admin', False)
+            email=p.email,
+            is_admin=p.is_admin)
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             try:
@@ -96,7 +97,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = login
                 url = self.user_config.genesisng.location.logins
-                self.response.headers['Location'] = url.format(id, login.id)
+                self.response.headers['Location'] = url.format(id=login.id)
 
             except IntegrityError:
                 # Constraint prevents duplication of username or emails.
@@ -112,7 +113,7 @@ class Delete(Service):
     """Channel /genesisng/logins/{id}/delete."""
 
     class SimpleIO:
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -135,9 +136,9 @@ class Update(Service):
     """Channel /genesisng/logins/{id}/update."""
 
     class SimpleIO:
-        input_required = (Integer('id'))
-        input_optional = ('username', 'password', 'name', 'surname', 'email',
-                          'is_admin')
+        input_required = (Integer('id'),)
+        input_optional = ('username', AsIs('password'), 'name', 'surname',
+                          'email', Boolean('is_admin'))
         output_required = ('id', 'username')
         output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
         skip_empty_keys = True

@@ -12,7 +12,7 @@ from urlparse import parse_qs
 
 class Get(Service):
     """Service class to get a rate by id."""
-    """Channel /genesisng/rates/{id}/details."""
+    """Channel /genesisng/rates/{id}/get."""
 
     class SimpleIO(object):
         input_required = ('id')

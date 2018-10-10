@@ -16,7 +16,7 @@ from datetime import datetime
 
 class Get(Service):
     """Service class to get a guest by id."""
-    """Channel /genesisng/guests/{id}/details."""
+    """Channel /genesisng/guests/{id}/get."""
 
     class SimpleIO(object):
         input_required = (Integer('id'))

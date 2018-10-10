@@ -19,7 +19,7 @@ class Get(Service):
     """Channel /genesisng/guests/{id}/get."""
 
     class SimpleIO(object):
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
         output_required = ('id', 'name', 'surname', 'gender', 'email')
         output_optional = ('passport', Date('birthdate'), 'address1',
                            'address2', 'locality', 'postcode', 'province',
@@ -102,7 +102,7 @@ class Delete(Service):
     """Channel /genesisng/guests/{id}/delete"""
 
     class SimpleIO:
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -128,7 +128,7 @@ class Update(Service):
     """Channel /genesisng/guests/{id}/update"""
 
     class SimpleIO:
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
         input_optional = ('name', 'surname', 'gender', 'email', 'passport',
                           'birthdate', 'address1', 'address2', 'locality',
                           'postcode', 'province', 'country', 'home_phone',
@@ -383,7 +383,7 @@ class Bookings(Service):
     """Channel /genesisng/guests/{id}/bookings."""
 
     class SimpleIO:
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
         # TODO: Use ListOfDicts type to get return a JSON with the guest and
         # his/her bookings as a list of dictionaries
         output_required = ('count', 'id', 'name', 'surname', 'gender', 'email')
@@ -456,7 +456,7 @@ class Restore(Service):
     """Channel /genesisng/guests/{id}/restore"""
 
     class SimpleIO:
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
         output_required = ('id', 'name', 'surname', 'gender', 'email')
         output_optional = ('passport', Date('birthdate'), 'address1',
                            'address2', 'locality', 'postcode', 'province',

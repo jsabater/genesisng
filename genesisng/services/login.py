@@ -147,26 +147,24 @@ class Update(Service):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
         p = self.request.input
-        login = Login(
-            id=id_,
-            username=p.username,
-            password=p.password,
-            name=p.name,
-            surname=p.surname,
-            email=p.email,
-            is_admin=p.is_admin)
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Login).filter(Login.id == id_).one_or_none()
 
             if result:
                 # Update dictionary keys
-                result.username = login.username
-                result.password = login.password
-                result.name = login.name
-                result.surname = login.surname
-                result.email = login.email
-                result.is_admin = login.is_admin
+                if p.username:
+                    result.username = p.username
+                if p.password:
+                    result.password = p.password
+                if p.name:
+                    result.name = p.name
+                if p.surname:
+                    result.surname = p.surname
+                if p.email:
+                    result.email = p.email
+                if p.is_admin != '':
+                    result.is_admin = p.is_admin
                 session.commit()
                 self.response.status_code = OK
                 self.response.payload = result

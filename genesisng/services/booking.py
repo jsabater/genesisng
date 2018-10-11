@@ -283,12 +283,13 @@ class List(Service):
     class SimpleIO:
         input_optional = (Integer('page'), Integer('size'), 'sort_by',
                           'order_by', 'filters', 'fields')
-        output_required = ('id', 'id_guest', 'id_room', DateTime('reserved'),
+        output_required = ('count',)
+        output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
                            'guests', Date('check_in'), Date('check_out'),
                            'base_price', 'taxes_percentage', 'taxes_value',
                            'total_price', 'locator', 'pin', 'status',
-                           'meal_plan', Dict('additional_services'), 'uuid')
-        output_optional = (DateTime('checked_in'), DateTime('checked_out'),
+                           'meal_plan', Dict('additional_services'), 'uuid',
+                           DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
         output_repeated = True
@@ -434,7 +435,8 @@ class List(Service):
             for c in conditions:
                 query = query.filter(c)
             if direction == 'asc':
-                query = query.order_by(Booking.__table__.columns[criteria].asc())
+                query = query.order_by(Booking.__table__.columns[criteria].
+                                       asc())
             else:
                 query = query.order_by(
                     Booking.__table__.columns[criteria].desc())

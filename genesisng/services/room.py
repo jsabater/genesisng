@@ -47,7 +47,7 @@ class Create(Service):
         input_required = (Integer('floor_no'), Integer('room_no'),
                           Integer('sgl_beds'), Integer('dbl_beds'),
                           Float('supplement'))
-        input_optional = ('name')
+        input_optional = ('name',)
         output_required = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
                            'supplement', 'code')
         output_optional = ('name', 'accommodates', 'number')
@@ -158,9 +158,10 @@ class List(Service):
     class SimpleIO:
         input_optional = (Integer('page'), Integer('size'), 'sort_by',
                           'order_by', 'filters', 'search', 'fields')
-        output_required = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
-                           'supplement', 'code')
-        output_optional = ('name', 'accommodates', 'number')
+        output_required = ('count',)
+        output_optional = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
+                           'supplement', 'code''name', 'accommodates',
+                           'number')
         skip_empty_keys = True
         output_repeated = True
 

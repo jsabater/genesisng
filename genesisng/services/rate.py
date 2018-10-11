@@ -3,7 +3,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
-from zato.server.service import Service, Integer, Boolean
+from zato.server.service import Service, Integer, Float, Date, Boolean
 from genesisng.schema.rate import Rate
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
@@ -15,7 +15,7 @@ class Get(Service):
     """Channel /genesisng/rates/{id}/get."""
 
     class SimpleIO(object):
-        input_required = ('id')
+        input_required = (Integer('id'),)
         output_optional = ('id', 'date_from', 'date_to', 'base_price',
                            'bed_price', 'published', 'days')
 
@@ -41,7 +41,8 @@ class Create(Service):
     """Channel /genesisng/rates/create."""
 
     class SimpleIO:
-        input_required = ('date_from', 'date_to', 'base_price', 'bed_price')
+        input_required = (Date('date_from'), Date('date_to'),
+                          Float('base_price'), Float('bed_price'))
         input_optional = (Boolean('published'))
         output_optional = ('id', 'date_from', 'date_to', 'base_price',
                            'bed_price', 'published', 'days')
@@ -83,7 +84,7 @@ class Delete(Service):
     """Channel /genesisng/rates/{id}/delete"""
 
     class SimpleIO:
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -106,9 +107,10 @@ class Update(Service):
     """Channel /genesisng/rates/{id}/update"""
 
     class SimpleIO:
-        input_required = ('id')
-        input_optional = ('date_from', 'date_to', 'base_price', 'bed_price',
-                          'published')
+        input_required = (Integer('id'),)
+        input_optional = (Date('date_from'), Date('date_to'),
+                          Float('base_price'), Float('bed_price'),
+                          Boolean('published', default=False))
         output_optional = ('id', 'date_from', 'date_to', 'base_price',
                            'bed_price', 'published', 'days')
         skip_empty_keys = True
@@ -148,7 +150,8 @@ class List(Service):
     """Channel /genesisng/rates/list."""
 
     class SimpleIO:
-        input_optional = ('page', 'size', 'sort_by', 'order_by', 'fields')
+        input_optional = (Integer('page'), Integer('size'), 'sort_by',
+                          'order_by', 'fields')
         output_optional = ('id', 'date_from', 'date_to', 'base_price',
                            'bed_price', 'published', 'days')
         output_repeated = True

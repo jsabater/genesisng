@@ -4,7 +4,7 @@ from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service
-from zato.server.service import Integer, Date, DateTime, Dict
+from zato.server.service import Integer, Float, Date, DateTime, Dict
 from genesisng.schema.booking import Booking
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
@@ -17,7 +17,7 @@ class Get(Service):
     """Channel /genesisng/bookings/{id}/get."""
 
     class SimpleIO(object):
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
         output_required = ('id', 'id_guest', 'id_room', DateTime('reserved'),
                            'guests', Date('check_in'), Date('check_out'),
                            'base_price', 'taxes_percentage', 'taxes_value',
@@ -49,7 +49,7 @@ class Locate(Service):
     """Channel /genesisng/bookings/{locator}/locate."""
 
     class SimpleIO(object):
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
         output_required = ('id', 'id_guest', 'id_room', DateTime('reserved'),
                            'guests', Date('check_in'), Date('check_out'),
                            'base_price', 'taxes_percentage', 'taxes_value',
@@ -82,7 +82,7 @@ class Delete(Service):
     """Channel /genesisng/bookings/{id}/delete"""
 
     class SimpleIO:
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -108,10 +108,11 @@ class Create(Service):
     """Channel /genesisng/bookings/create."""
 
     class SimpleIO:
-        input_required = ('id_guest', 'id_room', 'guests', Date('check_in'),
-                          Date('check_out'), 'base_price', 'taxes_percentage',
-                          'taxes_value', 'total_price', 'locator', 'pin')
-        # Add 'reserved' field?
+        input_required = (Integer('id_guest'), Integer('id_room'),
+                          Integer('guests'), Date('check_in'),
+                          Date('check_out'), Float('base_price'),
+                          Float('taxes_percentage'), Float('taxes_value'),
+                          Float('total_price'), 'locator', 'pin')
         input_optional = (DateTime('checked_in'), DateTime('checked_out'),
                           DateTime('cancelled'), 'status', 'meal_plan',
                           Dict('additional_services'), 'uuid')
@@ -173,7 +174,7 @@ class Cancel(Service):
     """Channel /genesisng/bookings/{id}/cancel"""
 
     class SimpleIO:
-        input_required = (Integer('id'))
+        input_required = (Integer('id'),)
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -201,14 +202,15 @@ class Update(Service):
     """Channel /genesisng/bookings/{id}/update"""
 
     class SimpleIO:
-        input_required = (Integer('id'))
-        input_optional = ('id_guest', 'id_room', DateTime('reserved'),
-                          'guests', Date('check_in'), Date('check_out'),
+        input_required = (Integer('id'),)
+        input_optional = (Integer('id_guest'), Integer('id_room'),
+                          DateTime('reserved'), Integer('guests'),
+                          Date('check_in'), Date('check_out'),
                           DateTime('checked_in'), DateTime('checked_out'),
-                          DateTime('cancelled'), 'base_price',
-                          'taxes_percentage', 'taxes_value', 'total_price',
-                          'locator', 'pin', 'status', 'meal_plan',
-                          Dict('additional_services'), 'uuid')
+                          DateTime('cancelled'), Float('base_price'),
+                          Float('taxes_percentage'), Float('taxes_value'),
+                          Float('total_price'), 'locator', 'pin', 'status',
+                          'meal_plan', Dict('additional_services'), 'uuid')
         output_required = ('id', 'id_guest', 'id_room', DateTime('reserved'),
                            'guests', Date('check_in'), Date('check_out'),
                            'base_price', 'taxes_percentage', 'taxes_value',

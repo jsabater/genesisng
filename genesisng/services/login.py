@@ -15,7 +15,7 @@ class Get(Service):
     """Channel /genesisng/logins/{id}/get."""
 
     class SimpleIO:
-        input_required = (Integer('id'),)
+        input_required = (Integer('id'))
         output_required = ('id', 'username')
         output_optional = ('password', 'name', 'surname', 'email', 'is_admin')
         skip_empty_keys = True
@@ -113,7 +113,7 @@ class Delete(Service):
     """Channel /genesisng/logins/{id}/delete."""
 
     class SimpleIO:
-        input_required = (Integer('id'),)
+        input_required = (Integer('id'))
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -136,7 +136,7 @@ class Update(Service):
     """Channel /genesisng/logins/{id}/update."""
 
     class SimpleIO:
-        input_required = (Integer('id'),)
+        input_required = (Integer('id'))
         input_optional = ('username', AsIs('password'), 'name', 'surname',
                           'email', Boolean('is_admin'))
         output_required = ('id', 'username')
@@ -149,27 +149,36 @@ class Update(Service):
         p = self.request.input
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            result = session.query(Login).filter(Login.id == id_).one_or_none()
+            try:
+                result = session.query(Login).filter(Login.id == id_).\
+                         one_or_none()
 
-            if result:
-                # Update dictionary keys
-                if p.username:
-                    result.username = p.username
-                if p.password:
-                    result.password = p.password
-                if p.name:
-                    result.name = p.name
-                if p.surname:
-                    result.surname = p.surname
-                if p.email:
-                    result.email = p.email
-                if p.is_admin != '':
-                    result.is_admin = p.is_admin
-                session.commit()
-                self.response.status_code = OK
-                self.response.payload = result
-            else:
-                self.response.status_code = NOT_FOUND
+                if result:
+                    # Update dictionary keys
+                    if p.username:
+                        result.username = p.username
+                    if p.password:
+                        result.password = p.password
+                    if p.name:
+                        result.name = p.name
+                    if p.surname:
+                        result.surname = p.surname
+                    if p.email:
+                        result.email = p.email
+                    if p.is_admin != '':
+                        result.is_admin = p.is_admin
+                    session.commit()
+                    self.response.status_code = OK
+                    self.response.payload = result
+                else:
+                    self.response.status_code = NOT_FOUND
+                    self.response.payload = ''
+            except IntegrityError:
+                # Constraint prevents duplication of username or emails.
+                session.rollback()
+                self.response.status_code = CONFLICT
+                # TODO: Return well-formed error response
+                # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
                 self.response.payload = ''
 
 
@@ -180,7 +189,7 @@ class List(Service):
     class SimpleIO:
         input_optional = (Integer('page'), Integer('size'), 'sort_by',
                           'order_by', 'filters', 'search', 'fields')
-        output_required = ('count', )
+        output_required = ('count')
         output_optional = ('id', 'username', 'password', 'name', 'surname',
                            'email', 'is_admin')
         output_repeated = True

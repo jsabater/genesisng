@@ -1847,10 +1847,18 @@ ON CONFLICT (id) DO UPDATE
 
 -- Rates
 INSERT INTO rate (date_from, date_to, base_price, bed_price, published)
-     VALUES ('2017-03-01', '2017-04-30', 10, 20, True),
-            ('2017-05-01', '2017-06-30', 20, 30, True),
-            ('2017-07-01', '2017-08-31', 30, 40, True),
-            ('2017-09-01', '2017-10-31', 20, 30, True)
+     VALUES ('2017-03-01', '2017-04-30', 10, 19, True),
+            ('2017-05-01', '2017-06-30', 20, 29, True),
+            ('2017-07-01', '2017-08-31', 30, 39, True),
+            ('2017-09-01', '2017-10-31', 20, 29, True),
+            ('2018-03-01', '2017-04-30', 10, 21, True),
+            ('2018-05-01', '2017-06-30', 20, 31, True),
+            ('2018-07-01', '2017-08-31', 30, 41, True),
+            ('2018-09-01', '2017-10-31', 20, 31, True),
+            ('2019-03-01', '2017-04-30', 10, 20, True),
+            ('2019-05-01', '2017-06-30', 20, 30, True),
+            ('2019-07-01', '2017-08-31', 30, 40, True),
+            ('2019-09-01', '2017-10-31', 20, 30, True),
 ON CONFLICT (date_from, date_to) DO UPDATE
         SET date_from = excluded.date_from,
             date_to = excluded.date_to,
@@ -1910,4 +1918,3 @@ ON CONFLICT (id_guest, id_room, check_in) DO UPDATE
             total_price = excluded.total_price,
             locator = excluded.locator,
             pin = excluded.pin;
-

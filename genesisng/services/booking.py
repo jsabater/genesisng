@@ -158,7 +158,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = booking
                 url = self.user_config.genesisng.location.bookings
-                self.response.headers['Location'] = url.format(id, booking.id)
+                self.response.headers['Location'] = url.format(id=booking.id)
 
             except IntegrityError:
                 # Constraint prevents duplication of username or emails.

@@ -86,7 +86,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = guest
                 url = self.user_config.genesisng.location.guests
-                self.response.headers['Location'] = url.format(id, guest.id)
+                self.response.headers['Location'] = url.format(id=guest.id)
 
             except IntegrityError:
                 # Constraint prevents duplication of username or emails.

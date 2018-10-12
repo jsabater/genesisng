@@ -68,7 +68,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = rate
                 url = self.user_config.genesisng.location.rates
-                self.response.headers['Location'] = url.format(id, rate.id)
+                self.response.headers['Location'] = url.format(id=rate.id)
 
             except IntegrityError:
                 # Constraint prevents overlapping dates.

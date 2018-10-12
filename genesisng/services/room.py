@@ -70,7 +70,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = room
                 url = self.user_config.genesisng.location.rooms
-                self.response.headers['Location'] = url.format(id, room.id)
+                self.response.headers['Location'] = url.format(id=room.id)
 
             except IntegrityError:
                 # Constraint prevents duplication of codes or room numbers.

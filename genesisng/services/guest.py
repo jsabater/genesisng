@@ -130,9 +130,9 @@ class Update(Service):
     class SimpleIO:
         input_required = (Integer('id'))
         input_optional = ('name', 'surname', 'gender', 'email', 'passport',
-                          'birthdate', 'address1', 'address2', 'locality',
-                          'postcode', 'province', 'country', 'home_phone',
-                          'mobile_phone')
+                          Date('birthdate'), 'address1', 'address2',
+                          'locality', 'postcode', 'province', 'country',
+                          'home_phone', 'mobile_phone')
         output_required = ('id', 'name', 'surname', 'gender', 'email')
         output_optional = ('passport', Date('birthdate'), 'address1',
                            'address2', 'locality', 'postcode', 'province',
@@ -143,49 +143,62 @@ class Update(Service):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
         p = self.request.input
-        guest = Guest(
-            id=id_,
-            name=p.name,
-            surname=p.surname,
-            gender=p.gender,
-            email=p.email,
-            passport=p.passport,
-            birthdate=p.birthdate,
-            address1=p.address1,
-            address2=p.address2,
-            locality=p.locality,
-            postcode=p.postcode,
-            province=p.province,
-            country=p.country,
-            home_phone=p.home_phone,
-            mobile_phone=p.mobile_phone)
+
+        self.logger.info("Updating guest with id: %s" % id_)
+        self.logger.info("Input params are: %s" % format(self.request.input))
+
+        # TODO: Clean up self.request.input from empty keys
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            result = session.query(Guest).\
-                filter(and_(Guest.id == id_, Guest.deleted.is_(None))).\
-                one_or_none()
+            try:
+                result = session.query(Guest).\
+                    filter(and_(Guest.id == id_, Guest.deleted.is_(None))).\
+                    one_or_none()
 
-            if result:
-                # Update dictionary keys
-                result.name = guest.name
-                result.surname = guest.surname
-                result.surname = guest.guestender
-                result.email = guest.email
-                result.passport = guest.passport
-                result.birthdate = guest.birthdate
-                result.address1 = guest.address1
-                result.address2 = guest.address2
-                result.locality = guest.locality
-                result.postcode = guest.postcode
-                result.province = guest.province
-                result.country = guest.country
-                result.home_phone = guest.home_phone
-                result.mobile_phone = guest.mobile_phone
-                session.commit()
-                self.response.status_code = OK
-                self.response.payload = result
-            else:
-                self.response.status_code = NOT_FOUND
+                if result:
+                    # TODO: Add request params to skip_empty_keys as per:
+                    # https://forum.zato.io/t/leave-the-simpleio-input-optional-out-of-the-input/593/22
+                    # result.fromdict(self.request.input, allow_pk=True)
+
+                    # Update dictionary keys
+                    if p.name:
+                        result.name = p.name
+                    if p.surname:
+                        result.surname = p.surname
+                    if p.gender:
+                        result.gender = p.gender
+                    if p.email:
+                        result.email = p.email
+                    if p.passport:
+                        result.passport = p.passport
+                    if p.birthdate:
+                        result.birthdate = p.birthdate
+                    if p.address1:
+                        result.address1 = p.address1
+                    if p.address2:
+                        result.address2 = p.address2
+                    if p.locality:
+                        result.locality = p.locality
+                    if p.province:
+                        result.province = p.province
+                    if p.country:
+                        result.country = p.country
+                    if p.home_phone:
+                        result.home_phone = p.home_phone
+                    if p.mobile_phone:
+                        result.mobile_phone = p.mobile_phone
+                    session.commit()
+                    self.response.status_code = OK
+                    self.response.payload = result
+                else:
+                    self.response.status_code = NOT_FOUND
+                    self.response.payload = ''
+            except IntegrityError:
+                # Constraint prevents duplication of emails.
+                session.rollback()
+                self.response.status_code = CONFLICT
+                # TODO: Return well-formed error response
+                # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
                 self.response.payload = ''
 
 

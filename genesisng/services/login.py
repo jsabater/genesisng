@@ -154,6 +154,10 @@ class Update(Service):
                          one_or_none()
 
                 if result:
+                    # TODO: Implement a wrapper to remove empty request keys,
+                    # then use dictalchemy's .fromdict() to reduce code.
+                    # result.fromdict(self.request.input, allow_pk=True)
+
                     # Update dictionary keys
                     if p.username:
                         result.username = p.username

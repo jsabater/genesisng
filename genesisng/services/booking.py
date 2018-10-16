@@ -424,7 +424,7 @@ class List(Service):
                       'check_in', 'check_out', 'checked_in', 'checked_out',
                       'cancelled', 'base_price', 'taxes_percentage',
                       'taxes_value', 'total_price', 'locator', 'pin', 'status',
-                      'meal_plan', 'additional_services', 'uuid' 'deleted')
+                      'meal_plan', 'additional_services', 'uuid', 'deleted')
         columns = [Booking.__table__.columns[f] for f in fields]
 
         # Execute query

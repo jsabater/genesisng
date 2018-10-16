@@ -400,7 +400,7 @@ class Bookings(Service):
         input_required = (Integer('id'))
         # TODO: Use ListOfDicts type to get return a JSON with the guest and
         # his/her bookings as a list of dictionaries
-        output_required = ('count')
+        output_required = ()
         output_optional = ('id', 'name', 'surname', 'gender', 'email')
         # output_optional = ('passport', Date('birthdate'), 'address1',
         #                    'address2', 'locality', 'postcode', 'province',
@@ -431,6 +431,7 @@ class Bookings(Service):
         self.logger.info('Response is: %s' % format(guest))
         if guest:
             result = guest
+        self.logger.info('Result is now: %s' % format(result))
 
         # Get the list of bookings from the guest
         result.bookings = []

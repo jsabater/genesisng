@@ -416,54 +416,53 @@ class Bookings(Service):
         #                                'taxes_value', 'total_price', 'locator',
         #                                'pin', 'status', 'meal_plan',
         #                                Dict('additional_services'), 'uuid'))
-        output_repeated = True
+        # output_repeated = True
         skip_empty_keys = True
 
     def handle(self):
-        conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
 
         result = {}
 
         # Get guest data
         input_data = {'id': id_}
-        response = self.invoke('guest.get', input_data, as_bunch=True)
-        self.logger.info(response)
+        self.logger.info('Invoking guest.get...')
+        guest = self.invoke('guest.get', input_data, as_bunch=True)
+        self.logger.info('Response is: %s' % format(guest))
+        if guest:
+            result = guest
 
-        # TODO: Check we have a guest or return empty
-        if response:
-            result = response
-
-        # Get list of bookings
-        # TODO: Invoke bookings.list
+        # Get the list of bookings from the guest
         result.bookings = []
-        with closing(self.outgoing.sql.get(conn).session()) as session:
-            query = session.query(func.count().over().label('count'))
-            query = query.add_entity(Booking)
-            query = query.filter(
-                and_(Guest.id == Booking.id_guest, Guest.deleted.is_(None),
-                     Booking.id_guest == id_, Booking.deleted.is_(None)))
-            bookings = query.all()
+        input_data = {'filters': 'id_guest|eq|%s' % id_}
+        self.logger.info('Invoking booking.list...')
+        bookings = self.invoke('booking.list', input_data, as_bunch=True)
+        self.logger.info('Response is: %s' % format(bookings))
 
-            room_ids = []
-
+        if bookings:
+            rooms = []
             for b in bookings:
                 result.bookings.append(b)
                 self.logger.info(b)
-                room_ids.append(b.id_room)
+                rooms.append(b.id_room)
 
         # Get room data
         result.rooms = []
-        input_data = {'filters': []}
-        for r in room_ids:
-            input_data.filters.append('id|eq|%s' % r)
-        response = self.invoke('room.list', input_data, as_bunch=True)
-        self.logger.info(response)
-        for r in response:
-            result.rooms.append(r)
+        for r in rooms:
+            input_data = {'id': '%d' % r}
+            self.logger.info('Invoking room.get...')
+            room = self.invoke('room.get', input_data, as_bunch=True)
+            self.logger.info('Response is: %s ' % format(room))
+            if room:
+                result.rooms.append(room)
 
         # Return dictinary with guest, bookings and rooms
-        self.response.payload[:] = result if result else []
+        if result:
+            self.response.status_code = OK
+            self.response.payload = result
+        else:
+            self.response.status_code = NOT_FOUND
+            self.response.payload = ''
 
 
 class Restore(Service):

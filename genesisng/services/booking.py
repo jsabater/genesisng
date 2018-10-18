@@ -4,11 +4,10 @@ from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service
-from zato.server.service import Integer, Float, Date, DateTime, Dict
+from zato.server.service import Integer, Float, Date, DateTime, Dict, List
 from genesisng.schema.booking import Booking
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
-from urlparse import parse_qs
 from datetime import datetime
 
 
@@ -17,12 +16,13 @@ class Get(Service):
     """Channel /genesisng/bookings/{id}/get."""
 
     class SimpleIO(object):
-        input_required = (Integer('id'),)
-        output_required = ('id', 'id_guest', 'id_room', DateTime('reserved'),
-                           'guests', Date('check_in'), Date('check_out'),
-                           'base_price', 'taxes_percentage', 'taxes_value',
-                           'total_price', 'locator', 'pin', 'status',
-                           'meal_plan', Dict('additional_services'), 'uuid')
+        input_required = (Integer('id'))
+        output_required = ('id', 'id_guest', 'id_room',
+                           DateTime('reserved'), 'guests', Date('check_in'),
+                           Date('check_out'), 'base_price', 'taxes_percentage',
+                           'taxes_value', 'total_price', 'locator',
+                           'pin', 'status', 'meal_plan',
+                           Dict('additional_services'), 'uuid')
         output_optional = (DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
@@ -49,12 +49,13 @@ class Locate(Service):
     """Channel /genesisng/bookings/{locator}/locate."""
 
     class SimpleIO(object):
-        input_required = (Integer('id'),)
-        output_required = ('id', 'id_guest', 'id_room', DateTime('reserved'),
-                           'guests', Date('check_in'), Date('check_out'),
-                           'base_price', 'taxes_percentage', 'taxes_value',
-                           'total_price', 'locator', 'pin', 'status',
-                           'meal_plan', Dict('additional_services'), 'uuid')
+        input_required = (Integer('id'))
+        output_required = ('id', 'id_guest', 'id_room',
+                           DateTime('reserved'), 'guests', Date('check_in'),
+                           Date('check_out'), 'base_price', 'taxes_percentage',
+                           'taxes_value', 'total_price', 'locator',
+                           'pin', 'status', 'meal_plan',
+                           Dict('additional_services'), 'uuid')
         output_optional = (DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
@@ -82,7 +83,7 @@ class Delete(Service):
     """Channel /genesisng/bookings/{id}/delete"""
 
     class SimpleIO:
-        input_required = (Integer('id'),)
+        input_required = (Integer('id'))
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -116,11 +117,12 @@ class Create(Service):
         input_optional = (DateTime('checked_in'), DateTime('checked_out'),
                           DateTime('cancelled'), 'status', 'meal_plan',
                           Dict('additional_services'), 'uuid')
-        output_required = ('id', 'id_guest', 'id_room', DateTime('reserved'),
-                           'guests', Date('check_in'), Date('check_out'),
-                           'base_price', 'taxes_percentage', 'taxes_value',
-                           'total_price', 'locator', 'pin', 'status',
-                           'meal_plan', Dict('additional_services'), 'uuid')
+        output_required = ('id', 'id_guest', 'id_room',
+                           DateTime('reserved'), 'guests', Date('check_in'),
+                           Date('check_out'), 'base_price', 'taxes_percentage',
+                           'taxes_value', 'total_price', 'locator',
+                           'pin', 'status', 'meal_plan',
+                           Dict('additional_services'), 'uuid')
         output_optional = (DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
@@ -174,7 +176,7 @@ class Cancel(Service):
     """Channel /genesisng/bookings/{id}/cancel"""
 
     class SimpleIO:
-        input_required = (Integer('id'),)
+        input_required = (Integer('id'))
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
@@ -202,7 +204,7 @@ class Update(Service):
     """Channel /genesisng/bookings/{id}/update"""
 
     class SimpleIO:
-        input_required = (Integer('id'),)
+        input_required = (Integer('id'))
         input_optional = (Integer('id_guest'), Integer('id_room'),
                           DateTime('reserved'), Integer('guests'),
                           Date('check_in'), Date('check_out'),
@@ -211,11 +213,12 @@ class Update(Service):
                           Float('taxes_percentage'), Float('taxes_value'),
                           Float('total_price'), 'locator', 'pin', 'status',
                           'meal_plan', Dict('additional_services'), 'uuid')
-        output_required = ('id', 'id_guest', 'id_room', DateTime('reserved'),
-                           'guests', Date('check_in'), Date('check_out'),
-                           'base_price', 'taxes_percentage', 'taxes_value',
-                           'total_price', 'locator', 'pin', 'status',
-                           'meal_plan', Dict('additional_services'), 'uuid')
+        output_required = ('id', 'id_guest', 'id_room',
+                           DateTime('reserved'), 'guests', Date('check_in'),
+                           Date('check_out'), 'base_price', 'taxes_percentage',
+                           'taxes_value', 'total_price', 'locator',
+                           'pin', 'status', 'meal_plan',
+                           Dict('additional_services'), 'uuid')
         output_optional = (DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
@@ -281,14 +284,15 @@ class List(Service):
     """Search is not allowed."""
 
     class SimpleIO:
-        input_optional = (Integer('page'), Integer('size'), 'sort_by',
-                          'order_by', 'filters', 'fields')
-        output_required = ('count',)
-        output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
-                           'guests', Date('check_in'), Date('check_out'),
-                           'base_price', 'taxes_percentage', 'taxes_value',
-                           'total_price', 'locator', 'pin', 'status',
-                           'meal_plan', Dict('additional_services'), 'uuid',
+        input_optional = (List('page'), List('size'), List('sort_by'),
+                          List('order_by'), List('filters'), List('fields'))
+        output_required = ('count')
+        output_optional = ('id', 'id_guest', 'id_room',
+                           DateTime('reserved'), 'guests', Date('check_in'),
+                           Date('check_out'), 'base_price', 'taxes_percentage',
+                           'taxes_value', 'total_price', 'locator',
+                           'pin', 'status', 'meal_plan',
+                           Dict('additional_services'), 'uuid',
                            DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
@@ -300,149 +304,151 @@ class List(Service):
             self.user_config.genesisng.database.default_page_size)
         max_page_size = int(self.user_config.genesisng.database.max_page_size)
 
-        # TODO: Have a default order_by and sort_by in the KVDB?
+        # TODO: Have a default order_by and sort_by in the user config?
         default_order_by = 'id'
         default_sort_by = 'asc'
 
-        # Pagination is always mandatory
-        page = 1
-        size = default_page_size
+        # Pagination is always enforced.
+        # Format: page and (page) size.
+        # Sorting is always enforced.
+        # Format: order_by (direction) and sort_by (criteria)
+        # Filtering is optional. Multiple filters are allowed.
+        # Format: filters=field|operator|value
+        # Fields projection is optional. Multiple fields are allowed.
+        # Format: fields=field
+        # Search is not allowed.
 
-        # Sorting is always mandatory
-        order_by = default_order_by
-        sort_by = default_sort_by
+        # In case of error, do not return 400 Bad Request but, instead, assume
+        # default parameter values.
 
-        # Filtering is optional
-        # Format: filters=field|operator|value (multiple)
-        filters = []
+        # Page number
+        try:
+            page = int(self.request.input.page[0])
+        except (ValueError, KeyError, IndexError):
+            page = 1
 
-        # Fields projection is optional
-        # Format: fields=field (multiple)
-        fields = []
+        # Page size
+        try:
+            size = int(self.request.input.size[0])
+        except (ValueError, KeyError, IndexError):
+            size = default_page_size
 
-        # Check for parameters in the query string
-        qs = parse_qs(self.wsgi_environ['QUERY_STRING'])
-        if qs:
+        # Order by
+        try:
+            order_by = self.request.input.order_by[0].lower()
+        except (ValueError, KeyError, IndexError):
+            order_by = default_order_by
 
-            # Handle pagination
-            try:
-                page = int(qs['page'][0])
-                page = 1 if page < 1 else page
+        # Sort order
+        try:
+            sort_by = self.request.input.sort_by[0].lower()
+        except (ValueError, KeyError, IndexError):
+            sort_by = default_sort_by
 
-                size = int(qs['size'][0])
-                size = default_page_size if size < 1 else size
-                size = default_page_size if size > max_page_size else size
-            except (ValueError, KeyError, IndexError):
-                # Assume default values instead of returning 400 Bad Request
-                pass
+        # Filters
+        try:
+            filters = self.request.input.filters
+        except (ValueError, KeyError):
+            filters = []
 
-            # Handle sorting
-            try:
-                order_by = qs['order_by'][0].lower()
-                # Fields allowed for ordering are id, name, surname, gender,
-                # email, birthdate and country
-                if order_by not in ('id', 'id_guest', 'id_room', 'check_in'
-                                    'check_out'):
-                    order_by = default_order_by
+        # Fields projection
+        try:
+            fields = self.request.input.fields
+        except (ValueError, KeyError):
+            fields = []
 
-                sort_by = qs['sort_by'][0].lower()
-                sort_by = default_sort_by if sort_by not in (
-                    'asc', 'desc') else sort_by
-            except (ValueError, KeyError, IndexError):
-                # Assume default values instead of returning 400 Bad Request
-                pass
+        # Check and adjust parameter values
 
-            # Handle filtering
-            try:
-                for f in qs['filters']:
-                    field, operator, value = f.split('|')
-                    if field not in ('id', 'id_guest', 'id_room', 'reserved',
-                                     'guests', 'check_in', 'check_out',
-                                     'base_price', 'total_price', 'status',
-                                     'meal_plan', 'additional_services'):
-                        raise ValueError(
-                            'Field %s is not allowed for filtering' % field)
-                    if operator not in ('lt', 'lte', 'eq', 'ne', 'gte', 'gt'):
-                        raise ValueError(
-                            'Operator %s is not allowed for filtering' %
-                            operator)
-                    filters.append((field, operator, value))
-            except (ValueError, KeyError):
-                # Do not apply any filtering instead of returning 400 Bad
-                # Request
-                pass
+        # Handle pagination
+        page = 1 if page < 1 else page
+        size = default_page_size if size < 1 else size
+        size = default_page_size if size > max_page_size else size
 
-            # Handle fields projection
-            try:
-                for field in qs['fields']:
-                    if field not in ('id',  'id_guest', 'id_room', 'reserved',
-                                     'guests', 'check_in', 'check_out',
-                                     'checked_in', 'cheked_out', 'cancelled',
-                                     'base_price', 'taxes_percentage',
-                                     'taxes_value', 'total_price', 'locator',
-                                     'pin', 'status', 'meal_plan',
-                                     'additional_services', 'uuid', 'deleted'):
-                        raise ValueError(
-                            'Field %s is not allowed for projection' % field)
-                    fields.append(field)
-            except (ValueError, KeyError):
-                # Do not apply any fields projection instead of returning 400
-                # Bad Request
-                pass
+        # Handle sorting
+        order_by_allowed = ('id', 'id_guest', 'id_room', 'check_in',
+                            'check_out')
+        sort_by_allowed = ('asc', 'desc')
+        if order_by not in order_by_allowed:
+            order_by = default_order_by
+        if sort_by not in sort_by_allowed:
+            sort_by = default_sort_by
 
-        # Calculate limit and offset
-        limit = size
-        offset = size * (page - 1)
-
-        # Calculate criteria and direction
-        criteria = order_by
-        direction = sort_by
-
-        # Prepare filters
-        # TODO: Use sqlalchemy-filters?
-        # https://pypi.org/project/sqlalchemy-filters/
+        # Handle filtering
+        filters_allowed = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
+                           'check_in', 'check_out', 'base_price',
+                           'total_price', 'status', 'meal_plan',
+                           'additional_services')
+        operators_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
         conditions = []
         for f in filters:
-            field, operator, value = f
-            if operator == 'lt':
-                conditions.append(Booking.__table__.columns[field] < value)
-            elif operator == 'lte':
-                conditions.append(Booking.__table__.columns[field] <= value)
-            elif operator == 'eq':
-                conditions.append(Booking.__table__.columns[field] == value)
-            elif operator == 'ne':
-                conditions.append(Booking.__table__.columns[field] != value)
-            elif operator == 'gte':
-                conditions.append(Booking.__table__.columns[field] >= value)
-            elif operator == 'gt':
-                conditions.append(Booking.__table__.columns[field] > value)
+            field, operator, value = f.split('|')
+            if field in filters_allowed and operator in operators_allowed:
+                conditions.append((field, operator, value))
 
-        # Prepare fields projection
+        # Handle fields projection
+        allowed_fields = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
+                          'check_in', 'check_out', 'checked_in', 'checked_out',
+                          'cancelled', 'base_price', 'taxes_percentage',
+                          'taxes_value', 'total_price', 'locator', 'pin',
+                          'status', 'meal_plan', 'additional_services', 'uuid',
+                          'deleted')
         columns = []
-        if not fields:
-            fields = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
-                      'check_in', 'check_out', 'checked_in', 'checked_out',
-                      'cancelled', 'base_price', 'taxes_percentage',
-                      'taxes_value', 'total_price', 'locator', 'pin', 'status',
-                      'meal_plan', 'additional_services', 'uuid', 'deleted')
-        columns = [Booking.__table__.columns[f] for f in fields]
+        for f in fields:
+            if f in allowed_fields:
+                columns.append(f)
 
-        # Execute query
+        # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(func.count().over().label('count'))
+
+            # Add columns
+            if not columns:
+                columns = allowed_fields
+
             for c in columns:
-                query = query.add_columns(c)
+                query = query.add_columns(Booking.__table__.columns[c])
+
+            # Prepare filters
+            # TODO: Use sqlalchemy-filters?
+            # https://pypi.org/project/sqlalchemy-filters/
             for c in conditions:
-                query = query.filter(c)
-            if direction == 'asc':
-                query = query.order_by(Booking.__table__.columns[criteria].
-                                       asc())
+                field, operator, value = c
+                if operator == 'lt':
+                    query = query.filter(
+                        Booking.__table__.columns[field] < value)
+                elif operator == 'lte':
+                    query = query.filter(
+                        Booking.__table__.columns[field] <= value)
+                elif operator == 'eq':
+                    query = query.filter(
+                        Booking.__table__.columns[field] == value)
+                elif operator == 'ne':
+                    query = query.filter(
+                        Booking.__table__.columns[field] != value)
+                elif operator == 'gte':
+                    query = query.filter(
+                        Booking.__table__.columns[field] >= value)
+                elif operator == 'gt':
+                    query = query.filter(
+                        Booking.__table__.columns[field] > value)
+
+            if sort_by == 'asc':
+                query = query.order_by(
+                    Booking.__table__.columns[order_by].asc())
             else:
                 query = query.order_by(
-                    Booking.__table__.columns[criteria].desc())
+                    Booking.__table__.columns[order_by].desc())
+
+            # Calculate limit and offset
+            limit = size
+            offset = size * (page - 1)
             query = query.offset(offset)
             query = query.limit(limit)
+
+            # Execute query
             result = query.all()
+
+            # Return result
             self.response.payload[:] = result if result else []
 
 
@@ -452,11 +458,12 @@ class Restore(Service):
 
     class SimpleIO:
         input_required = (Integer('id'))
-        output_required = ('id', 'id_guest', 'id_room', DateTime('reserved'),
-                           'guests', Date('check_in'), Date('check_out'),
-                           'base_price', 'taxes_percentage', 'taxes_value',
-                           'total_price', 'locator', 'pin', 'status',
-                           'meal_plan', Dict('additional_services'), 'uuid')
+        output_required = ('id', 'id_guest', 'id_room',
+                           DateTime('reserved'), 'guests', Date('check_in'),
+                           Date('check_out'), 'base_price', 'taxes_percentage',
+                           'taxes_value', 'total_price', 'locator',
+                           'pin', 'status', 'meal_plan',
+                           Dict('additional_services'), 'uuid')
         output_optional = (DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True

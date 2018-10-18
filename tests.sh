@@ -50,3 +50,19 @@ curl -v -g -XPOST -d '{"name": "Michelle", "surname": "Pfeiffer", "gender": "Fem
 curl -v -g -XPOST -d '{"name": "Angelina", "surname": "Jolie", "gender": "Female", "email": "ajolie@gmail.com", "birthdate": "1975-06-04", "address1": "1419 Westwood Blvd", "address2": "Westwood", "locality": "Los Angeles", "postcode": "3H35+W8", "province": "California", "country": "US", "mobile_phone": "+1.5417543010"}' "http://127.0.0.1:11223/genesisng/guests/2/update"; echo ""
 
 # List
+curl -v -g "http://127.0.0.1:11223/genesisng/guests/list"; echo ""
+
+# List using page and size
+curl -v -g "http://127.0.0.1:11223/genesisng/guests/list?page=3&size=35"; echo ""
+
+# List using page, size, sort_by, order_by and fields
+curl -v -g "http://127.0.0.1:11223/genesisng/guests/list?page=10&size=20&sort_by=surname&order_by=asc&fields=id&fields=name&fields=surname"; echo ""
+
+# List using page, size, sort_by, order_by, fields and filters
+curl -v -g "http://127.0.0.1:11223/genesisng/guests/list?page=10&size=10&sort_by=name&order_by=desc&fields=id&fields=name&fields=surname&fields=email&filters=birthdate|gte|1990-01-01"; echo ""
+
+# List using page, size, sort_by, order_by and search
+curl -v -g "http://127.0.0.1:11223/genesisng/guests/list?page=4&size=10&sort_by=country&order_by=asc&search=Palma"; echo ""
+
+# Bookings from a guest
+curl -v -g "http://127.0.0.1:11223/genesisng/guests/1/bookings"; echo ""

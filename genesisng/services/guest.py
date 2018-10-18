@@ -426,7 +426,7 @@ class Bookings(Service):
                 rooms.append(b['id_room'])
 
         # Get room data
-        # guest.list does not support OR on multiple filters at the moment
+        # room.list does not support OR on multiple filters at the moment
         result['rooms'] = []
         for r in rooms:
             input_data = {'id': '%d' % r}

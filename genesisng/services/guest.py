@@ -4,10 +4,8 @@ from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service
-from zato.server.service import Integer, Date, DateTime
-# from zato.server.service import Dict, ListOfDicts
+from zato.server.service import Integer, Date, DateTime, ListOfDicts
 from genesisng.schema.guest import Guest
-from genesisng.schema.booking import Booking
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from urlparse import parse_qs
@@ -143,9 +141,6 @@ class Update(Service):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
         p = self.request.input
-
-        self.logger.info("Updating guest with id: %s" % id_)
-        self.logger.info("Input params are: %s" % format(self.request.input))
 
         # TODO: Clean up self.request.input from empty keys
 
@@ -398,25 +393,11 @@ class Bookings(Service):
 
     class SimpleIO:
         input_required = (Integer('id'))
-        # TODO: Use ListOfDicts type to get return a JSON with the guest and
-        # his/her bookings as a list of dictionaries
-        output_required = ()
-        output_optional = ('id', 'name', 'surname', 'gender', 'email')
-        # output_optional = ('passport', Date('birthdate'), 'address1',
-        #                    'address2', 'locality', 'postcode', 'province',
-        #                    'country', 'home_phone', 'mobile_phone',
-        #                    ListOfDicts('bookings', 'id', 'id_guest', 'id_room',
-        #                                DateTime('reserved'), 'guests',
-        #                                Date('check_in'),
-        #                                Date('check_out'),
-        #                                DateTime('checked_in'),
-        #                                DateTime('checked_out'),
-        #                                DateTime('cancelled'),
-        #                                'base_price', 'taxes_percentage',
-        #                                'taxes_value', 'total_price', 'locator',
-        #                                'pin', 'status', 'meal_plan',
-        #                                Dict('additional_services'), 'uuid'))
-        # output_repeated = True
+        output_required = ('id', 'name', 'surname', 'gender', 'email')
+        output_optional = ('passport', Date('birthdate'), 'address1',
+                           'address2', 'locality', 'postcode', 'province',
+                           'country', 'home_phone', 'mobile_phone',
+                           ListOfDicts('bookings'), ListOfDicts('rooms'))
         skip_empty_keys = True
 
     def handle(self):
@@ -426,36 +407,32 @@ class Bookings(Service):
 
         # Get guest data
         input_data = {'id': id_}
-        self.logger.info('Invoking guest.get...')
-        guest = self.invoke('guest.get', input_data, as_bunch=True)
-        self.logger.info('Response is: %s' % format(guest))
+        guest = self.invoke('guest.get', input_data)
         if guest:
-            result = guest
-        self.logger.info('Result is now: %s' % format(result))
+            result = guest['response']
 
         # Get the list of bookings from the guest
-        result.bookings = []
-        input_data = {'filters': 'id_guest|eq|%s' % id_}
-        self.logger.info('Invoking booking.list...')
-        bookings = self.invoke('booking.list', input_data, as_bunch=True)
-        self.logger.info('Response is: %s' % format(bookings))
+        result['bookings'] = []
+        input_data = {
+            'filters': ['id_guest|eq|%s' % id_]
+        }
+        bookings = self.invoke('booking.list', input_data)
 
         if bookings:
             rooms = []
-            for b in bookings:
-                result.bookings.append(b)
-                self.logger.info(b)
-                rooms.append(b.id_room)
+            for b in bookings['response']:
+                del b['count']
+                result['bookings'].append(b)
+                rooms.append(b['id_room'])
 
         # Get room data
-        result.rooms = []
+        # guest.list does not support OR on multiple filters at the moment
+        result['rooms'] = []
         for r in rooms:
             input_data = {'id': '%d' % r}
-            self.logger.info('Invoking room.get...')
-            room = self.invoke('room.get', input_data, as_bunch=True)
-            self.logger.info('Response is: %s ' % format(room))
+            room = self.invoke('room.get', input_data)
             if room:
-                result.rooms.append(room)
+                result['rooms'].append(room['response'])
 
         # Return dictinary with guest, bookings and rooms
         if result:

@@ -6,7 +6,7 @@ from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service
 from zato.server.service import Integer, Float, Date, DateTime, Dict, List
 from genesisng.schema.booking import Booking
-from sqlalchemy import and_, func
+from sqlalchemy import and_, or_, func
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 
@@ -284,8 +284,9 @@ class List(Service):
     """Search is not allowed."""
 
     class SimpleIO:
-        input_optional = (List('page'), List('size'), List('sort_by'),
-                          List('order_by'), List('filters'), List('fields'))
+        input_optional = (List('page'), List('size'), List('sort'),
+                          List('filters'), List('fields'), List('operator'),
+                          List('search'))
         output_required = ('count', 'id', 'id_guest', 'id_room',
                            DateTime('reserved'), 'guests', Date('check_in'),
                            Date('check_out'), 'base_price', 'taxes_percentage',
@@ -303,14 +304,15 @@ class List(Service):
             self.user_config.genesisng.database.default_page_size)
         max_page_size = int(self.user_config.genesisng.database.max_page_size)
 
-        # TODO: Have a default order_by and sort_by in the user config?
-        default_order_by = 'id'
-        default_sort_by = 'asc'
+        # TODO: Have these default values in user config?
+        default_criteria = 'id'
+        default_direction = 'asc'
+        default_operator = 'and'
 
         # Pagination is always enforced.
         # Format: page and (page) size.
         # Sorting is always enforced.
-        # Format: order_by (direction) and sort_by (criteria)
+        # Format: sort=criteria|direction
         # Filtering is optional. Multiple filters are allowed.
         # Format: filters=field|operator|value
         # Fields projection is optional. Multiple fields are allowed.
@@ -334,27 +336,30 @@ class List(Service):
 
         # Order by
         try:
-            order_by = self.request.input.order_by[0].lower()
+            criteria, direction = self.request.input.order_by[0].lower().split('|')
         except (ValueError, KeyError, IndexError):
-            order_by = default_order_by
-
-        # Sort order
-        try:
-            sort_by = self.request.input.sort_by[0].lower()
-        except (ValueError, KeyError, IndexError):
-            sort_by = default_sort_by
+            criteria = default_criteria
+            direction = default_direction
 
         # Filters
         try:
             filters = self.request.input.filters
-        except (ValueError, KeyError):
+            operator = self.request.input.operator[0]
+        except (ValueError, KeyError, IndexError):
             filters = []
+            operator = default_operator
 
         # Fields projection
         try:
             fields = self.request.input.fields
         except (ValueError, KeyError):
             fields = []
+
+        # Search
+        try:
+            search = self.request.input.search[0]
+        except (ValueError, KeyError, IndexError):
+            search = None
 
         # Check and adjust parameter values
 
@@ -364,25 +369,28 @@ class List(Service):
         size = default_page_size if size > max_page_size else size
 
         # Handle sorting
-        order_by_allowed = ('id', 'id_guest', 'id_room', 'check_in',
+        criteria_allowed = ('id', 'id_guest', 'id_room', 'check_in',
                             'check_out')
-        sort_by_allowed = ('asc', 'desc')
-        if order_by not in order_by_allowed:
-            order_by = default_order_by
-        if sort_by not in sort_by_allowed:
-            sort_by = default_sort_by
+        direction_allowed = ('asc', 'desc')
+        if criteria not in criteria_allowed:
+            criteria = default_criteria
+        if direction not in direction_allowed:
+            direction = default_direction
 
         # Handle filtering
         filters_allowed = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
                            'check_in', 'check_out', 'base_price',
                            'total_price', 'status', 'meal_plan',
                            'additional_services')
-        operators_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
+        comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
+        operators_allowed = ('and', 'or')
         conditions = []
-        for f in filters:
-            field, operator, value = f.split('|')
-            if field in filters_allowed and operator in operators_allowed:
-                conditions.append((field, operator, value))
+        for f_ in filters:
+            f, o, v = f_.split('|')
+            if f in filters_allowed and o in comparisons_allowed:
+                conditions.append((f, o, v))
+        if operator not in (operators_allowed):
+            operator = default_operator
 
         # Handle fields projection
         allowed_fields = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
@@ -410,33 +418,33 @@ class List(Service):
             # Prepare filters
             # TODO: Use sqlalchemy-filters?
             # https://pypi.org/project/sqlalchemy-filters/
-            for c in conditions:
-                field, operator, value = c
-                if operator == 'lt':
-                    query = query.filter(
-                        Booking.__table__.columns[field] < value)
-                elif operator == 'lte':
-                    query = query.filter(
-                        Booking.__table__.columns[field] <= value)
-                elif operator == 'eq':
-                    query = query.filter(
-                        Booking.__table__.columns[field] == value)
-                elif operator == 'ne':
-                    query = query.filter(
-                        Booking.__table__.columns[field] != value)
-                elif operator == 'gte':
-                    query = query.filter(
-                        Booking.__table__.columns[field] >= value)
-                elif operator == 'gt':
-                    query = query.filter(
-                        Booking.__table__.columns[field] > value)
+            if conditions:
+                clauses = []
+                for c in conditions:
+                    f, o, v = c
+                    if o == 'lt':
+                        clauses.append(Booking.__table__.columns[f] < v)
+                    elif o == 'lte':
+                        clauses.append(Booking.__table__.columns[f] <= v)
+                    elif o == 'eq':
+                        clauses.append(Booking.__table__.columns[f] == v)
+                    elif o == 'ne':
+                        clauses.append(Booking.__table__.columns[f] != v)
+                    elif o == 'gte':
+                        clauses.append(Booking.__table__.columns[f] >= v)
+                    elif o == 'gt':
+                        clauses.append(Booking.__table__.columns[f] > v)
+                if operator == 'or':
+                    query = query.filter(or_(*clauses))
+                else:
+                    query = query.filter(and_(*clauses))
 
-            if sort_by == 'asc':
+            if direction == 'asc':
                 query = query.order_by(
-                    Booking.__table__.columns[order_by].asc())
+                    Booking.__table__.columns[criteria].asc())
             else:
                 query = query.order_by(
-                    Booking.__table__.columns[order_by].desc())
+                    Booking.__table__.columns[criteria].desc())
 
             # Calculate limit and offset
             limit = size

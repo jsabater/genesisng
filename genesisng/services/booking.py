@@ -286,14 +286,13 @@ class List(Service):
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort_by'),
                           List('order_by'), List('filters'), List('fields'))
-        output_required = ('count')
-        output_optional = ('id', 'id_guest', 'id_room',
+        output_required = ('count', 'id', 'id_guest', 'id_room',
                            DateTime('reserved'), 'guests', Date('check_in'),
                            Date('check_out'), 'base_price', 'taxes_percentage',
-                           'taxes_value', 'total_price', 'locator',
-                           'pin', 'status', 'meal_plan',
-                           Dict('additional_services'), 'uuid',
-                           DateTime('checked_in'), DateTime('checked_out'),
+                           'taxes_value', 'total_price', 'locator', 'pin',
+                           'status', 'meal_plan',
+                           Dict('additional_services'), 'uuid')
+        output_optional = (DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
         output_repeated = True

@@ -287,13 +287,14 @@ class List(Service):
         input_optional = (List('page'), List('size'), List('sort'),
                           List('filters'), List('fields'), List('operator'),
                           List('search'))
-        output_required = ('count', 'id', 'id_guest', 'id_room',
-                           DateTime('reserved'), 'guests', Date('check_in'),
-                           Date('check_out'), 'base_price', 'taxes_percentage',
-                           'taxes_value', 'total_price', 'locator', 'pin',
-                           'status', 'meal_plan',
-                           Dict('additional_services'), 'uuid')
-        output_optional = (DateTime('checked_in'), DateTime('checked_out'),
+        # Fields projection makes all output fields optional
+        output_required = ('count')
+        output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
+                           'guests', Date('check_in'), Date('check_out'),
+                           'base_price', 'taxes_percentage', 'taxes_value',
+                           'total_price', 'locator', 'pin', 'status',
+                           'meal_plan', Dict('additional_services'), 'uuid',
+                           DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
         output_repeated = True
@@ -336,8 +337,8 @@ class List(Service):
 
         # Order by
         try:
-            criteria, direction = self.request.input.order_by[0].lower().split('|')
-        except (ValueError, KeyError, IndexError):
+            criteria, direction = self.request.input.sort[0].lower().split('|')
+        except (ValueError, KeyError, IndexError, AttributeError):
             criteria = default_criteria
             direction = default_direction
 
@@ -385,10 +386,10 @@ class List(Service):
         comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
         operators_allowed = ('and', 'or')
         conditions = []
-        for f_ in filters:
-            f, o, v = f_.split('|')
-            if f in filters_allowed and o in comparisons_allowed:
-                conditions.append((f, o, v))
+        for filter_ in filters:
+            field, comparison, value = filter_.split('|')
+            if field in filters_allowed and comparison in comparisons_allowed:
+                conditions.append((field, comparison, value))
         if operator not in (operators_allowed):
             operator = default_operator
 

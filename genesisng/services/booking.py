@@ -281,7 +281,31 @@ class Update(Service):
 class List(Service):
     """Service class to get a list of all bookings in the system."""
     """Channel /genesisng/bookings/list."""
-    """Search is not allowed."""
+    """
+    Query string parameters:
+    * page: the page number (default 1).
+    * size: the number of items per page (default in user config).
+    * sort: <criteria>|<direction> (default id|asc).
+      Direction can be 'asc' or 'desc'.
+    * filters: <field>|<comparator>|<value>
+      Supported comparators are:
+        * lt: less than.
+        * lte: less than or equal.
+        * eq: equal.
+        * ne: not equal.
+        * gte: greater than or equal.
+        * gt: greater than.
+    * operator: applies to all filters (default 'and').
+      Supported operators are 'and' and 'or'.
+    * fields: <field>.
+    Pagination and sorting are always enforced.
+    Filtering is optional. Multiple filters allowed. Only one operator.
+    Fields projection is optional. Multiple fields allowed.
+    Search is not allowed.
+
+    In case of error, it does not return 400 Bad Request but, instead,
+    it assumes default parameter values and carries on.
+    """
 
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort'),
@@ -309,19 +333,6 @@ class List(Service):
         default_criteria = 'id'
         default_direction = 'asc'
         default_operator = 'and'
-
-        # Pagination is always enforced.
-        # Format: page and (page) size.
-        # Sorting is always enforced.
-        # Format: sort=criteria|direction
-        # Filtering is optional. Multiple filters are allowed.
-        # Format: filters=field|operator|value
-        # Fields projection is optional. Multiple fields are allowed.
-        # Format: fields=field
-        # Search is not allowed.
-
-        # In case of error, do not return 400 Bad Request but, instead, assume
-        # default parameter values.
 
         # Page number
         try:
@@ -424,17 +435,17 @@ class List(Service):
                 for c in conditions:
                     f, o, v = c
                     if o == 'lt':
-                        clauses.append(Booking.__table__.columns[f] < v)
+                        clauses.append(Booking.__table__.c[f] < v)
                     elif o == 'lte':
-                        clauses.append(Booking.__table__.columns[f] <= v)
+                        clauses.append(Booking.__table__.c[f] <= v)
                     elif o == 'eq':
-                        clauses.append(Booking.__table__.columns[f] == v)
+                        clauses.append(Booking.__table__.c[f] == v)
                     elif o == 'ne':
-                        clauses.append(Booking.__table__.columns[f] != v)
+                        clauses.append(Booking.__table__.c[f] != v)
                     elif o == 'gte':
-                        clauses.append(Booking.__table__.columns[f] >= v)
+                        clauses.append(Booking.__table__.c[f] >= v)
                     elif o == 'gt':
-                        clauses.append(Booking.__table__.columns[f] > v)
+                        clauses.append(Booking.__table__.c[f] > v)
                 if operator == 'or':
                     query = query.filter(or_(*clauses))
                 else:

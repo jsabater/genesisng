@@ -4,7 +4,7 @@ from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service
-from zato.server.service import Integer, Date, DateTime, ListOfDicts
+from zato.server.service import Integer, Date, DateTime, ListOfDicts, List
 from genesisng.schema.guest import Guest
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
@@ -200,10 +200,36 @@ class Update(Service):
 class List(Service):
     """Service class to get a list of all guests in the system."""
     """Channel /genesisng/guests/list."""
+    """
+    Query string parameters:
+    * page: the page number (default 1).
+    * size: the number of items per page (default in user config).
+    * sort: <criteria>|<direction> (default id|asc).
+      Direction can be 'asc' or 'desc'.
+    * filters: <field>|<comparator>|<value>
+      Supported comparators are:
+        * lt: less than.
+        * lte: less than or equal.
+        * eq: equal.
+        * ne: not equal.
+        * gte: greater than or equal.
+        * gt: greater than.
+    * operator: applies to all filters (default 'and').
+      Supported operators are 'and' and 'or'.
+    * fields: <field>.
+    Pagination and sorting are always enforced.
+    Filtering is optional. Multiple filters allowed. Only one operator.
+    Fields projection is optional. Multiple fields allowed.
+    Search is optional. Passed term is case insensitive.
+
+    In case of error, it does not return 400 Bad Request but, instead,
+    it assumes default parameter values and carries on.
+    """
 
     class SimpleIO:
-        input_optional = (Integer('page'), Integer('size'), 'sort_by',
-                          'order_by', 'filters', 'search', 'fields')
+        input_optional = (List('page'), List('size'), List('sort'),
+                          List('filters'), List('fields'), List('operator'),
+                          List('search'))
         output_required = ('count')
         output_optional = ('id', 'name', 'surname', 'gender', 'email',
                            'passport', Date('birthdate'), 'address1',
@@ -220,169 +246,166 @@ class List(Service):
         max_page_size = int(self.user_config.genesisng.database.max_page_size)
 
         # TODO: Have a default order_by and sort_by in the KVDB?
-        default_order_by = 'id'
-        default_sort_by = 'asc'
+        default_criteria = 'id'
+        default_direction = 'asc'
+        default_operator = 'and'
 
-        # Pagination is always mandatory
-        page = 1
-        size = default_page_size
+        # Page number
+        try:
+            page = int(self.request.input.page[0])
+        except (ValueError, KeyError, IndexError):
+            page = 1
 
-        # Sorting is always mandatory
-        order_by = default_order_by
-        sort_by = default_sort_by
+        # Page size
+        try:
+            size = int(self.request.input.size[0])
+        except (ValueError, KeyError, IndexError):
+            size = default_page_size
 
-        # Filtering is optional
-        # Format: filters=field|operator|value (multiple)
-        filters = []
+        # Order by
+        try:
+            criteria, direction = self.request.input.sort[0].lower().split('|')
+        except (ValueError, KeyError, IndexError, AttributeError):
+            criteria = default_criteria
+            direction = default_direction
 
-        # Fields projection is optional
-        # Format: fields=field (multiple)
-        fields = []
+        # Filters
+        try:
+            filters = self.request.input.filters
+            operator = self.request.input.operator[0]
+        except (ValueError, KeyError, IndexError):
+            filters = []
+            operator = default_operator
 
-        # Search is optional
-        search = None
+        # Fields projection
+        try:
+            fields = self.request.input.fields
+        except (ValueError, KeyError):
+            fields = []
 
-        # Check for parameters in the query string
-        qs = parse_qs(self.wsgi_environ['QUERY_STRING'])
-        if qs:
+        # Search
+        try:
+            search = self.request.input.search[0]
+        except (ValueError, KeyError, IndexError):
+            search = None
 
-            # Handle pagination
-            try:
-                page = int(qs['page'][0])
-                page = 1 if page < 1 else page
+        # Check and adjust parameter values
 
-                size = int(qs['size'][0])
-                size = default_page_size if size < 1 else size
-                size = default_page_size if size > max_page_size else size
-            except (ValueError, KeyError, IndexError):
-                # Assume default values instead of returning 400 Bad Request
-                pass
+        # Handle pagination
+        page = 1 if page < 1 else page
+        size = default_page_size if size < 1 else size
+        size = default_page_size if size > max_page_size else size
 
-            # Handle sorting
-            try:
-                order_by = qs['order_by'][0].lower()
-                # Fields allowed for ordering are id, name, surname, gender,
-                # email, birthdate and country
-                if order_by not in ('id', 'name', 'surname', 'gender', 'email',
-                                    'birthdate', 'country'):
-                    order_by = default_order_by
+        # Handle sorting
+        criteria_allowed = ('id', 'name', 'surname', 'gender', 'email',
+                            'birthdate', 'country')
+        direction_allowed = ('asc', 'desc')
+        if criteria not in criteria_allowed:
+            criteria = default_criteria
+        if direction not in direction_allowed:
+            direction = default_direction
 
-                sort_by = qs['sort_by'][0].lower()
-                sort_by = default_sort_by if sort_by not in (
-                    'asc', 'desc') else sort_by
-            except (ValueError, KeyError, IndexError):
-                # Assume default values instead of returning 400 Bad Request
-                pass
-
-            # Handle filtering
-            try:
-                for f in qs['filters']:
-                    field, operator, value = f.split('|')
-                    if field not in ('id', 'name', 'surname', 'gender',
-                                     'email', 'passport', 'birthdate',
-                                     'address1', 'address2', 'locality',
-                                     'postcode', 'province', 'country',
-                                     'home_phone', 'mobile_phone'):
-                        raise ValueError(
-                            'Field %s is not allowed for filtering' % field)
-                    if operator not in ('lt', 'lte', 'eq', 'ne', 'gte', 'gt'):
-                        raise ValueError(
-                            'Operator %s is not allowed for filtering' %
-                            operator)
-                    filters.append((field, operator, value))
-            except (ValueError, KeyError):
-                # Do not apply any filtering instead of returning 400 Bad
-                # Request
-                pass
-
-            # Handle search
-            try:
-                search = qs['search'][0]
-            except (ValueError, KeyError):
-                # Do not search for terms instead of returning 400 Bad Request
-                pass
-
-            # Handle fields projection
-            try:
-                for field in qs['fields']:
-                    if field not in ('id', 'name', 'surname', 'gender',
-                                     'email', 'passport', 'birthdate',
-                                     'address1', 'address2', 'locality',
-                                     'postcode', 'province', 'country',
-                                     'home_phone', 'mobile_phone', 'deleted'):
-                        raise ValueError(
-                            'Field %s is not allowed for projection' % field)
-                    fields.append(field)
-            except (ValueError, KeyError):
-                # Do not apply any fields projection instead of returning 400
-                # Bad Request
-                pass
-
-        # Calculate limit and offset
-        limit = size
-        offset = size * (page - 1)
-
-        # Calculate criteria and direction
-        criteria = order_by
-        direction = sort_by
-
-        # Prepare filters
-        # TODO: Use sqlalchemy-filters?
-        # https://pypi.org/project/sqlalchemy-filters/
+        # Handle filtering
+        filters_allowed = ('id', 'name', 'surname', 'gender', 'email',
+                           'passport', 'birthdate', 'address1', 'address2',
+                           'locality', 'postcode', 'province', 'country',
+                           'home_phone', 'mobile_phone')
+        comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
+        operators_allowed = ('and', 'or')
         conditions = []
-        for f in filters:
-            field, operator, value = f
-            if operator == 'lt':
-                conditions.append(Guest.__table__.columns[field] < value)
-            elif operator == 'lte':
-                conditions.append(Guest.__table__.columns[field] <= value)
-            elif operator == 'eq':
-                conditions.append(Guest.__table__.columns[field] == value)
-            elif operator == 'ne':
-                conditions.append(Guest.__table__.columns[field] != value)
-            elif operator == 'gte':
-                conditions.append(Guest.__table__.columns[field] >= value)
-            elif operator == 'gt':
-                conditions.append(Guest.__table__.columns[field] > value)
+        for filter_ in filters:
+            field, comparison, value = filter_.split('|')
+            if field in filters_allowed and comparison in comparisons_allowed:
+                conditions.append((field, comparison, value))
+        if operator not in (operators_allowed):
+            operator = default_operator
 
-        # Prepare search
-        if search:
-            term = '%' + search + '%'
+        # Handle fields projection
+        allowed_fields = ('id', 'name', 'surname', 'gender', 'email',
+                          'passport', 'birthdate', 'address1', 'address2',
+                          'locality', 'postcode', 'province', 'country',
+                          'home_phone', 'mobile_phone', 'deleted')
 
-        # Prepare fields projection
         columns = []
-        if not fields:
-            fields = ('id', 'name', 'surname', 'gender', 'email', 'passport',
-                      'birthdate', 'address1', 'address2', 'locality',
-                      'postcode', 'province', 'country', 'home_phone',
-                      'mobile_phone', 'deleted')
-        columns = [Guest.__table__.columns[f] for f in fields]
+        for f in fields:
+            if f in allowed_fields:
+                columns.append(f)
 
-        # Execute query
+        # Handle search
+        search_allowed = ('id', 'name', 'surname', 'gender', 'email',
+                          'passport', 'birthdate', 'address1', 'address2',
+                          'locality', 'postcode', 'province', 'country',
+                          'home_phone', 'mobile_phone', 'deleted')
+        if search not in search_allowed:
+            search = None
+
+        # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(func.count().over().label('count'))
+
+            # Add columns
+            if not columns:
+                columns = allowed_fields
+
             for c in columns:
-                query = query.add_columns(c)
-            for c in conditions:
-                query = query.filter(c)
-            if search:
-                query = query.filter(
-                    or_(
-                        Guest.name.ilike(term), Guest.surname.ilike(term),
-                        Guest.email.ilike(term), Guest.address1.ilike(term),
-                        Guest.address2.ilike(term), Guest.address1.ilike(term),
-                        Guest.locality.ilike(term), Guest.postcode.ilike(term),
-                        Guest.province.ilike(term),
-                        Guest.home_phone.ilike(term),
-                        Guest.mobile_phone.ilike(term)))
+                query = query.add_columns(Guest.__table__.columns[c])
+
+            # Prepare filters
+            # TODO: Use sqlalchemy-filters?
+            # https://pypi.org/project/sqlalchemy-filters/
+            if conditions:
+                clauses = []
+                for c in conditions:
+                    f, o, v = c
+                    if o == 'lt':
+                        clauses.append(Guest.__table__.c[f] < v)
+                    elif o == 'lte':
+                        clauses.append(Guest.__table__.c[f] <= v)
+                    elif o == 'eq':
+                        clauses.append(Guest.__table__.c[f] == v)
+                    elif o == 'ne':
+                        clauses.append(Guest.__table__.c[f] != v)
+                    elif o == 'gte':
+                        clauses.append(Guest.__table__.c[f] >= v)
+                    elif o == 'gt':
+                        clauses.append(Guest.__table__.c[f] > v)
+                if operator == 'or':
+                    query = query.filter(or_(*clauses))
+                else:
+                    query = query.filter(and_(*clauses))
+
             if direction == 'asc':
-                query = query.order_by(Guest.__table__.columns[criteria].asc())
+                query = query.order_by(
+                    Guest.__table__.columns[criteria].asc())
             else:
                 query = query.order_by(
                     Guest.__table__.columns[criteria].desc())
+
+            if search:
+                query = query.filter(
+                    or_(
+                        Guest.name.ilike(search),
+                        Guest.surname.ilike(search),
+                        Guest.email.ilike(search),
+                        Guest.address1.ilike(search),
+                        Guest.address2.ilike(search),
+                        Guest.address1.ilike(search),
+                        Guest.locality.ilike(search),
+                        Guest.postcode.ilike(search),
+                        Guest.province.ilike(search),
+                        Guest.home_phone.ilike(search),
+                        Guest.mobile_phone.ilike(search)))
+
+            # Calculate limit and offset
+            limit = size
+            offset = size * (page - 1)
             query = query.offset(offset)
             query = query.limit(limit)
+
+            # Execute query
             result = query.all()
+
+            # Return result
             self.response.payload[:] = result if result else []
 
 

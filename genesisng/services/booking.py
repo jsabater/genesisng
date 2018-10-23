@@ -307,6 +307,21 @@ class List(Service):
     it assumes default parameter values and carries on.
     """
 
+    criteria_allowed = ('id', 'id_guest', 'id_room', 'check_in', 'check_out')
+    direction_allowed = ('asc', 'desc')
+    filters_allowed = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
+                       'check_in', 'check_out', 'base_price', 'total_price',
+                       'status', 'meal_plan', 'additional_services')
+    comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
+    operators_allowed = ('and', 'or')
+    fields_allowed = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
+                      'check_in', 'check_out', 'checked_in', 'checked_out',
+                      'cancelled', 'base_price', 'taxes_percentage',
+                      'taxes_value', 'total_price', 'locator', 'pin',
+                      'status', 'meal_plan', 'additional_services', 'uuid',
+                      'deleted')
+    search_allowed = ()
+
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort'),
                           List('filters'), List('fields'), List('operator'),
@@ -381,40 +396,29 @@ class List(Service):
         size = default_page_size if size > max_page_size else size
 
         # Handle sorting
-        criteria_allowed = ('id', 'id_guest', 'id_room', 'check_in',
-                            'check_out')
-        direction_allowed = ('asc', 'desc')
-        if criteria not in criteria_allowed:
+        if criteria not in self.criteria_allowed:
             criteria = default_criteria
-        if direction not in direction_allowed:
+        if direction not in self.direction_allowed:
             direction = default_direction
 
         # Handle filtering
-        filters_allowed = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
-                           'check_in', 'check_out', 'base_price',
-                           'total_price', 'status', 'meal_plan',
-                           'additional_services')
-        comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
-        operators_allowed = ('and', 'or')
         conditions = []
         for filter_ in filters:
             field, comparison, value = filter_.split('|')
-            if field in filters_allowed and comparison in comparisons_allowed:
+            if field in self.filters_allowed and comparison in self.comparisons_allowed:
                 conditions.append((field, comparison, value))
-        if operator not in (operators_allowed):
+        if operator not in (self.operators_allowed):
             operator = default_operator
 
         # Handle fields projection
-        allowed_fields = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
-                          'check_in', 'check_out', 'checked_in', 'checked_out',
-                          'cancelled', 'base_price', 'taxes_percentage',
-                          'taxes_value', 'total_price', 'locator', 'pin',
-                          'status', 'meal_plan', 'additional_services', 'uuid',
-                          'deleted')
         columns = []
         for f in fields:
-            if f in allowed_fields:
+            if f in self.fields_allowed:
                 columns.append(f)
+
+        # Handle search
+        if not self.search_allowed:
+            search = None
 
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
@@ -422,7 +426,7 @@ class List(Service):
 
             # Add columns
             if not columns:
-                columns = allowed_fields
+                columns = self.fields_allowed
 
             for c in columns:
                 query = query.add_columns(Booking.__table__.columns[c])

@@ -6,13 +6,11 @@ from uuid import uuid4
 # from uuid import uuid4
 from .base import Base
 from sqlalchemy import Column, Integer, Float, String, Date, DateTime, func
-from sqlalchemy import UniqueConstraint, CheckConstraint
+from sqlalchemy import UniqueConstraint, CheckConstraint, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Enum
-# from sqlalchemy import text
-from sqlalchemy import ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
 
 
 class BookingStatus(str, enum.Enum):
@@ -70,6 +68,9 @@ class Booking(Base):
                   default=uuid4,
                   comment='Unique code used to detect duplicates')
     deleted = Column(DateTime, default=None)
+
+    room = relationship("Room", backref="booking")
+    guest = relationship("Guest", backref="booking")
 
     def __repr__(self):
         return "<Booking(id='%s', nights='%s', guests='%s', check_in='%s', check_out='%s')>" % (

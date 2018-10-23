@@ -2,8 +2,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from .base import Base
-from sqlalchemy import Column, Integer, String, Date, DateTime
-from sqlalchemy import Index, Enum
+from sqlalchemy import Column, Integer, String, Date, DateTime, Index, Enum
 from sqlalchemy.ext.hybrid import hybrid_property
 import enum
 

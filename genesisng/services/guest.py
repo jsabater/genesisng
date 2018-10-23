@@ -226,16 +226,34 @@ class List(Service):
     it assumes default parameter values and carries on.
     """
 
+    criteria_allowed = ('id', 'name', 'surname', 'gender', 'email',
+                        'birthdate', 'country')
+    direction_allowed = ('asc', 'desc')
+    filters_allowed = ('id', 'name', 'surname', 'gender', 'email', 'passport',
+                       'birthdate', 'address1', 'address2', 'locality',
+                       'postcode', 'province', 'country', 'home_phone',
+                       'mobile_phone')
+    comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
+    operators_allowed = ('and', 'or')
+    fields_allowed = ('id', 'name', 'surname', 'gender', 'email', 'passport',
+                      'birthdate', 'address1', 'address2', 'locality',
+                      'postcode', 'province', 'country', 'home_phone',
+                      'mobile_phone', 'deleted')
+    search_allowed = ('id', 'name', 'surname', 'gender', 'email', 'passport',
+                      'birthdate', 'address1', 'address2', 'locality',
+                      'postcode', 'province', 'country', 'home_phone',
+                      'mobile_phone', 'deleted')
+
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort'),
                           List('filters'), List('fields'), List('operator'),
                           List('search'))
         output_required = ('count')
-        output_optional = ('id', 'name', 'surname', 'gender', 'email',
-                           'passport', Date('birthdate'), 'address1',
-                           'address2', 'locality', 'postcode', 'province',
-                           'country', 'home_phone', 'mobile_phone',
-                           DateTime('deleted'))
+        output_optional = ('id', 'name',
+                           'surname', 'gender', 'email', 'passport',
+                           Date('birthdate'), 'address1', 'address2',
+                           'locality', 'postcode', 'province', 'country',
+                           'home_phone', 'mobile_phone', DateTime('deleted'))
         skip_empty_keys = True
         output_repeated = True
 
@@ -245,7 +263,7 @@ class List(Service):
             self.user_config.genesisng.database.default_page_size)
         max_page_size = int(self.user_config.genesisng.database.max_page_size)
 
-        # TODO: Have a default order_by and sort_by in the KVDB?
+        # TODO: Have these default values in user config?
         default_criteria = 'id'
         default_direction = 'asc'
         default_operator = 'and'
@@ -297,46 +315,28 @@ class List(Service):
         size = default_page_size if size > max_page_size else size
 
         # Handle sorting
-        criteria_allowed = ('id', 'name', 'surname', 'gender', 'email',
-                            'birthdate', 'country')
-        direction_allowed = ('asc', 'desc')
-        if criteria not in criteria_allowed:
+        if criteria not in self.criteria_allowed:
             criteria = default_criteria
-        if direction not in direction_allowed:
+        if direction not in self.direction_allowed:
             direction = default_direction
 
         # Handle filtering
-        filters_allowed = ('id', 'name', 'surname', 'gender', 'email',
-                           'passport', 'birthdate', 'address1', 'address2',
-                           'locality', 'postcode', 'province', 'country',
-                           'home_phone', 'mobile_phone')
-        comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
-        operators_allowed = ('and', 'or')
         conditions = []
         for filter_ in filters:
             field, comparison, value = filter_.split('|')
-            if field in filters_allowed and comparison in comparisons_allowed:
-                conditions.append((field, comparison, value))
-        if operator not in (operators_allowed):
+            if field in self.filters_allowed and comparison in self.comparisons_allowed:
+                    conditions.append((field, comparison, value))
+        if operator not in self.operators_allowed:
             operator = default_operator
 
         # Handle fields projection
-        allowed_fields = ('id', 'name', 'surname', 'gender', 'email',
-                          'passport', 'birthdate', 'address1', 'address2',
-                          'locality', 'postcode', 'province', 'country',
-                          'home_phone', 'mobile_phone', 'deleted')
-
         columns = []
         for f in fields:
-            if f in allowed_fields:
+            if f in self.fields_allowed:
                 columns.append(f)
 
         # Handle search
-        search_allowed = ('id', 'name', 'surname', 'gender', 'email',
-                          'passport', 'birthdate', 'address1', 'address2',
-                          'locality', 'postcode', 'province', 'country',
-                          'home_phone', 'mobile_phone', 'deleted')
-        if search not in search_allowed:
+        if not self.search_allowed:
             search = None
 
         # Compose query
@@ -345,7 +345,7 @@ class List(Service):
 
             # Add columns
             if not columns:
-                columns = allowed_fields
+                columns = self.fields_allowed
 
             for c in columns:
                 query = query.add_columns(Guest.__table__.columns[c])
@@ -353,6 +353,8 @@ class List(Service):
             # Prepare filters
             # TODO: Use sqlalchemy-filters?
             # https://pypi.org/project/sqlalchemy-filters/
+            # TODO: Use a map instead of if..else?
+            # m = {'lt': '<', 'lte': '<=', 'eq': '==', 'ne': '!=', 'gte': '>=', 'gt': '>'}
             if conditions:
                 clauses = []
                 for c in conditions:
@@ -375,26 +377,17 @@ class List(Service):
                     query = query.filter(and_(*clauses))
 
             if direction == 'asc':
-                query = query.order_by(
-                    Guest.__table__.columns[criteria].asc())
+                query = query.order_by(Guest.__table__.columns[criteria].asc())
             else:
                 query = query.order_by(
                     Guest.__table__.columns[criteria].desc())
 
             if search:
-                query = query.filter(
-                    or_(
-                        Guest.name.ilike(search),
-                        Guest.surname.ilike(search),
-                        Guest.email.ilike(search),
-                        Guest.address1.ilike(search),
-                        Guest.address2.ilike(search),
-                        Guest.address1.ilike(search),
-                        Guest.locality.ilike(search),
-                        Guest.postcode.ilike(search),
-                        Guest.province.ilike(search),
-                        Guest.home_phone.ilike(search),
-                        Guest.mobile_phone.ilike(search)))
+                clauses = []
+                for s in self.search_allowed:
+                    clauses.append(Guest.__table__.c[s].ilike(s))
+
+                query = query.filter(or_(*clauses))
 
             # Calculate limit and offset
             limit = size
@@ -436,9 +429,7 @@ class Bookings(Service):
 
         # Get the list of bookings from the guest
         result['bookings'] = []
-        input_data = {
-            'filters': ['id_guest|eq|%s' % id_]
-        }
+        input_data = {'filters': ['id_guest|eq|%s' % id_]}
         bookings = self.invoke('booking.list', input_data)
 
         if bookings:

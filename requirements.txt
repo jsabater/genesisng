@@ -1,4 +1,6 @@
 configparser
+enum34
 hashids
 psycopg2
+psycopg2-binary
 sqlalchemy

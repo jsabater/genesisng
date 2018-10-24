@@ -51,13 +51,14 @@ log_min_duration_statement = 0
 ```
 Restart *PostgreSQL* for the changes to take effect.
 
-As `postgres` user, add the `HSTORE` and `PG_TRGM` extensions to the
-`template1` database, then create the `genesisng` user and database.
+As `postgres` user, add the `HSTORE`, `uuid-ossp` and `PG_TRGM` extensions to
+the `template1` database, then create the `genesisng` user and database.
 
 ```
 #!bash
 psql --dbname=template1 --command="CREATE EXTENSION HSTORE"
 psql --dbname=template1 --command="CREATE EXTENSION PG_TRGM"
+psql --dbname=template1 --command='CREATE EXTENSION "uuid-ossp"'
 createuser --no-createdb --no-createrole --no-superuser genesisng
 createdb --encoding=UTF8 --owner=genesisng --template=template1 genesisng
 ```

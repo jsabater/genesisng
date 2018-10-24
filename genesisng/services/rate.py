@@ -288,17 +288,18 @@ class List(Service):
                 else:
                     query = query.filter(and_(*clauses))
 
+            # Search
+            if search:
+                clauses = []
+                for s in self.search_allowed:
+                    clauses.append(Cols[s].ilike(search))
+                query = query.filter(or_(*clauses))
+
+            # Order by
             if direction == 'asc':
                 query = query.order_by(Cols[criteria].asc())
             else:
                 query = query.order_by(Cols[criteria].desc())
-
-            if search:
-                clauses = []
-                for s in self.search_allowed:
-                    clauses.append(Cols[s].ilike(s))
-
-                query = query.filter(or_(*clauses))
 
             # Calculate limit and offset
             limit = size

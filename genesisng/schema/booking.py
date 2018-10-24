@@ -3,9 +3,9 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 import enum
 from uuid import uuid4
-# from uuid import uuid4
 from .base import Base
-from sqlalchemy import Column, Integer, Float, String, Date, DateTime, func
+from sqlalchemy import Column, Integer, Float, String, Date, DateTime
+from sqlalchemy import func, text
 from sqlalchemy import UniqueConstraint, CheckConstraint, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.dialects.postgresql import UUID
@@ -64,7 +64,7 @@ class Booking(Base):
                        default='BedAndBreakfast')
     additional_services = Column(HSTORE, default={})
     uuid = Column(UUID(as_uuid=True), nullable=False, index=True, unique=True,
-                  # server_default=text('uuid_generate_v4()'),
+                  server_default=text('uuid_generate_v4()'),
                   default=uuid4,
                   comment='Unique code used to detect duplicates')
     deleted = Column(DateTime, default=None)

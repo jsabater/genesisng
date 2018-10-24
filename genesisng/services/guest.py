@@ -8,7 +8,6 @@ from zato.server.service import Integer, Date, DateTime, ListOfDicts, List
 from genesisng.schema.guest import Guest
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
-from urlparse import parse_qs
 from datetime import datetime
 
 
@@ -226,6 +225,7 @@ class List(Service):
     it assumes default parameter values and carries on.
     """
 
+    model = Guest
     criteria_allowed = ('id', 'name', 'surname', 'gender', 'email',
                         'birthdate', 'country')
     direction_allowed = ('asc', 'desc')
@@ -262,6 +262,7 @@ class List(Service):
         default_page_size = int(
             self.user_config.genesisng.database.default_page_size)
         max_page_size = int(self.user_config.genesisng.database.max_page_size)
+        Cols = self.model.__table__.columns
 
         # TODO: Have these default values in user config?
         default_criteria = 'id'
@@ -348,7 +349,7 @@ class List(Service):
                 columns = self.fields_allowed
 
             for c in columns:
-                query = query.add_columns(Guest.__table__.columns[c])
+                query = query.add_columns(Cols[c])
 
             # Prepare filters
             # TODO: Use sqlalchemy-filters?
@@ -360,32 +361,31 @@ class List(Service):
                 for c in conditions:
                     f, o, v = c
                     if o == 'lt':
-                        clauses.append(Guest.__table__.c[f] < v)
+                        clauses.append(Cols[f] < v)
                     elif o == 'lte':
-                        clauses.append(Guest.__table__.c[f] <= v)
+                        clauses.append(Cols[f] <= v)
                     elif o == 'eq':
-                        clauses.append(Guest.__table__.c[f] == v)
+                        clauses.append(Cols[f] == v)
                     elif o == 'ne':
-                        clauses.append(Guest.__table__.c[f] != v)
+                        clauses.append(Cols[f] != v)
                     elif o == 'gte':
-                        clauses.append(Guest.__table__.c[f] >= v)
+                        clauses.append(Cols[f] >= v)
                     elif o == 'gt':
-                        clauses.append(Guest.__table__.c[f] > v)
+                        clauses.append(Cols[f] > v)
                 if operator == 'or':
                     query = query.filter(or_(*clauses))
                 else:
                     query = query.filter(and_(*clauses))
 
             if direction == 'asc':
-                query = query.order_by(Guest.__table__.columns[criteria].asc())
+                query = query.order_by(Cols[criteria].asc())
             else:
-                query = query.order_by(
-                    Guest.__table__.columns[criteria].desc())
+                query = query.order_by(Cols[criteria].desc())
 
             if search:
                 clauses = []
                 for s in self.search_allowed:
-                    clauses.append(Guest.__table__.c[s].ilike(s))
+                    clauses.append(Cols[s].ilike(s))
 
                 query = query.filter(or_(*clauses))
 

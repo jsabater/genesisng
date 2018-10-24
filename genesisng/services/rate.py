@@ -310,4 +310,9 @@ class List(Service):
             result = query.all()
 
             # Return result
-            self.response.payload[:] = result if result else []
+            if result:
+                self.response.payload[:] = result
+                self.response.status_code = OK
+            else:
+                self.response.payload = ''
+                self.response.status_code = NO_CONTENT

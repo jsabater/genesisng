@@ -307,6 +307,7 @@ class List(Service):
     it assumes default parameter values and carries on.
     """
 
+    model = Booking
     criteria_allowed = ('id', 'id_guest', 'id_room', 'check_in', 'check_out')
     direction_allowed = ('asc', 'desc')
     filters_allowed = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
@@ -343,6 +344,7 @@ class List(Service):
         default_page_size = int(
             self.user_config.genesisng.database.default_page_size)
         max_page_size = int(self.user_config.genesisng.database.max_page_size)
+        Cols = self.model.__table__.columns
 
         # TODO: Have these default values in user config?
         default_criteria = 'id'
@@ -429,7 +431,7 @@ class List(Service):
                 columns = self.fields_allowed
 
             for c in columns:
-                query = query.add_columns(Booking.__table__.columns[c])
+                query = query.add_columns(Cols[c])
 
             # Prepare filters
             # TODO: Use sqlalchemy-filters?
@@ -439,28 +441,26 @@ class List(Service):
                 for c in conditions:
                     f, o, v = c
                     if o == 'lt':
-                        clauses.append(Booking.__table__.c[f] < v)
+                        clauses.append(Cols[f] < v)
                     elif o == 'lte':
-                        clauses.append(Booking.__table__.c[f] <= v)
+                        clauses.append(Cols[f] <= v)
                     elif o == 'eq':
-                        clauses.append(Booking.__table__.c[f] == v)
+                        clauses.append(Cols[f] == v)
                     elif o == 'ne':
-                        clauses.append(Booking.__table__.c[f] != v)
+                        clauses.append(Cols[f] != v)
                     elif o == 'gte':
-                        clauses.append(Booking.__table__.c[f] >= v)
+                        clauses.append(Cols[f] >= v)
                     elif o == 'gt':
-                        clauses.append(Booking.__table__.c[f] > v)
+                        clauses.append(Cols[f] > v)
                 if operator == 'or':
                     query = query.filter(or_(*clauses))
                 else:
                     query = query.filter(and_(*clauses))
 
             if direction == 'asc':
-                query = query.order_by(
-                    Booking.__table__.columns[criteria].asc())
+                query = query.order_by(Cols[criteria].asc())
             else:
-                query = query.order_by(
-                    Booking.__table__.columns[criteria].desc())
+                query = query.order_by(Cols[criteria].desc())
 
             # Calculate limit and offset
             limit = size

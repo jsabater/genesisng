@@ -3,11 +3,10 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
-from zato.server.service import Service, Boolean, Integer, AsIs
+from zato.server.service import Service, Boolean, Integer, AsIs, List
 from genesisng.schema.login import Login
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
-from urlparse import parse_qs
 
 
 class Get(Service):
@@ -190,9 +189,21 @@ class List(Service):
     """Service class to get a list of all logins in the system."""
     """Channel /genesisng/logins/list."""
 
+    model = Login
+    criteria_allowed = ('id', 'username', 'name', 'surname', 'email')
+    direction_allowed = ('asc', 'desc')
+    filters_allowed = ('id', 'username', 'password', 'name', 'surname',
+                       'email', 'is_admin')
+    comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
+    operators_allowed = ('and', 'or')
+    fields_allowed = ('id', 'username', 'password', 'name', 'surname', 'email',
+                      'is_admin')
+    search_allowed = ('username', 'name', 'surname', 'email')
+
     class SimpleIO:
-        input_optional = (Integer('page'), Integer('size'), 'sort_by',
-                          'order_by', 'filters', 'search', 'fields')
+        input_optional = (List('page'), List('size'), List('sort'),
+                          List('filters'), List('fields'), List('operator'),
+                          List('search'))
         output_required = ('count')
         output_optional = ('id', 'username', 'password', 'name', 'surname',
                            'email', 'is_admin')
@@ -204,155 +215,141 @@ class List(Service):
         default_page_size = int(
             self.user_config.genesisng.database.default_page_size)
         max_page_size = int(self.user_config.genesisng.database.max_page_size)
-        # TODO: Have a default order_by and sort_by in the KVDB?
-        default_order_by = 'id'
-        default_sort_by = 'asc'
+        Cols = self.model.__table__.columns
 
-        # Pagination is always mandatory
-        page = 1
-        size = default_page_size
+        # TODO: Have these default values in user config?
+        default_criteria = 'id'
+        default_direction = 'asc'
+        default_operator = 'and'
 
-        # Sorting is always mandatory
-        order_by = default_order_by
-        sort_by = default_sort_by
+        # Page number
+        try:
+            page = int(self.request.input.page[0])
+        except (ValueError, KeyError, IndexError):
+            page = 1
 
-        # Filtering is optional
-        # Format: filters=field|operator|value (multiple)
-        filters = []
+        # Page size
+        try:
+            size = int(self.request.input.size[0])
+        except (ValueError, KeyError, IndexError):
+            size = default_page_size
 
-        # Fields projection is optional
-        # Format: fields=field (multiple)
-        fields = []
+        # Order by
+        try:
+            criteria, direction = self.request.input.sort[0].lower().split('|')
+        except (ValueError, KeyError, IndexError, AttributeError):
+            criteria = default_criteria
+            direction = default_direction
 
-        # Search is optional
-        search = None
+        # Filters
+        try:
+            filters = self.request.input.filters
+            operator = self.request.input.operator[0]
+        except (ValueError, KeyError, IndexError):
+            filters = []
+            operator = default_operator
 
-        # Check for parameters in the query string
-        qs = parse_qs(self.wsgi_environ['QUERY_STRING'])
-        if qs:
+        # Fields projection
+        try:
+            fields = self.request.input.fields
+        except (ValueError, KeyError):
+            fields = []
 
-            # Handle pagination
-            try:
-                page = int(qs['page'][0])
-                page = 1 if page < 1 else page
+        # Search
+        try:
+            search = self.request.input.search[0]
+        except (ValueError, KeyError, IndexError):
+            search = None
 
-                size = int(qs['size'][0])
-                size = default_page_size if size < 1 else size
-                size = default_page_size if size > max_page_size else size
-            except (ValueError, KeyError, IndexError):
-                # Assume default values instead of returning 400 Bad Request
-                pass
+        # Check and adjust parameter values
 
-            # Handle sorting
-            try:
-                order_by = qs['order_by'][0].lower()
-                # Fields allowed for ordering are id, username, name, surname
-                # and email
-                if order_by not in ('id', 'username', 'name', 'surname',
-                                    'email'):
-                    order_by = default_order_by
+        # Handle pagination
+        page = 1 if page < 1 else page
+        size = default_page_size if size < 1 else size
+        size = default_page_size if size > max_page_size else size
 
-                sort_by = qs['sort_by'][0].lower()
-                sort_by = default_sort_by if sort_by not in (
-                    'asc', 'desc') else sort_by
-            except (ValueError, KeyError, IndexError):
-                # Assume default values instead of returning 400 Bad Request
-                pass
+        # Handle sorting
+        if criteria not in self.criteria_allowed:
+            criteria = default_criteria
+        if direction not in self.direction_allowed:
+            direction = default_direction
 
-            # Handle filtering
-            try:
-                for f in qs['filters']:
-                    field, operator, value = f.split('|')
-                    if field not in ('id', 'username', 'password', 'name',
-                                     'surname', 'email', 'is_admin'):
-                        raise ValueError(
-                            'Field %s is not allowed for filtering' % field)
-                    if operator not in ('lt', 'lte', 'eq', 'ne', 'gte', 'gt'):
-                        raise ValueError(
-                            'Operator %s is not allowed for filtering' %
-                            operator)
-                    filters.append((field, operator, value))
-            except (ValueError, KeyError):
-                # Do not apply any filtering instead of returning 400 Bad
-                # Request
-                pass
-
-            # Handle search
-            try:
-                search = qs['search'][0]
-            except (ValueError, KeyError):
-                # Do not search for terms instead of returning 400 Bad Request
-                pass
-
-            # Handle fields projection
-            try:
-                for field in qs['fields']:
-                    if field not in ('id', 'username', 'password', 'name',
-                                     'surname', 'email', 'is_admin'):
-                        raise ValueError(
-                            'Field %s is not allowed for projection' % field)
-                    fields.append(field)
-            except (ValueError, KeyError):
-                # Do not apply any fields projection instead of returning 400
-                # Bad Request
-                pass
-
-        # Calculate limit and offset
-        limit = size
-        offset = size * (page - 1)
-
-        # Calculate criteria and direction
-        criteria = order_by
-        direction = sort_by
-
-        # Prepare filters
-        # TODO: Use sqlalchemy-filters?
-        # https://pypi.org/project/sqlalchemy-filters/
+        # Handle filtering
         conditions = []
-        for f in filters:
-            field, operator, value = f
-            if operator == 'lt':
-                conditions.append(Login.__table__.columns[field] < value)
-            elif operator == 'lte':
-                conditions.append(Login.__table__.columns[field] <= value)
-            elif operator == 'eq':
-                conditions.append(Login.__table__.columns[field] == value)
-            elif operator == 'ne':
-                conditions.append(Login.__table__.columns[field] != value)
-            elif operator == 'gte':
-                conditions.append(Login.__table__.columns[field] >= value)
-            elif operator == 'gt':
-                conditions.append(Login.__table__.columns[field] > value)
+        for filter_ in filters:
+            field, comparison, value = filter_.split('|')
+            if field in self.filters_allowed and comparison in self.comparisons_allowed:
+                    conditions.append((field, comparison, value))
+        if operator not in self.operators_allowed:
+            operator = default_operator
 
-        # Prepare search
-        if search:
-            term = '%' + search + '%'
-
-        # Prepare fields projection
+        # Handle fields projection
         columns = []
-        if not fields:
-            fields = ('id', 'username', 'password', 'name', 'surname', 'email',
-                      'is_admin')
-        columns = [Login.__table__.columns[f] for f in fields]
+        for f in fields:
+            if f in self.fields_allowed:
+                columns.append(f)
 
-        # Execute query
+        # Handle search
+        if not self.search_allowed:
+            search = None
+
+        # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(func.count().over().label('count'))
+
+            # Add columns
+            if not columns:
+                columns = self.fields_allowed
+
             for c in columns:
-                query = query.add_columns(c)
-            for c in conditions:
-                query = query.filter(c)
-            if search:
-                query = query.filter(
-                    or_(
-                        Login.username.ilike(term), Login.name.ilike(term),
-                        Login.surname.ilike(term), Login.email.ilike(term)))
+                query = query.add_columns(Cols[c])
+
+            # Prepare filters
+            # TODO: Use sqlalchemy-filters?
+            # https://pypi.org/project/sqlalchemy-filters/
+            # TODO: Use a map instead of if..else?
+            # m = {'lt': '<', 'lte': '<=', 'eq': '==', 'ne': '!=', 'gte': '>=', 'gt': '>'}
+            if conditions:
+                clauses = []
+                for c in conditions:
+                    f, o, v = c
+                    if o == 'lt':
+                        clauses.append(Cols[f] < v)
+                    elif o == 'lte':
+                        clauses.append(Cols[f] <= v)
+                    elif o == 'eq':
+                        clauses.append(Cols[f] == v)
+                    elif o == 'ne':
+                        clauses.append(Cols[f] != v)
+                    elif o == 'gte':
+                        clauses.append(Cols[f] >= v)
+                    elif o == 'gt':
+                        clauses.append(Cols[f] > v)
+                if operator == 'or':
+                    query = query.filter(or_(*clauses))
+                else:
+                    query = query.filter(and_(*clauses))
+
             if direction == 'asc':
-                query = query.order_by(Login.__table__.columns[criteria].asc())
+                query = query.order_by(Cols[criteria].asc())
             else:
-                query = query.order_by(
-                    Login.__table__.columns[criteria].desc())
+                query = query.order_by(Cols[criteria].desc())
+
+            if search:
+                clauses = []
+                for s in self.search_allowed:
+                    clauses.append(Cols[s].ilike(s))
+
+                query = query.filter(or_(*clauses))
+
+            # Calculate limit and offset
+            limit = size
+            offset = size * (page - 1)
             query = query.offset(offset)
             query = query.limit(limit)
+
+            # Execute query
             result = query.all()
+
+            # Return result
             self.response.payload[:] = result if result else []

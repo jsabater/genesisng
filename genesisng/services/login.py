@@ -32,7 +32,6 @@ class Get(Service):
                 self.response.payload = result
             else:
                 self.response.status_code = NOT_FOUND
-                self.response.payload = ''
 
 
 class Validate(Service):
@@ -61,7 +60,6 @@ class Validate(Service):
                 self.response.payload = result
             else:
                 self.response.status_code = NOT_FOUND
-                self.response.payload = ''
 
 
 class Create(Service):
@@ -105,7 +103,6 @@ class Create(Service):
                 self.response.status_code = CONFLICT
                 # TODO: Return well-formed error response
                 # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
-                self.response.payload = ''
 
 
 class Delete(Service):
@@ -128,7 +125,6 @@ class Delete(Service):
                 self.response.payload = ''
             else:
                 self.response.status_code = NOT_FOUND
-                self.response.payload = ''
 
 
 class Update(Service):
@@ -176,14 +172,12 @@ class Update(Service):
                     self.response.payload = result
                 else:
                     self.response.status_code = NOT_FOUND
-                    self.response.payload = ''
             except IntegrityError:
                 # Constraint prevents duplication of username or emails.
                 session.rollback()
                 self.response.status_code = CONFLICT
                 # TODO: Return well-formed error response
                 # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
-                self.response.payload = ''
 
 
 class List(Service):
@@ -357,5 +351,4 @@ class List(Service):
                 self.response.payload[:] = result
                 self.response.status_code = OK
             else:
-                self.response.payload = ''
                 self.response.status_code = NO_CONTENT

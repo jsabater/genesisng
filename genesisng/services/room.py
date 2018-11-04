@@ -35,7 +35,6 @@ class Get(Service):
                 self.response.payload = result
             else:
                 self.response.status_code = NOT_FOUND
-                self.response.payload = ''
 
 
 class Create(Service):
@@ -77,7 +76,6 @@ class Create(Service):
                 self.response.status_code = CONFLICT
                 # TODO: Return well-formed error response?
                 # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
-                self.response.payload = ''
 
 
 class Delete(Service):
@@ -100,10 +98,8 @@ class Delete(Service):
                 result.deleted = datetime.utcnow()
                 session.commit()
                 self.response.status_code = NO_CONTENT
-                self.response.payload = ''
             else:
                 self.response.status_code = NOT_FOUND
-                self.response.payload = ''
 
 
 class Update(Service):
@@ -147,7 +143,6 @@ class Update(Service):
                 self.response.payload = result
             else:
                 self.response.status_code = NOT_FOUND
-                self.response.payload = ''
 
 
 class List(Service):
@@ -323,5 +318,4 @@ class List(Service):
                 self.response.payload[:] = result
                 self.response.status_code = OK
             else:
-                self.response.payload = ''
                 self.response.status_code = NO_CONTENT

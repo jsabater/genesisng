@@ -15,9 +15,9 @@ class Get(Service):
 
     class SimpleIO:
         input_required = (Integer('id'))
-        output_required = ('id', 'username')
         # Passwords never travel back to the client side
-        output_optional = ('name', 'surname', 'email', 'is_admin')
+        output_optional = ('id', 'username', 'name', 'surname', 'email',
+                           'is_admin')
         skip_empty_keys = True
 
     def handle(self):
@@ -40,8 +40,8 @@ class Validate(Service):
 
     class SimpleIO:
         input_required = ('username', AsIs('password'))
-        output_required = ('id', 'username')
-        output_optional = ('name', 'surname', 'email', 'is_admin')
+        output_optional = ('id', 'username', 'name', 'surname', 'email',
+                           'is_admin')
         skip_empty_keys = True
 
     def handle(self):
@@ -70,8 +70,8 @@ class Create(Service):
         input_required = ('username', AsIs('password'))
         input_optional = ('name', 'surname', 'email',
                           Boolean('is_admin', default=False))
-        output_required = ('id', 'username')
-        output_optional = ('name', 'surname', 'email', 'is_admin')
+        output_optional = ('id', 'username', 'name', 'surname', 'email',
+                           'is_admin')
         skip_empty_keys = True
 
     def handle(self):
@@ -135,8 +135,8 @@ class Update(Service):
         input_required = (Integer('id'))
         input_optional = ('username', AsIs('password'), 'name', 'surname',
                           'email', Boolean('is_admin'))
-        output_required = ('id', 'username')
-        output_optional = ('name', 'surname', 'email', 'is_admin')
+        output_optional = ('id', 'username', 'name', 'surname', 'email',
+                           'is_admin')
         skip_empty_keys = True
 
     def handle(self):

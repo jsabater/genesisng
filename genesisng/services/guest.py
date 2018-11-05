@@ -17,10 +17,11 @@ class Get(Service):
 
     class SimpleIO(object):
         input_required = (Integer('id'))
-        output_required = ('id', 'name', 'surname', 'gender', 'email')
-        output_optional = ('passport', Date('birthdate'), 'address1',
-                           'address2', 'locality', 'postcode', 'province',
-                           'country', 'home_phone', 'mobile_phone')
+        output_optional = ('id', 'name',
+                           'surname', 'gender', 'email', 'passport',
+                           Date('birthdate'), 'address1', 'address2',
+                           'locality', 'postcode', 'province', 'country',
+                           'home_phone', 'mobile_phone')
         skip_empty_keys = True
 
     def handle(self):
@@ -47,10 +48,11 @@ class Create(Service):
         input_required = ('name', 'surname', 'gender', 'email')
         input_optional = ('passport', 'address1', 'locality', 'postcode',
                           'province', 'country')
-        output_required = ('id', 'name', 'surname', 'gender', 'email')
-        output_optional = ('passport', Date('birthdate'), 'address1',
-                           'address2', 'locality', 'postcode', 'province',
-                           'country', 'home_phone', 'mobile_phone')
+        output_optional = ('id', 'name',
+                           'surname', 'gender', 'email', 'passport',
+                           Date('birthdate'), 'address1', 'address2',
+                           'locality', 'postcode', 'province', 'country',
+                           'home_phone', 'mobile_phone')
         skip_empty_keys = True
 
     def handle(self):
@@ -126,10 +128,11 @@ class Update(Service):
                           Date('birthdate'), 'address1', 'address2',
                           'locality', 'postcode', 'province', 'country',
                           'home_phone', 'mobile_phone')
-        output_required = ('id', 'name', 'surname', 'gender', 'email')
-        output_optional = ('passport', Date('birthdate'), 'address1',
-                           'address2', 'locality', 'postcode', 'province',
-                           'country', 'home_phone', 'mobile_phone')
+        output_optional = ('id', 'name',
+                           'surname', 'gender', 'email', 'passport',
+                           Date('birthdate'), 'address1', 'address2',
+                           'locality', 'postcode', 'province', 'country',
+                           'home_phone', 'mobile_phone')
         skip_empty_keys = True
 
     def handle(self):
@@ -319,8 +322,9 @@ class List(Service):
         conditions = []
         for filter_ in filters:
             field, comparison, value = filter_.split('|')
-            if field in self.filters_allowed and comparison in self.comparisons_allowed:
-                    conditions.append((field, comparison, value))
+            if field in self.filters_allowed and \
+               comparison in self.comparisons_allowed:
+                conditions.append((field, comparison, value))
         if operator not in self.operators_allowed:
             operator = default_operator
 
@@ -408,9 +412,10 @@ class Bookings(Service):
 
     class SimpleIO:
         input_required = (Integer('id'))
-        output_required = ('id', 'name', 'surname', 'gender', 'email')
-        output_optional = ('passport', Date('birthdate'), 'address1',
-                           'address2', 'locality', 'postcode', 'province',
+        output_optional = ('id', 'name',
+                           'surname', 'gender', 'email', 'passport',
+                           Date('birthdate'), 'address1', 'address2',
+                           'locality', 'postcode', 'province',
                            'country', 'home_phone', 'mobile_phone',
                            ListOfDicts('bookings'), ListOfDicts('rooms'))
         skip_empty_keys = True
@@ -461,10 +466,11 @@ class Restore(Service):
 
     class SimpleIO:
         input_required = (Integer('id'))
-        output_required = ('id', 'name', 'surname', 'gender', 'email')
-        output_optional = ('passport', Date('birthdate'), 'address1',
-                           'address2', 'locality', 'postcode', 'province',
-                           'country', 'home_phone', 'mobile_phone')
+        output_optional = ('id', 'name',
+                           'surname', 'gender', 'email', 'passport',
+                           Date('birthdate'), 'address1', 'address2',
+                           'locality', 'postcode', 'province', 'country',
+                           'home_phone', 'mobile_phone')
         skip_empty_keys = True
 
     def handle(self):

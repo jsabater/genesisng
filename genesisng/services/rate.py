@@ -158,7 +158,8 @@ class List(Service):
                           List('filters'), List('fields'), List('operator'),
                           List('search'))
         # Fields projection is not allowed, so all fields are mandatory
-        output_required = ('count', 'id', 'date_from', 'date_to', 'base_price',
+        output_required = ('count')
+        output_optional = ('id', 'date_from', 'date_to', 'base_price',
                            'bed_price', 'published', 'days')
         output_repeated = True
         skip_empty_keys = True

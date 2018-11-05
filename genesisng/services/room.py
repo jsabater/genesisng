@@ -16,9 +16,9 @@ class Get(Service):
 
     class SimpleIO:
         input_required = (Integer('id'))
-        output_required = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
-                           'supplement', 'code')
-        output_optional = ('name', 'accommodates', 'number')
+        output_optional = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
+                           'supplement', 'code', 'name', 'accommodates',
+                           'number')
         skip_empty_keys = True
 
     def handle(self):
@@ -46,9 +46,9 @@ class Create(Service):
                           Integer('sgl_beds'), Integer('dbl_beds'),
                           Float('supplement'))
         input_optional = ('name')
-        output_required = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
-                           'supplement', 'code')
-        output_optional = ('name', 'accommodates', 'number')
+        output_optional = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
+                           'supplement', 'code', 'name', 'accommodates',
+                           'number')
         skip_empty_keys = True
 
     def handle(self):
@@ -111,9 +111,9 @@ class Update(Service):
         input_optional = (Integer('floor_no'), Integer('room_no'), 'name',
                           Integer('sgl_beds'), Integer('dbl_beds'),
                           Float('supplement'), 'code')
-        output_required = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
-                           'supplement', 'code')
-        output_optional = ('name', 'accommodates', 'number')
+        output_optional = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
+                           'supplement', 'code', 'name', 'accommodates',
+                           'number')
         skip_empty_keys = True
 
     def handle(self):

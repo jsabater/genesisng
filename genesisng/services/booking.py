@@ -17,13 +17,12 @@ class Get(Service):
 
     class SimpleIO(object):
         input_required = (Integer('id'))
-        output_required = ('id', 'id_guest', 'id_room',
-                           DateTime('reserved'), 'guests', Date('check_in'),
-                           Date('check_out'), 'base_price', 'taxes_percentage',
-                           'taxes_value', 'total_price', 'locator',
-                           'pin', 'status', 'meal_plan',
-                           Dict('additional_services'), 'uuid')
-        output_optional = (DateTime('checked_in'), DateTime('checked_out'),
+        output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
+                           'guests', Date('check_in'), Date('check_out'),
+                           'base_price', 'taxes_percentage', 'taxes_value',
+                           'total_price', 'locator', 'pin', 'status',
+                           'meal_plan', Dict('additional_services'), 'uuid',
+                           DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
 
@@ -49,13 +48,12 @@ class Locate(Service):
 
     class SimpleIO(object):
         input_required = (Integer('id'))
-        output_required = ('id', 'id_guest', 'id_room',
-                           DateTime('reserved'), 'guests', Date('check_in'),
-                           Date('check_out'), 'base_price', 'taxes_percentage',
-                           'taxes_value', 'total_price', 'locator',
-                           'pin', 'status', 'meal_plan',
-                           Dict('additional_services'), 'uuid')
-        output_optional = (DateTime('checked_in'), DateTime('checked_out'),
+        output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
+                           'guests', Date('check_in'), Date('check_out'),
+                           'base_price', 'taxes_percentage', 'taxes_value',
+                           'total_price', 'locator', 'pin', 'status',
+                           'meal_plan', Dict('additional_services'), 'uuid',
+                           DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
 
@@ -113,13 +111,12 @@ class Create(Service):
         input_optional = (DateTime('checked_in'), DateTime('checked_out'),
                           DateTime('cancelled'), 'status', 'meal_plan',
                           Dict('additional_services'), 'uuid')
-        output_required = ('id', 'id_guest', 'id_room',
-                           DateTime('reserved'), 'guests', Date('check_in'),
-                           Date('check_out'), 'base_price', 'taxes_percentage',
-                           'taxes_value', 'total_price', 'locator',
-                           'pin', 'status', 'meal_plan',
-                           Dict('additional_services'), 'uuid')
-        output_optional = (DateTime('checked_in'), DateTime('checked_out'),
+        output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
+                           'guests', Date('check_in'), Date('check_out'),
+                           'base_price', 'taxes_percentage', 'taxes_value',
+                           'total_price', 'locator', 'pin', 'status',
+                           'meal_plan', Dict('additional_services'), 'uuid',
+                           DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
 
@@ -206,13 +203,12 @@ class Update(Service):
                           Float('taxes_percentage'), Float('taxes_value'),
                           Float('total_price'), 'locator', 'pin', 'status',
                           'meal_plan', Dict('additional_services'), 'uuid')
-        output_required = ('id', 'id_guest', 'id_room',
-                           DateTime('reserved'), 'guests', Date('check_in'),
-                           Date('check_out'), 'base_price', 'taxes_percentage',
-                           'taxes_value', 'total_price', 'locator',
-                           'pin', 'status', 'meal_plan',
-                           Dict('additional_services'), 'uuid')
-        output_optional = (DateTime('checked_in'), DateTime('checked_out'),
+        output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
+                           'guests', Date('check_in'), Date('check_out'),
+                           'base_price', 'taxes_percentage', 'taxes_value',
+                           'total_price', 'locator', 'pin', 'status',
+                           'meal_plan', Dict('additional_services'), 'uuid',
+                           DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
 
@@ -399,7 +395,8 @@ class List(Service):
         conditions = []
         for filter_ in filters:
             field, comparison, value = filter_.split('|')
-            if field in self.filters_allowed and comparison in self.comparisons_allowed:
+            if field in self.filters_allowed and \
+               comparison in self.comparisons_allowed:
                 conditions.append((field, comparison, value))
         if operator not in (self.operators_allowed):
             operator = default_operator
@@ -485,13 +482,12 @@ class Restore(Service):
 
     class SimpleIO:
         input_required = (Integer('id'))
-        output_required = ('id', 'id_guest', 'id_room',
-                           DateTime('reserved'), 'guests', Date('check_in'),
-                           Date('check_out'), 'base_price', 'taxes_percentage',
-                           'taxes_value', 'total_price', 'locator',
-                           'pin', 'status', 'meal_plan',
-                           Dict('additional_services'), 'uuid')
-        output_optional = (DateTime('checked_in'), DateTime('checked_out'),
+        output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
+                           'guests', Date('check_in'), Date('check_out'),
+                           'base_price', 'taxes_percentage', 'taxes_value',
+                           'total_price', 'locator', 'pin', 'status',
+                           'meal_plan', Dict('additional_services'), 'uuid',
+                           DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'))
         skip_empty_keys = True
 

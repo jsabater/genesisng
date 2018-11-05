@@ -4,3 +4,5 @@ hashids
 psycopg2
 psycopg2-binary
 sqlalchemy
+zato-apitest
+

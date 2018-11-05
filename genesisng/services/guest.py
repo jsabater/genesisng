@@ -96,7 +96,7 @@ class Create(Service):
 
 class Delete(Service):
     """Service class to delete an existing guest."""
-    """Channel /genesisng/guests/{id}/delete"""
+    """Channel /genesisng/guests/{id}/delete."""
 
     class SimpleIO:
         input_required = (Integer('id'))
@@ -462,7 +462,7 @@ class Bookings(Service):
 
 class Restore(Service):
     """Service class to restore a deleted an existing guest."""
-    """Channel /genesisng/guests/{id}/restore"""
+    """Channel /genesisng/guests/{id}/restore."""
 
     class SimpleIO:
         input_required = (Integer('id'))

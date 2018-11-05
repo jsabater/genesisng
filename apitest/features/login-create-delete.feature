@@ -25,12 +25,12 @@ Scenario: REST login deletion of previously created login
     Given URL path "/genesisng/logins/#{id}/delete"
     Given HTTP method "GET"
     Given format "RAW"
-    # Clean up inherited request
     Given request is "{}"
 
     When the URL is invoked
 
     Then status is "204"
+    And context is cleaned up
 
 Scenario: REST login creation with all fields and no administrator privileges
 
@@ -63,6 +63,7 @@ Scenario: REST login deletion of previously created login
     When the URL is invoked
 
     Then status is "204"
+    And context is cleaned up
 
 Scenario: REST login creation with all fields and administrator privileges
 
@@ -95,7 +96,6 @@ Scenario: REST login deletion of previously created login
     When the URL is invoked
 
     Then status is "204"
-    # And context is cleaned up
 
 Scenario: REST login deletion of non-existent login
 
@@ -108,6 +108,7 @@ Scenario: REST login deletion of non-existent login
     When the URL is invoked
 
     Then status is "404"
+    And context is cleaned up
 
 Scenario: REST login creation of an existing login
 

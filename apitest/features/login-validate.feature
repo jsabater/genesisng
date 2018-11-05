@@ -12,7 +12,6 @@ Scenario: REST login successful validation
 
     Then response is equal to that from "login-validate-jsabater.json"
     And status is "200"
-
     And context is cleaned up
 
 Scenario: REST login unsuccessful validation

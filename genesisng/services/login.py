@@ -24,10 +24,21 @@ class Get(Service):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
 
+        # Check whether a copy exists in the cache
+        cache_key = 'id-%s' % id_
+        cache = self.cache.get_cache('builtin', 'logins')
+        result = cache.get(cache_key)
+        if not result:
+            self.response.status_code = OK
+            self.response.payload = result
+            return
+
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Login).filter(Login.id == id_).one_or_none()
 
             if result:
+                # Save the record in the cache
+                cache.set(cache_key, result)
                 self.response.status_code = OK
                 self.response.payload = result
             else:
@@ -56,6 +67,10 @@ class Validate(Service):
                 one_or_none()
 
             if result:
+                # Save the record in the cache
+                cache_key = 'id-%s' % result.id
+                cache = self.cache.get_cache('builtin', 'logins')
+                cache.set(cache_key, result)
                 self.response.status_code = OK
                 self.response.payload = result
             else:
@@ -122,6 +137,12 @@ class Delete(Service):
 
             if deleted:
                 self.response.status_code = NO_CONTENT
+
+                # Invalidate the cache
+                cache_key = 'id-%s' % id_
+                cache = self.cache.get_cache('builtin', 'logins')
+                cache.delete(cache_key)
+
             else:
                 self.response.status_code = NOT_FOUND
 
@@ -169,6 +190,11 @@ class Update(Service):
                     session.commit()
                     self.response.status_code = OK
                     self.response.payload = result
+
+                    # Invalidate the cache
+                    cache_key = 'id-%s' % id_
+                    cache = self.cache.get_cache('builtin', 'logins')
+                    cache.delete(cache_key)
                 else:
                     self.response.status_code = NOT_FOUND
             except IntegrityError:
@@ -271,7 +297,8 @@ class List(Service):
         conditions = []
         for filter_ in filters:
             field, comparison, value = filter_.split('|')
-            if field in self.filters_allowed and comparison in self.comparisons_allowed:
+            if field in self.filters_allowed and \
+               comparison in self.comparisons_allowed:
                     conditions.append((field, comparison, value))
         if operator not in self.operators_allowed:
             operator = default_operator

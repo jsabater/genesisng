@@ -122,7 +122,6 @@ class Delete(Service):
 
             if deleted:
                 self.response.status_code = NO_CONTENT
-                self.response.payload = ''
             else:
                 self.response.status_code = NOT_FOUND
 

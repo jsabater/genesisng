@@ -7,6 +7,10 @@ from zato.server.service import Service, Boolean, Integer, AsIs, List
 from genesisng.schema.login import Login
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
+from wsgiref.handlers import format_date_time
+from datetime import datetime
+from time import mktime
+from hashlib import md5
 
 
 class Get(Service):
@@ -22,27 +26,40 @@ class Get(Service):
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
+        cache_control = self.user_config.genesisng.cache.default_cache_control
         id_ = self.request.input.id
 
         # Check whether a copy exists in the cache
         cache_key = 'id-%s' % id_
         cache = self.cache.get_cache('builtin', 'logins')
-        result = cache.get(cache_key)
-        if not result:
+        cache_data = cache.get(cache_key, details=True)
+        if cache_data:
             self.response.status_code = OK
-            self.response.payload = result
+            self.response.headers['Cache-Control'] = cache_control
+            self.response.headers['Last-Modified'] = format_date_time(
+                cache_data.last_write)
+            self.response.headers['ETag'] = md5(str(
+                cache_data.value)).hexdigest()
+            self.response.payload = cache_data.value
             return
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Login).filter(Login.id == id_).one_or_none()
 
             if result:
-                # Save the record in the cache
+                # Save the record in the cache, minus the password
+                result = result.asdict()
+                del (result['password'])
                 cache.set(cache_key, result)
                 self.response.status_code = OK
+                self.response.headers['Cache-Control'] = cache_control
+                self.response.headers['Last-Modified'] = format_date_time(
+                    mktime(datetime.now().timetuple()))
+                self.response.headers['ETag'] = md5(str(result)).hexdigest()
                 self.response.payload = result
             else:
                 self.response.status_code = NOT_FOUND
+                self.response.headers['Cache-Control'] = 'no-cache'
 
 
 class Validate(Service):
@@ -67,14 +84,18 @@ class Validate(Service):
                 one_or_none()
 
             if result:
-                # Save the record in the cache
+                # Save the record in the cache, minus the password
                 cache_key = 'id-%s' % result.id
                 cache = self.cache.get_cache('builtin', 'logins')
+                result = result.asdict()
+                del (result['password'])
                 cache.set(cache_key, result)
                 self.response.status_code = OK
+                self.response.headers['Cache-Control'] = 'no-cache'
                 self.response.payload = result
             else:
                 self.response.status_code = NOT_FOUND
+                self.response.headers['Cache-Control'] = 'no-cache'
 
 
 class Create(Service):
@@ -95,7 +116,7 @@ class Create(Service):
         conn = self.user_config.genesisng.database.connection
 
         p = self.request.input
-        login = Login(
+        result = Login(
             username=p.username,
             password=p.password,
             name=p.name,
@@ -105,17 +126,28 @@ class Create(Service):
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             try:
-                session.add(login)
+                session.add(result)
                 session.commit()
+
+                # Save the record in the cache, minus the password
+                cache_key = 'id-%s' % result.id
+                cache = self.cache.get_cache('builtin', 'logins')
+                result = result.asdict()
+                del (result['password'])
+                cache.set(cache_key, result)
+
+                # Return the result
                 self.response.status_code = CREATED
-                self.response.payload = login
+                self.response.payload = result
                 url = self.user_config.genesisng.location.logins
-                self.response.headers['Location'] = url.format(id=login.id)
+                self.response.headers['Location'] = url.format(id=result.id)
+                self.response.headers['Cache-Control'] = 'no-cache'
 
             except IntegrityError:
                 # Constraint prevents duplication of username or emails.
                 session.rollback()
                 self.response.status_code = CONFLICT
+                self.response.headers['Cache-Control'] = 'no-cache'
                 # TODO: Return well-formed error response
                 # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
 
@@ -137,6 +169,7 @@ class Delete(Service):
 
             if deleted:
                 self.response.status_code = NO_CONTENT
+                self.response.headers['Cache-Control'] = 'no-cache'
 
                 # Invalidate the cache
                 cache_key = 'id-%s' % id_
@@ -145,6 +178,7 @@ class Delete(Service):
 
             else:
                 self.response.status_code = NOT_FOUND
+                self.response.headers['Cache-Control'] = 'no-cache'
 
 
 class Update(Service):
@@ -188,8 +222,18 @@ class Update(Service):
                     if p.is_admin != '':
                         result.is_admin = p.is_admin
                     session.commit()
+
+                    # Save the record in the cache, minus the password
+                    cache_key = 'id-%s' % result.id
+                    cache = self.cache.get_cache('builtin', 'logins')
+                    result = result.asdict()
+                    del (result['password'])
+                    cache.set(cache_key, result)
+
+                    # Return the result
                     self.response.status_code = OK
                     self.response.payload = result
+                    self.response.headers['Cache-Control'] = 'no-cache'
 
                     # Invalidate the cache
                     cache_key = 'id-%s' % id_
@@ -197,10 +241,12 @@ class Update(Service):
                     cache.delete(cache_key)
                 else:
                     self.response.status_code = NOT_FOUND
+                    self.response.headers['Cache-Control'] = 'no-cache'
             except IntegrityError:
                 # Constraint prevents duplication of username or emails.
                 session.rollback()
                 self.response.status_code = CONFLICT
+                self.response.headers['Cache-Control'] = 'no-cache'
                 # TODO: Return well-formed error response
                 # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
 
@@ -232,8 +278,9 @@ class List(Service):
     def handle(self):
         conn = self.user_config.genesisng.database.connection
         default_page_size = int(
-            self.user_config.genesisng.database.default_page_size)
-        max_page_size = int(self.user_config.genesisng.database.max_page_size)
+            self.user_config.genesisng.pagination.default_page_size)
+        max_page_size = int(
+            self.user_config.genesisng.pagination.max_page_size)
         Cols = self.model.__table__.columns
 
         # TODO: Have these default values in user config?
@@ -299,7 +346,7 @@ class List(Service):
             field, comparison, value = filter_.split('|')
             if field in self.filters_allowed and \
                comparison in self.comparisons_allowed:
-                    conditions.append((field, comparison, value))
+                conditions.append((field, comparison, value))
         if operator not in self.operators_allowed:
             operator = default_operator
 
@@ -374,7 +421,18 @@ class List(Service):
 
             # Return result
             if result:
-                self.response.payload[:] = result
+                # Store results in the cache only if all fields were retrieved
+                if not fields:
+                    cache = self.cache.get_cache('builtin', 'logins')
+                    for r in result:
+                        cache_key = 'id-%s' % r.id
+                        r = r.asdict()
+                        del (r['password'])
+                        cache.set(cache_key, r)
+
                 self.response.status_code = OK
+                self.response.payload[:] = result
+                self.response.headers['Cache-Control'] = 'no-cache'
             else:
                 self.response.status_code = NO_CONTENT
+                self.response.headers['Cache-Control'] = 'no-cache'

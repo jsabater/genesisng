@@ -257,8 +257,8 @@ class List(Service):
     def handle(self):
         conn = self.user_config.genesisng.database.connection
         default_page_size = int(
-            self.user_config.genesisng.database.default_page_size)
-        max_page_size = int(self.user_config.genesisng.database.max_page_size)
+            self.user_config.genesisng.pagination.default_page_size)
+        max_page_size = int(self.user_config.genesisng.pagination.max_page_size)
         Cols = self.model.__table__.columns
 
         # TODO: Have these default values in user config?

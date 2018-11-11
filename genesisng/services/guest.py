@@ -9,6 +9,8 @@ from genesisng.schema.guest import Guest
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
+from wsgiref.handlers import format_date_time
+from hashlib import md5
 
 
 class Get(Service):
@@ -26,7 +28,22 @@ class Get(Service):
 
     def handle(self):
         conn = self.user_config.genesisng.database.connection
+        cache_control = self.user_config.genesisng.cache.default_cache_control
         id_ = self.request.input.id
+
+        # Check whether a copy exists in the cache
+        cache_key = 'id-%s' % id_
+        cache = self.cache.get_cache('builtin', 'guests')
+        cache_data = cache.get(cache_key, details=True)
+        if cache_data:
+            self.response.status_code = OK
+            self.response.headers['Cache-Control'] = cache_control
+            self.response.headers['Last-Modified'] = format_date_time(
+                cache_data.last_write)
+            self.response.headers['ETag'] = md5(str(
+                cache_data.value)).hexdigest()
+            self.response.payload = cache_data.value
+            return
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Guest).\
@@ -34,10 +51,20 @@ class Get(Service):
                 one_or_none()
 
             if result:
+                # Save the record in the cache
+                cache.set(cache_key, result.asdict(), details=True)
+
+                # Return the result
                 self.response.status_code = OK
-                self.response.payload = result
+                self.response.headers['Cache-Control'] = cache_control
+                self.response.headers['Last-Modified'] = format_date_time(
+                    cache_data.last_write)
+                self.response.headers['ETag'] = md5(str(
+                    cache_data.value)).hexdigest()
+                self.response.payload = cache_data.value
             else:
                 self.response.status_code = NOT_FOUND
+                self.response.headers['Cache-Control'] = 'no-cache'
 
 
 class Create(Service):
@@ -61,7 +88,7 @@ class Create(Service):
         conn = self.user_config.genesisng.database.connection
 
         p = self.request.input
-        guest = Guest(
+        result = Guest(
             name=p.name,
             surname=p.surname,
             gender=p.gender,
@@ -72,19 +99,26 @@ class Create(Service):
             postcode=p.postcode,
             province=p.province,
             country=p.country)
-        guest.address2 = p.get('address2', None)
-        guest.birthdate = p.get('birthdate', None)
-        guest.home_phone = p.get('home_phone', None)
-        guest.mobile_phone = p.get('mobile_phone', None)
+        result.address2 = p.get('address2', None)
+        result.birthdate = p.get('birthdate', None)
+        result.home_phone = p.get('home_phone', None)
+        result.mobile_phone = p.get('mobile_phone', None)
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             try:
-                session.add(guest)
+                session.add(result)
                 session.commit()
+
+                # Save the record in the cache
+                cache_key = 'id-%s' % result.id
+                cache = self.cache.get_cache('builtin', 'guests')
+                result = result.asdict()
+                cache.set(cache_key, result)
+
                 self.response.status_code = CREATED
-                self.response.payload = guest
+                self.response.payload = result
                 url = self.user_config.genesisng.location.guests
-                self.response.headers['Location'] = url.format(id=guest.id)
+                self.response.headers['Location'] = url.format(id=result.id)
 
             except IntegrityError:
                 # Constraint prevents duplication of username or emails.
@@ -114,8 +148,16 @@ class Delete(Service):
                 result.deleted = datetime.utcnow()
                 session.commit()
                 self.response.status_code = NO_CONTENT
+                self.response.headers['Cache-Control'] = 'no-cache'
+
+                # Invalidate the cache
+                cache_key = 'id-%s' % id_
+                cache = self.cache.get_cache('builtin', 'guests')
+                cache.delete(cache_key)
+
             else:
                 self.response.status_code = NOT_FOUND
+                self.response.headers['Cache-Control'] = 'no-cache'
 
 
 class Update(Service):
@@ -181,14 +223,24 @@ class Update(Service):
                     if p.mobile_phone:
                         result.mobile_phone = p.mobile_phone
                     session.commit()
+
+                    # Save the record in the cache, minus the password
+                    cache_key = 'id-%s' % result.id
+                    cache = self.cache.get_cache('builtin', 'guests')
+                    cache_data = cache.set(
+                        cache_key, result.asdict(), details=True)
+
                     self.response.status_code = OK
-                    self.response.payload = result
+                    self.response.payload = cache_data.value
+                    self.response.headers['Cache-Control'] = 'no-cache'
                 else:
                     self.response.status_code = NOT_FOUND
+                    self.response.headers['Cache-Control'] = 'no-cache'
             except IntegrityError:
                 # Constraint prevents duplication of emails.
                 session.rollback()
                 self.response.status_code = CONFLICT
+                self.response.headers['Cache-Control'] = 'no-cache'
                 # TODO: Return well-formed error response
                 # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
 
@@ -258,7 +310,8 @@ class List(Service):
         conn = self.user_config.genesisng.database.connection
         default_page_size = int(
             self.user_config.genesisng.pagination.default_page_size)
-        max_page_size = int(self.user_config.genesisng.pagination.max_page_size)
+        max_page_size = int(
+            self.user_config.genesisng.pagination.max_page_size)
         Cols = self.model.__table__.columns
 
         # TODO: Have these default values in user config?
@@ -399,10 +452,19 @@ class List(Service):
 
             # Return result
             if result:
+                # Store results in the cache only if all fields were retrieved
+                if not fields:
+                    cache = self.cache.get_cache('builtin', 'guests')
+                    for r in result:
+                        cache_key = 'id-%s' % r.id
+                        cache.set(cache_key, r.asdict())
+
                 self.response.payload[:] = result
                 self.response.status_code = OK
+                self.response.headers['Cache-Control'] = 'no-cache'
             else:
                 self.response.status_code = NO_CONTENT
+                self.response.headers['Cache-Control'] = 'no-cache'
 
 
 class Bookings(Service):

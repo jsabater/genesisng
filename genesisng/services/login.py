@@ -8,8 +8,6 @@ from genesisng.schema.login import Login
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from wsgiref.handlers import format_date_time
-from datetime import datetime
-from time import mktime
 from hashlib import md5
 
 
@@ -50,13 +48,16 @@ class Get(Service):
                 # Save the record in the cache, minus the password
                 result = result.asdict()
                 del (result['password'])
-                cache.set(cache_key, result)
+                cache_data = cache.set(cache_key, result, details=True)
+
+                # Return the result
                 self.response.status_code = OK
                 self.response.headers['Cache-Control'] = cache_control
                 self.response.headers['Last-Modified'] = format_date_time(
-                    mktime(datetime.now().timetuple()))
-                self.response.headers['ETag'] = md5(str(result)).hexdigest()
-                self.response.payload = result
+                    cache_data.last_write)
+                self.response.headers['ETag'] = md5(str(
+                    cache_data.value)).hexdigest()
+                self.response.payload = cache_data.value
             else:
                 self.response.status_code = NOT_FOUND
                 self.response.headers['Cache-Control'] = 'no-cache'
@@ -228,17 +229,12 @@ class Update(Service):
                     cache = self.cache.get_cache('builtin', 'logins')
                     result = result.asdict()
                     del (result['password'])
-                    cache.set(cache_key, result)
+                    cache_data = cache.set(cache_key, result, details=True)
 
                     # Return the result
                     self.response.status_code = OK
-                    self.response.payload = result
+                    self.response.payload = cache_data.value
                     self.response.headers['Cache-Control'] = 'no-cache'
-
-                    # Invalidate the cache
-                    cache_key = 'id-%s' % id_
-                    cache = self.cache.get_cache('builtin', 'logins')
-                    cache.delete(cache_key)
                 else:
                     self.response.status_code = NOT_FOUND
                     self.response.headers['Cache-Control'] = 'no-cache'

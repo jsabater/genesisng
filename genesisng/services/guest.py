@@ -52,7 +52,7 @@ class Get(Service):
 
             if result:
                 # Save the record in the cache
-                cache.set(cache_key, result.asdict(), details=True)
+                cache_data = cache.set(cache_key, result.asdict(), details=True)
 
                 # Return the result
                 self.response.status_code = OK
@@ -491,7 +491,13 @@ class Bookings(Service):
         input_data = {'id': id_}
         guest = self.invoke('guest.get', input_data)
         if guest:
+
             result = guest['response']
+
+            # Store the result in the cache
+            cache = self.cache.get_cache('builtin', 'guests')
+            cache_key = 'id-%s' % guest['response'].id
+            cache.set(cache_key, guest['response'].asdict())
 
         # Get the list of bookings from the guest
         result['bookings'] = []
@@ -500,26 +506,36 @@ class Bookings(Service):
 
         if bookings:
             rooms = []
+            # For each returned booking, add it to the result, take the room id
+            # and save it in the cache
             for b in bookings['response']:
                 del b['count']
                 result['bookings'].append(b)
                 rooms.append(b['id_room'])
+                cache = self.cache.get_cache('builtin', 'bookings')
+                cache_key = 'id-%s' % b.id
+                cache.set(cache_key, b.asdict())
 
         # Get room data
-        # room.list does not support OR on multiple filters at the moment
+        # TODO: use room.list as it now supports filter operator
         result['rooms'] = []
         for r in rooms:
             input_data = {'id': '%d' % r}
             room = self.invoke('room.get', input_data)
             if room:
                 result['rooms'].append(room['response'])
+                cache = self.cache.get_cache('builtin', 'rooms')
+                cache_key = 'id-%s' % room.id
+                cache.set(cache_key, room.asdict())
 
         # Return dictinary with guest, bookings and rooms
         if result:
             self.response.status_code = OK
             self.response.payload = result
+            self.response.headers['Cache-Control'] = 'no-cache'
         else:
             self.response.status_code = NOT_FOUND
+            self.response.headers['Cache-Control'] = 'no-cache'
 
 
 class Restore(Service):
@@ -548,7 +564,16 @@ class Restore(Service):
                 # Update dictionary key
                 result.deleted = None
                 session.commit()
+
+                # Save the result in the cache
+                cache_key = 'id-%s' % id_
+                cache = self.cache.get_cache('builtin', 'guests')
+                result = result.asdict()
+                cache.set(cache_key, result)
+
                 self.response.status_code = OK
                 self.response.payload = result
+                self.response.headers['Cache-Control'] = 'no-cache'
             else:
                 self.response.status_code = NOT_FOUND
+                self.response.headers['Cache-Control'] = 'no-cache'

@@ -52,7 +52,8 @@ class Get(Service):
 
             if result:
                 # Save the record in the cache
-                cache_data = cache.set(cache_key, result.asdict(), details=True)
+                cache_data = cache.set(
+                    cache_key, result.asdict(), details=True)
 
                 # Return the result
                 self.response.status_code = OK
@@ -297,12 +298,11 @@ class List(Service):
         input_optional = (List('page'), List('size'), List('sort'),
                           List('filters'), List('fields'), List('operator'),
                           List('search'))
-        output_required = ('count')
-        output_optional = ('id', 'name',
-                           'surname', 'gender', 'email', 'passport',
-                           Date('birthdate'), 'address1', 'address2',
-                           'locality', 'postcode', 'province', 'country',
-                           'home_phone', 'mobile_phone', DateTime('deleted'))
+        output_optional = ('count', 'id', 'name', 'surname', 'gender', 'email',
+                           'passport', Date('birthdate'), 'address1',
+                           'address2', 'locality', 'postcode', 'province',
+                           'country', 'home_phone', 'mobile_phone',
+                           DateTime('deleted'))
         skip_empty_keys = True
         output_repeated = True
 
@@ -403,10 +403,6 @@ class List(Service):
                 query = query.add_columns(Cols[c])
 
             # Prepare filters
-            # TODO: Use sqlalchemy-filters?
-            # https://pypi.org/project/sqlalchemy-filters/
-            # TODO: Use a map instead of if..else?
-            # m = {'lt': '<', 'lte': '<=', 'eq': '==', 'ne': '!=', 'gte': '>=', 'gt': '>'}
             if conditions:
                 clauses = []
                 for c in conditions:
@@ -490,45 +486,56 @@ class Bookings(Service):
         # Get guest data
         input_data = {'id': id_}
         guest = self.invoke('guest.get', input_data)
-        if guest:
 
+        if guest['response']:
+            # Add the guest to the result
             result = guest['response']
 
             # Store the result in the cache
             cache = self.cache.get_cache('builtin', 'guests')
-            cache_key = 'id-%s' % guest['response'].id
-            cache.set(cache_key, guest['response'].asdict())
+            cache_key = 'id-%s' % guest['response']['id']
+            cache.set(cache_key, guest['response'])
 
-        # Get the list of bookings from the guest
-        result['bookings'] = []
-        input_data = {'filters': ['id_guest|eq|%s' % id_]}
-        bookings = self.invoke('booking.list', input_data)
+            # Get the list of bookings from the guest
+            result['bookings'] = []
+            input_data = {'filters': ['id_guest|eq|%s' % id_]}
+            bookings = self.invoke('booking.list', input_data)
 
-        if bookings:
-            rooms = []
-            # For each returned booking, add it to the result, take the room id
-            # and save it in the cache
-            for b in bookings['response']:
-                del b['count']
-                result['bookings'].append(b)
-                rooms.append(b['id_room'])
+            room_ids = []
+            if bookings['response']:
                 cache = self.cache.get_cache('builtin', 'bookings')
-                cache_key = 'id-%s' % b.id
-                cache.set(cache_key, b.asdict())
+                for b in bookings['response']:
 
-        # Get room data
-        # TODO: use room.list as it now supports filter operator
-        result['rooms'] = []
-        for r in rooms:
-            input_data = {'id': '%d' % r}
-            room = self.invoke('room.get', input_data)
-            if room:
-                result['rooms'].append(room['response'])
-                cache = self.cache.get_cache('builtin', 'rooms')
-                cache_key = 'id-%s' % room.id
-                cache.set(cache_key, room.asdict())
+                    # Add the booking to the result
+                    del b['count']
+                    result['bookings'].append(b)
 
-        # Return dictinary with guest, bookings and rooms
+                    # Save the room id in the booking
+                    room_ids.append(b['id_room'])
+
+                    # Store booking in the cache
+                    cache_key = 'id-%s' % b['id']
+                    cache.set(cache_key, b)
+
+                # Get room data from the list of saved rooms
+                result['rooms'] = []
+                input_data = {'operator': 'or', 'filters': []}
+                for i in room_ids:
+                    input_data['filters'].append('id|eq|%d' % i)
+                rooms = self.invoke('room.list', input_data)
+                if rooms['response']:
+                    cache = self.cache.get_cache('builtin', 'rooms')
+                    for r in rooms['response']:
+
+                        # Add the room to the result
+                        del r['count']
+                        result['rooms'].append(r)
+
+                        # Store room in the cache
+                        cache_key = 'id-%s' % r['id']
+                        cache.set(cache_key, r.asdict())
+
+        # Return the dictionary with guest, bookings and rooms
         if result:
             self.response.status_code = OK
             self.response.payload = result

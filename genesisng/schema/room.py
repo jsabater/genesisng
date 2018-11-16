@@ -2,9 +2,10 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from .base import Base
-from sqlalchemy import Column, Integer, Float, String, DateTime
+from sqlalchemy import Column, Integer, Float, String, DateTime, func
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.dialects import postgresql
 import hashids
 
 
@@ -53,6 +54,15 @@ class Room(Base):
     def accommodates(self):
         return self.sgl_beds + self.dbl_beds * 2
 
+    @accommodates.expression
+    def accommodates(cls):
+        return (cls.sgl_beds + cls.dbl_beds * 2)
+
     @hybrid_property
     def number(self):
         return '%d%02d' % (self.floor_no, self.room_no)
+
+    @number.expression
+    def number(cls):
+        return (func.cast(cls.floor_no, String) +
+                func.lpad(func.cast(cls.room_no, postgresql.TEXT), 2, '0'))

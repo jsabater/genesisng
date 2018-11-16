@@ -265,9 +265,8 @@ class List(Service):
         input_optional = (List('page'), List('size'), List('sort'),
                           List('filters'), List('fields'), List('operator'),
                           List('search'))
-        output_required = ('count')
-        output_optional = ('id', 'username', 'name', 'surname', 'email',
-                           'is_admin')
+        output_optional = ('count', 'id', 'username', 'name', 'surname',
+                           'email', 'is_admin')
         output_repeated = True
         skip_empty_keys = True
 
@@ -421,9 +420,9 @@ class List(Service):
                 if not fields:
                     cache = self.cache.get_cache('builtin', 'logins')
                     for r in result:
+                        # Items are already dictionaries. Passwords have
+                        # already been excluded.
                         cache_key = 'id-%s' % r.id
-                        r = r.asdict()
-                        del (r['password'])
                         cache.set(cache_key, r)
 
                 self.response.status_code = OK

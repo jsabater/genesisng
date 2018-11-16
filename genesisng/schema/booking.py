@@ -69,8 +69,8 @@ class Booking(Base):
                   comment='Unique code used to detect duplicates')
     deleted = Column(DateTime, default=None)
 
-    room = relationship("Room", backref="booking")
-    guest = relationship("Guest", backref="booking")
+    # room = relationship("Room", backref="booking")
+    # guest = relationship("Guest", backref="booking")
 
     def __repr__(self):
         return "<Booking(id='%s', nights='%s', guests='%s', check_in='%s', check_out='%s')>" % (

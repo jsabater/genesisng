@@ -47,8 +47,8 @@ class Room(Base):
     deleted = Column(DateTime, default=None)
 
     def __repr__(self):
-        return "<Room(id='%s', number='%s', accommodates='%s')>" % (
-            self.id, self.number, self.accommodates)
+        return "<Room(id='%s', name='%s', number='%s', accommodates='%s')>" % (
+            self.id, self.name, self.number, self.accommodates)
 
     @hybrid_property
     def accommodates(self):

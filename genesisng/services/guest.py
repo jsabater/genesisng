@@ -268,7 +268,7 @@ class List(Service):
     * fields: <field>.
     Pagination and sorting are always enforced.
     Filtering is optional. Multiple filters allowed. Only one operator.
-    Fields projection is optional. Multiple fields allowed.
+    Fields projection is not allowed (model class has an hybrid property).
     Search is optional. Passed term is case insensitive.
 
     In case of error, it does not return 400 Bad Request but, instead,
@@ -296,8 +296,7 @@ class List(Service):
 
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort'),
-                          List('filters'), List('fields'), List('operator'),
-                          List('search'))
+                          List('filters'), List('operator'), List('search'))
         output_optional = ('count', 'id', 'name', 'surname', 'gender', 'email',
                            'passport', Date('birthdate'), 'address1',
                            'address2', 'locality', 'postcode', 'province',
@@ -346,12 +345,6 @@ class List(Service):
             filters = []
             operator = default_operator
 
-        # Fields projection
-        try:
-            fields = self.request.input.fields
-        except (ValueError, KeyError):
-            fields = []
-
         # Search
         try:
             search = self.request.input.search[0]
@@ -381,26 +374,13 @@ class List(Service):
         if operator not in self.operators_allowed:
             operator = default_operator
 
-        # Handle fields projection
-        columns = []
-        for f in fields:
-            if f in self.fields_allowed:
-                columns.append(f)
-
         # Handle search
         if not self.search_allowed:
             search = None
 
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            query = session.query(func.count().over().label('count'))
-
-            # Add columns
-            if not columns:
-                columns = self.fields_allowed
-
-            for c in columns:
-                query = query.add_columns(Cols[c])
+            query = session.query(Guest, func.count().over().label('count'))
 
             # Prepare filters
             if conditions:

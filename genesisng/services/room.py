@@ -35,6 +35,7 @@ class Get(Service):
                 self.response.payload = result
             else:
                 self.response.status_code = NOT_FOUND
+            self.response.headers['Content-Language'] = 'en'
 
 
 class Create(Service):
@@ -56,9 +57,13 @@ class Create(Service):
         # http://docs.python-cerberus.org/en/stable/
         conn = self.user_config.genesisng.database.connection
         p = self.request.input
-        room = Room(floor_no=p.floor_no, room_no=p.room_no,
-                    sgl_beds=p.sgl_beds, dbl_beds=p.dbl_beds,
-                    supplement=p.supplement, code=p.code)
+        room = Room(
+            floor_no=p.floor_no,
+            room_no=p.room_no,
+            sgl_beds=p.sgl_beds,
+            dbl_beds=p.dbl_beds,
+            supplement=p.supplement,
+            code=p.code)
         room.name = p.get('name', None)
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
@@ -120,9 +125,14 @@ class Update(Service):
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
         p = self.request.input
-        room = Room(floor_no=p.floor_no, room_no=p.room_no, name=p.name,
-                    sgl_beds=p.sgl_beds, dbl_beds=p.dbl_beds,
-                    supplement=p.supplement, code=p.code)
+        room = Room(
+            floor_no=p.floor_no,
+            room_no=p.room_no,
+            name=p.name,
+            sgl_beds=p.sgl_beds,
+            dbl_beds=p.dbl_beds,
+            supplement=p.supplement,
+            code=p.code)
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Room).\
@@ -148,6 +158,31 @@ class Update(Service):
 class List(Service):
     """Service class to get a list of all rooms in the system."""
     """Channel /genesisng/rooms/list."""
+    """
+    Query string parameters:
+    * page: the page number (default 1).
+    * size: the number of items per page (default in user config).
+    * sort: <criteria>|<direction> (default id|asc).
+      Direction can be 'asc' or 'desc'.
+    * filters: <field>|<comparator>|<value>
+      Supported comparators are:
+        * lt: less than.
+        * lte: less than or equal.
+        * eq: equal.
+        * ne: not equal.
+        * gte: greater than or equal.
+        * gt: greater than.
+    * operator: applies to all filters (default 'and').
+      Supported operators are 'and' and 'or'.
+    * fields: <field>.
+    Pagination and sorting are always enforced.
+    Filtering is optional. Multiple filters allowed. Only one operator.
+    Fields projection is not allowed (model class has an hybrid property).
+    Search is optional. Passed term is case insensitive.
+
+    In case of error, it does not return 400 Bad Request but, instead,
+    it assumes default parameter values and carries on.
+    """
 
     model = Room
     criteria_allowed = ('id', 'number')
@@ -156,15 +191,13 @@ class List(Service):
     comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
     operators_allowed = ('and', 'or')
     fields_allowed = ('id', 'floor_no', 'room_no', 'name', 'sgl_beds',
-                      'dbl_beds', 'supplement', 'code', 'accommodates',
-                      'number', 'deleted')
+                      # 'number', 'accommodates',
+                      'dbl_beds', 'supplement', 'code', 'deleted')
     search_allowed = ()
 
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort'),
-                          List('filters'), List('fields'), List('operator'),
-                          List('search'))
-        output_required = ('count')
+                          List('filters'), List('operator'), List('search'))
         output_optional = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
                            'supplement', 'code', 'name', 'accommodates',
                            'number')
@@ -175,7 +208,8 @@ class List(Service):
         conn = self.user_config.genesisng.database.connection
         default_page_size = int(
             self.user_config.genesisng.pagination.default_page_size)
-        max_page_size = int(self.user_config.genesisng.pagination.max_page_size)
+        max_page_size = int(
+            self.user_config.genesisng.pagination.max_page_size)
         Cols = self.model.__table__.columns
 
         # TODO: Have these default values in user config?
@@ -210,12 +244,6 @@ class List(Service):
             filters = []
             operator = default_operator
 
-        # Fields projection
-        try:
-            fields = self.request.input.fields
-        except (ValueError, KeyError):
-            fields = []
-
         # Search
         try:
             search = self.request.input.search[0]
@@ -239,16 +267,11 @@ class List(Service):
         conditions = []
         for filter_ in filters:
             field, comparison, value = filter_.split('|')
-            if field in self.filters_allowed and comparison in self.comparisons_allowed:
-                    conditions.append((field, comparison, value))
+            if field in self.filters_allowed and \
+               comparison in self.comparisons_allowed:
+                conditions.append((field, comparison, value))
         if operator not in self.operators_allowed:
             operator = default_operator
-
-        # Handle fields projection
-        columns = []
-        for f in fields:
-            if f in self.fields_allowed:
-                columns.append(f)
 
         # Handle search
         if not self.search_allowed:
@@ -256,20 +279,9 @@ class List(Service):
 
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            query = session.query(func.count().over().label('count'))
-
-            # Add columns
-            if not columns:
-                columns = self.fields_allowed
-
-            for c in columns:
-                query = query.add_columns(Cols[c])
+            query = session.query(Room)
 
             # Prepare filters
-            # TODO: Use sqlalchemy-filters?
-            # https://pypi.org/project/sqlalchemy-filters/
-            # TODO: Use a map instead of if..else?
-            # m = {'lt': '<', 'lte': '<=', 'eq': '==', 'ne': '!=', 'gte': '>=', 'gt': '>'}
             if conditions:
                 clauses = []
                 for c in conditions:
@@ -317,5 +329,7 @@ class List(Service):
             if result:
                 self.response.payload[:] = result
                 self.response.status_code = OK
+                self.response.headers['Cache-Control'] = 'no-cache'
             else:
                 self.response.status_code = NO_CONTENT
+                self.response.headers['Cache-Control'] = 'no-cache'

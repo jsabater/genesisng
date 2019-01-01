@@ -297,11 +297,11 @@ class List(Service):
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort'),
                           List('filters'), List('operator'), List('search'))
-        output_optional = ('count', 'id', 'name', 'surname', 'gender', 'email',
+        output_optional = ('id', 'name', 'surname', 'gender', 'email',
                            'passport', Date('birthdate'), 'address1',
                            'address2', 'locality', 'postcode', 'province',
                            'country', 'home_phone', 'mobile_phone',
-                           DateTime('deleted'))
+                           DateTime('deleted'), 'fullname')
         skip_empty_keys = True
         output_repeated = True
 
@@ -380,7 +380,7 @@ class List(Service):
 
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            query = session.query(Guest, func.count().over().label('count'))
+            query = session.query(Guest)
 
             # Prepare filters
             if conditions:

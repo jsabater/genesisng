@@ -5,7 +5,7 @@ from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service, Integer, Float, List
 from genesisng.schema.room import Room
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 

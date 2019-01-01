@@ -6,7 +6,7 @@ from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service
 from zato.server.service import Integer, Date, DateTime, ListOfDicts, List
 from genesisng.schema.guest import Guest
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, and_
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from wsgiref.handlers import format_date_time
@@ -428,12 +428,11 @@ class List(Service):
 
             # Return result
             if result:
-                # Store results in the cache only if all fields were retrieved
-                if not fields:
-                    cache = self.cache.get_cache('builtin', 'guests')
-                    for r in result:
-                        cache_key = 'id-%s' % r.id
-                        cache.set(cache_key, r.asdict())
+                # Store results in the cache
+                cache = self.cache.get_cache('builtin', 'guests')
+                for r in result:
+                    cache_key = 'id-%s' % r.id
+                    cache.set(cache_key, r.asdict())
 
                 self.response.payload[:] = result
                 self.response.status_code = OK

@@ -41,7 +41,7 @@ class Create(Service):
     class SimpleIO:
         input_required = (Date('date_from'), Date('date_to'),
                           Float('base_price'), Float('bed_price'))
-        input_optional = (Boolean('published'),)
+        input_optional = (Boolean('published'), )
         output_optional = ('id', 'date_from', 'date_to', 'base_price',
                            'bed_price', 'published', 'days')
         skip_empty_keys = True
@@ -168,7 +168,8 @@ class List(Service):
         conn = self.user_config.genesisng.database.connection
         default_page_size = int(
             self.user_config.genesisng.pagination.default_page_size)
-        max_page_size = int(self.user_config.genesisng.pagination.max_page_size)
+        max_page_size = int(
+            self.user_config.genesisng.pagination.max_page_size)
         Cols = self.model.__table__.columns
 
         # TODO: Have these default values in user config?
@@ -233,7 +234,7 @@ class List(Service):
         for filter_ in filters:
             field, comparison, value = filter_.split('|')
             if field in self.filters_allowed and comparison in self.comparisons_allowed:
-                    conditions.append((field, comparison, value))
+                conditions.append((field, comparison, value))
         if operator not in self.operators_allowed:
             operator = default_operator
 

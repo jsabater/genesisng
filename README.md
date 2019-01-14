@@ -59,6 +59,7 @@ the `template1` database, then create the `genesisng` user and database.
 psql --dbname=template1 --command="CREATE EXTENSION HSTORE"
 psql --dbname=template1 --command="CREATE EXTENSION PG_TRGM"
 psql --dbname=template1 --command='CREATE EXTENSION "uuid-ossp"'
+psql --dbname=template1 --command="CREATE EXTENSION pgcrypto"
 createuser --no-createdb --no-createrole --no-superuser genesisng
 createdb --encoding=UTF8 --owner=genesisng --template=template1 genesisng
 ```

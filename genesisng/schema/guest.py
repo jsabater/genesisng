@@ -6,10 +6,6 @@ from sqlalchemy import Column, Integer, String, Date, DateTime, Index, Enum
 from sqlalchemy.ext.hybrid import hybrid_property
 import enum
 
-# class Gender(str, enum.Enum):
-#     Male: str = 'Male'
-#     Female: str = 'Female'
-
 
 class Gender(str, enum.Enum):
     Male = 1

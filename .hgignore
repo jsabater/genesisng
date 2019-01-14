@@ -13,6 +13,6 @@ dist/
 # Python egg metadata, regenerated from source files by setuptools
 *.egg-info
 
-# Logs back-up
-logs/
+# Sphinx build directory
+docs/_build
 

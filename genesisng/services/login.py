@@ -7,8 +7,10 @@ from zato.server.service import Service, Boolean, Integer, AsIs, List
 from genesisng.schema.login import Login
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import undefer
 from wsgiref.handlers import format_date_time
 from hashlib import md5
+from passlib.hash import bcrypt
 
 
 class Get(Service):
@@ -46,8 +48,7 @@ class Get(Service):
 
             if result:
                 # Save the record in the cache, minus the password
-                result = result.asdict()
-                del (result['password'])
+                result = result.asdict(exclude=['password'])
                 cache_data = cache.set(cache_key, result, details=True)
 
                 # Return the result
@@ -64,8 +65,23 @@ class Get(Service):
 
 
 class Validate(Service):
-    """Service class to validate credentials."""
-    """Channel /genesisng/logins/validate."""
+    """
+    Service class to validate credentials.
+
+    Channel `/genesisng/logins/validate`.
+
+    Uses SimpleIO.
+
+    Stores the record in the `logins` cache (minus the password). Returns
+    `Cache-Control=no-cache` header.
+
+    Returns `OK` upon successful validation, or `NOT_FOUND` otherwise.
+
+    Depending on the config value `security.login_validation`, it uses the
+    database cryptographic functions to verify the password or it verifies it
+    inside the service. The former is faster but the clear-text passwords
+    travels to the database.
+    """
 
     class SimpleIO:
         input_required = ('username', AsIs('password'))
@@ -74,22 +90,35 @@ class Validate(Service):
         skip_empty_keys = True
 
     def handle(self):
+        """Service main function."""
         conn = self.user_config.genesisng.database.connection
+        validate = self.user_config.genesisng.security.login_validation
         username = self.request.input.username
         password = self.request.input.password
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            result = session.query(Login).\
-                filter(and_(Login.username == username,
-                            Login.password == password)).\
-                one_or_none()
+
+            result = None
+            if validate == 'database':
+                # Send the clear-text password to the database for verification
+                result = session.query(Login).\
+                    filter(and_(Login.username == username,
+                                Login.password == password)).\
+                    one_or_none()
+            else:
+                # Do not send the clear-text password to the database. Instead,
+                # verify it inside the service.
+                result = session.query(Login).options(undefer('_password')).\
+                    filter(Login.username == username).one_or_none()
+                if result:
+                    if not bcrypt.verify(password, result.password):
+                        result = None
 
             if result:
                 # Save the record in the cache, minus the password
                 cache_key = 'id-%s' % result.id
                 cache = self.cache.get_cache('builtin', 'logins')
-                result = result.asdict()
-                del (result['password'])
+                result = result.asdict(exclude=['password'])
                 cache.set(cache_key, result)
                 self.response.status_code = OK
                 self.response.headers['Cache-Control'] = 'no-cache'

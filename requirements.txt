@@ -1,8 +1,11 @@
+bcrypt
 configparser
 enum34
 hashids
+passlib
 psycopg2
 psycopg2-binary
+sphinx
 sqlalchemy
 zato-apitest
 

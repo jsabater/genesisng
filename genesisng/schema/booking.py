@@ -10,7 +10,7 @@ from sqlalchemy import UniqueConstraint, CheckConstraint, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
+# from sqlalchemy.orm import relationship
 
 
 class BookingStatus(str, enum.Enum):

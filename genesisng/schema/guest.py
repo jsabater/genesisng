@@ -84,11 +84,11 @@ class Guest(Base):
     address2 = Column(String(50), default=None)
     """Postal address. Additional information. Defaults to None."""
     locality = Column(String(50))
-    """Locality, county or similar."""
+    """The city, town or similar."""
     postcode = Column(String(10))
     """Postal code."""
     province = Column(String(50))
-    """Province, state or similar."""
+    """Province, county, state or similar."""
     country = Column(String(2), index=True)
     """ISO 3166-1 alpha-2 code of the country."""
     home_phone = Column(String(50), default=None)

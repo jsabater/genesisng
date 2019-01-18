@@ -18,3 +18,9 @@ The login module
 .. automodule:: genesisng.services.login
    :members:
 
+The guest module
+----------------
+
+.. automodule:: genesisng.services.guest
+   :members:
+

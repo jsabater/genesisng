@@ -21,6 +21,8 @@ class Get(Service):
 
     Uses `SimpleIO`_.
 
+    The password is never sent back to the client side.
+
     Stores the record in the ``logins`` cache (minus the password). Returns
     ``Cache-Control``, ``Last-Modified`` and ``ETag`` headers.
 
@@ -216,7 +218,7 @@ class Create(Service):
             name=p.name,
             surname=p.surname,
             email=p.email,
-            is_admin=p.is_admin)
+            is_admin=p.get('is_admin', False))
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             try:
@@ -257,7 +259,8 @@ class Delete(Service):
     Removes the record from the ``logins`` cache, if found. Returns a
     ``Cache-Control`` header.
 
-    Returns ``NO_CONTENT`` upon successful deletion, or ``NOT_FOUND`` otherwise.
+    Returns ``NO_CONTENT`` upon successful deletion, or ``NOT_FOUND``
+    therwise.
     """
 
     class SimpleIO:
@@ -352,6 +355,8 @@ class Update(Service):
 
                 if result:
                     # TODO: Implement a wrapper to remove empty request keys,
+                    # or add request params to skip_empty_keys as per
+                    # https://forum.zato.io/t/leave-the-simpleio-input-optional-out-of-the-input/593/22
                     # then use dictalchemy's .fromdict() to reduce code.
                     # result.fromdict(self.request.input, allow_pk=True)
 
@@ -384,6 +389,7 @@ class Update(Service):
                 else:
                     self.response.status_code = NOT_FOUND
                     self.response.headers['Cache-Control'] = 'no-cache'
+
             except IntegrityError:
                 # Constraint prevents duplication of username or emails.
                 session.rollback()
@@ -431,8 +437,8 @@ class List(Service):
                           List('search'))
         output_optional = ('count', 'id', 'username', 'name', 'surname',
                            'email', 'is_admin')
-        output_repeated = True
         skip_empty_keys = True
+        output_repeated = True
 
     def handle(self):
         """
@@ -472,7 +478,6 @@ class List(Service):
             :class:`~genesisng.schema.login.Login` model class, minus the
             password.
         :rtype: list
-
         """
 
         conn = self.user_config.genesisng.database.connection
@@ -480,7 +485,7 @@ class List(Service):
             self.user_config.genesisng.pagination.default_page_size)
         max_page_size = int(
             self.user_config.genesisng.pagination.max_page_size)
-        Cols = self.Login.__table__.columns
+        cols = self.Login.__table__.columns
 
         # TODO: Have these default values in user config?
         default_criteria = 'id'
@@ -568,7 +573,7 @@ class List(Service):
                 columns = self.fields_allowed
 
             for c in columns:
-                query = query.add_columns(Cols[c])
+                query = query.add_columns(cols[c])
 
             # Prepare filters
             # TODO: Use sqlalchemy-filters?
@@ -580,17 +585,17 @@ class List(Service):
                 for c in conditions:
                     f, o, v = c
                     if o == 'lt':
-                        clauses.append(Cols[f] < v)
+                        clauses.append(cols[f] < v)
                     elif o == 'lte':
-                        clauses.append(Cols[f] <= v)
+                        clauses.append(cols[f] <= v)
                     elif o == 'eq':
-                        clauses.append(Cols[f] == v)
+                        clauses.append(cols[f] == v)
                     elif o == 'ne':
-                        clauses.append(Cols[f] != v)
+                        clauses.append(cols[f] != v)
                     elif o == 'gte':
-                        clauses.append(Cols[f] >= v)
+                        clauses.append(cols[f] >= v)
                     elif o == 'gt':
-                        clauses.append(Cols[f] > v)
+                        clauses.append(cols[f] > v)
                 if operator == 'or':
                     query = query.filter(or_(*clauses))
                 else:
@@ -600,14 +605,14 @@ class List(Service):
             if search:
                 clauses = []
                 for s in self.search_allowed:
-                    clauses.append(Cols[s].ilike(search))
+                    clauses.append(cols[s].ilike(search))
                 query = query.filter(or_(*clauses))
 
             # Order by
             if direction == 'asc':
-                query = query.order_by(Cols[criteria].asc())
+                query = query.order_by(cols[criteria].asc())
             else:
-                query = query.order_by(Cols[criteria].desc())
+                query = query.order_by(cols[criteria].desc())
 
             # Calculate limit and offset
             limit = size

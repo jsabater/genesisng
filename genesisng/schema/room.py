@@ -6,20 +6,38 @@ from sqlalchemy import Column, Integer, Float, String, DateTime, func
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects import postgresql
-import hashids
+from hashids import Hashids
 
 
 def generate_code(context):
-    # TODO: Add a salt value?
-    # hashids = Hashids(salt='this is my salt 1')
-    # hashid = hashids.encode(value)
-    return hashids.encode(context.current_parameters.get('floor_no'),
-                          context.current_parameters.get('room_no'),
-                          context.current_parameters.get('sgl_beds'),
-                          context.current_parameters.get('dbl_beds'))
+    """Generates a lowercased 6-letter hashed value for the code attribute."""
+    # hashids = Hashids(salt=context.current_parameters.get('accommodates'))
+    hashids = Hashids(min_length=6, alphabet='abcdefghijklmnopqrstuvwxyz')
+    p = context.current_parameters
+    return hashids.encode(p.get('id'), p.get('floor_no'), p.get('room_no'))
 
 
 class Room(Base):
+    """
+    Model class to represent a room in the system.
+
+    Includes b-tree indexes to compare, sort and reduce memory consumption
+    on fields `name`, `sgl_beds`, `dbl_beds`, `code` and `deleted`.
+
+    Uses the `hashids`_ library to create a hashed value for the code attribute
+    based on the id, the floor and the room numbers.
+
+    Uses a unique constraint on the combination of the floor number and room
+    number to prevent repeated rooms. It also uses a check constraint to ensure
+    the accommodates attribute is a positive integer.
+
+    Records are not deleted from the database but instead marked as deleted
+    via the :attr:`~genesisng.schema.Room.room.deleted` attribute, which
+    contains a timestamp of the date and time when the record was deleted.
+
+    .. _hashids: https://pypi.org/project/hashids/
+    """
+
     __tablename__ = 'room'
     __rels__ = []
     __table_args__ = (
@@ -29,29 +47,33 @@ class Room(Base):
         CheckConstraint('sgl_beds + dbl_beds > 0'),
     )
 
-    # SQLAlchemy automatically creates the table column using the SERIAL type
-    # which triggers the creation of a sequence automatically.
     id = Column(Integer, primary_key=True)
+    """Primary key. Autoincrementing integer."""
     floor_no = Column(Integer, nullable=False)
+    """The floor number the room is located at."""
     room_no = Column(Integer, nullable=False)
+    """The room number."""
     name = Column(String(100), index=True)
-    sgl_beds = Column(Integer, nullable=False, default=0, index=True)
-    dbl_beds = Column(Integer, nullable=False, default=0, index=True)
+    """A descriptive name of the room. Mostly used on boutique and
+    rural hotels."""
+    sgl_beds = Column(Integer, nullable=False, index=True, default=0)
+    """The amount of single beds in the room. Defaults to 0."""
+    dbl_beds = Column(Integer, nullable=False, index=True, default=0)
+    """The amount of double beds in the room. Defaults to 0."""
     supplement = Column(Float, nullable=False, default=0)
-    code = Column(
-        String(32),
-        nullable=False,
-        default=generate_code,
-        unique=True,
-        comment='Unique code used to link to images')
-    deleted = Column(DateTime, default=None)
-
-    def __repr__(self):
-        return "<Room(id='%s', name='%s', number='%s', accommodates='%s')>" % (
-            self.id, self.name, self.number, self.accommodates)
+    """An amount to be added to the total price per day based on whatever
+    random criteria the owner of the hotel wishes to use. Defaults to 0."""
+    code = Column(String(6), nullable=False, default=generate_code,
+                  unique=True, comment='Unique code used to link to images')
+    """A unique code used to build the URL linking to the static content
+    associated with this room."""
+    deleted = Column(DateTime, index=True, default=None)
+    """Timestamp of the deletion of the record. Defaults to None."""
 
     @hybrid_property
     def accommodates(self):
+        """The amount of guests the room can accommodate. Used to calculate
+        availability."""
         return self.sgl_beds + self.dbl_beds * 2
 
     @accommodates.expression
@@ -60,9 +82,16 @@ class Room(Base):
 
     @hybrid_property
     def number(self):
+        """The room number, made of the floor number and the two digits room
+        number (i.e. left-padded with a zero if needed)."""
         return '%d%02d' % (self.floor_no, self.room_no)
 
     @number.expression
     def number(cls):
         return (func.cast(cls.floor_no, String) +
                 func.lpad(func.cast(cls.room_no, postgresql.TEXT), 2, '0'))
+
+    def __repr__(self):
+        """String representation of the object."""
+        return "<Room(id='%s', name='%s', number='%s', accommodates='%s')>" % (
+            self.id, self.name, self.number, self.accommodates)

@@ -18,10 +18,10 @@ class PasswordComparator(Comparator):
 
 class Login(Base):
     """
-    Model class to represent a login to the system.
+    Model class to represent a login in the system.
 
     Includes trigram GIN indexes for pattern-matching searches on fields
-    `username`, `name` and `surname` and B-Tree indexes to compare, sort and
+    `username`, `name` and `surname` and b-tree indexes to compare, sort and
     reduce memory consumption on fields `username`, `name`, `surname` and
     `email`.
 
@@ -63,8 +63,11 @@ class Login(Base):
 
     @hybrid_property
     def password(self):
-        """Hashed password. Uses `deferred()` to prevent the field from being
-        fetched by default when an object is loaded from the database."""
+        """Hashed password. Uses `deferred()`_ to prevent the field from being
+        fetched by default when an object is loaded from the database.
+
+        .. _deferred(): https://docs.sqlalchemy.org/en/latest/orm/loading_columns.html
+        """
         return self._password
 
     @password.comparator

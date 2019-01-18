@@ -10,6 +10,8 @@ Each module contains a number of classes, one per service.
 .. automodule:: genesisng.services
    :members:
 
+.. _SimpleIO: https://zato.io/docs/progguide/sio.html
+
 The login module
 ----------------
 

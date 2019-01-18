@@ -14,8 +14,9 @@ from hashlib import md5
 
 
 class Get(Service):
-    """Service class to get a guest by id."""
-    """Channel /genesisng/guests/{id}/get."""
+    """Service class to get a guest by id.
+
+    Channel /genesisng/guests/{id}/get."""
 
     class SimpleIO(object):
         input_required = (Integer('id'))
@@ -27,6 +28,14 @@ class Get(Service):
         skip_empty_keys = True
 
     def handle(self):
+        """Handler of the service class.
+
+        :param id: The id of the guest
+        :type id: int
+        :returns: A guest with all its attributes, including hybrid properties
+        :rtype: dict
+        """
+
         conn = self.user_config.genesisng.database.connection
         cache_control = self.user_config.genesisng.cache.default_cache_control
         id_ = self.request.input.id
@@ -69,8 +78,11 @@ class Get(Service):
 
 
 class Create(Service):
-    """Service class to create a new guest."""
-    """Channel /genesisng/guests/create."""
+    """
+    Service class to create a new guest.
+
+    Channel /genesisng/guests/create.
+    """
 
     class SimpleIO:
         input_required = ('name', 'surname', 'gender', 'email')
@@ -443,9 +455,11 @@ class List(Service):
 
 
 class Bookings(Service):
-    """Service class to get a list of all bookings from a guest."""
-    """Includes the guest details and the list of bookings and rooms."""
-    """Channel /genesisng/guests/{id}/bookings."""
+    """Service class to get a list of all bookings from a guest.
+
+    Includes the guest details and the list of bookings and rooms.
+    Channel /genesisng/guests/{id}/bookings.
+    """
 
     class SimpleIO:
         input_required = (Integer('id'))

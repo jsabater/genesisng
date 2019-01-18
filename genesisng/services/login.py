@@ -14,8 +14,18 @@ from passlib.hash import bcrypt
 
 
 class Get(Service):
-    """Service class to get a login by id."""
-    """Channel /genesisng/logins/{id}/get."""
+    """
+    Service class to get a login by id.
+
+    Channel ``/genesisng/logins/{id}/get``.
+
+    Uses `SimpleIO`_.
+
+    Stores the record in the ``logins`` cache (minus the password). Returns
+    ``Cache-Control``, ``Last-Modified`` and ``ETag`` headers.
+
+    Returns ``OK`` upon successful validation, or ``NOT_FOUND`` otherwise.
+    """
 
     class SimpleIO:
         input_required = (Integer('id'))
@@ -25,6 +35,17 @@ class Get(Service):
         skip_empty_keys = True
 
     def handle(self):
+        """
+        Service handler.
+
+        :param id: The id of the user.
+        :type id: int
+
+        :returns: All attributes of a :class:`~genesisng.schema.login.Login`
+            model class, minus the password.
+        :rtype: dict
+        """
+
         conn = self.user_config.genesisng.database.connection
         cache_control = self.user_config.genesisng.cache.default_cache_control
         id_ = self.request.input.id
@@ -68,16 +89,16 @@ class Validate(Service):
     """
     Service class to validate credentials.
 
-    Channel `/genesisng/logins/validate`.
+    Channel ``/genesisng/logins/validate``.
 
-    Uses SimpleIO.
+    Uses `SimpleIO`_.
 
-    Stores the record in the `logins` cache (minus the password). Returns
-    `Cache-Control=no-cache` header.
+    Stores the record in the ``logins`` cache (minus the password). Returns a
+    ``Cache-Control`` header.
 
-    Returns `OK` upon successful validation, or `NOT_FOUND` otherwise.
+    Returns ``OK`` upon successful validation, or ``NOT_FOUND`` otherwise.
 
-    Depending on the config value `security.login_validation`, it uses the
+    Depending on the config value ``security.login_validation``, it uses the
     database cryptographic functions to verify the password or it verifies it
     inside the service. The former is faster but the clear-text passwords
     travels to the database.
@@ -90,7 +111,19 @@ class Validate(Service):
         skip_empty_keys = True
 
     def handle(self):
-        """Service main function."""
+        """
+        Service handler.
+
+        :param username: The username of the user.
+        :type username: str
+        :param password: The password of the user.
+        :type password: str
+
+        :returns: All attributes of a :class:`~genesisng.schema.login.Login`
+            model class, minus the password.
+        :rtype: dict
+        """
+
         conn = self.user_config.genesisng.database.connection
         validate = self.user_config.genesisng.security.login_validation
         username = self.request.input.username
@@ -129,8 +162,18 @@ class Validate(Service):
 
 
 class Create(Service):
-    """Service class to create a new login."""
-    """Channel /genesisng/logins/create."""
+    """
+    Service class to create a new login.
+
+    Channel ``/genesisng/logins/create``.
+
+    Uses `SimpleIO`_.
+
+    Stores the record in the ``logins`` cache (minus the password). Returns a
+    ``Cache-Control`` header.
+
+    Returns ``CREATED`` upon successful creation, or ``CONFLICT`` otherwise.
+    """
 
     class SimpleIO:
         input_required = ('username', AsIs('password'))
@@ -141,6 +184,27 @@ class Create(Service):
         skip_empty_keys = True
 
     def handle(self):
+        """
+        Service handler.
+
+        :param username: The username of the user.
+        :type username: str
+        :param password: The password of the user.
+        :type password: str
+        :param name: The name of the user.
+        :type name: str
+        :param surname: The surname of the user.
+        :type surname: str
+        :param email: The electronic mail address of the user.
+        :type email: str
+        :param is_admin: Is the user an administrator? Default is False.
+        :type is_admin: bool
+
+        :returns: All attributes of a :class:`~genesisng.schema.login.Login`
+            model class, minus the password.
+        :rtype: dict
+        """
+
         # TODO: Use Cerberus to validate input?
         # http://docs.python-cerberus.org/en/stable/
         conn = self.user_config.genesisng.database.connection
@@ -183,13 +247,32 @@ class Create(Service):
 
 
 class Delete(Service):
-    """Service class to delete an existing login."""
-    """Channel /genesisng/logins/{id}/delete."""
+    """
+    Service class to delete an existing login.
+
+    Channel ``/genesisng/logins/{id}/delete``.
+
+    Uses `SimpleIO`_.
+
+    Removes the record from the ``logins`` cache, if found. Returns a
+    ``Cache-Control`` header.
+
+    Returns ``NO_CONTENT`` upon successful deletion, or ``NOT_FOUND`` otherwise.
+    """
 
     class SimpleIO:
         input_required = (Integer('id'))
 
     def handle(self):
+        """
+        Service handler.
+
+        :param id: The id of the user.
+        :type id: int
+
+        :returns: Nothing.
+        """
+
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
 
@@ -212,8 +295,19 @@ class Delete(Service):
 
 
 class Update(Service):
-    """Service class to update an existing login."""
-    """Channel /genesisng/logins/{id}/update."""
+    """
+    Service class to update an existing login.
+
+    Channel ``/genesisng/logins/{id}/update``.
+
+    Uses `SimpleIO`_.
+
+    Stores the updated record in the ``logins`` cache (minus the password).
+    Returns a ``Cache-Control`` header. Only non-empty keys will be updated.
+
+    Returns ``OK`` upon successful modification, ``NOT_FOUND`` if the record
+    cannot be found, or ``CONFLICT`` in case of a constraint error.
+    """
 
     class SimpleIO:
         input_required = (Integer('id'))
@@ -224,6 +318,29 @@ class Update(Service):
         skip_empty_keys = True
 
     def handle(self):
+        """
+        Service handler.
+
+        :param id: The id of the user.
+        :type id: int
+        :param username: The username of the user.
+        :type username: str
+        :param password: The password of the user.
+        :type password: str
+        :param name: The name of the user.
+        :type name: str
+        :param surname: The surname of the user.
+        :type surname: str
+        :param email: The electronic mail address of the user.
+        :type email: str
+        :param is_admin: Is the user an administrator? Default is False.
+        :type is_admin: bool
+
+        :returns: All attributes of a :class:`~genesisng.schema.login.Login`
+            model class, minus the password.
+        :rtype: dict
+        """
+
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
         p = self.request.input
@@ -277,10 +394,28 @@ class Update(Service):
 
 
 class List(Service):
-    """Service class to get a list of all logins in the system."""
-    """Channel /genesisng/logins/list."""
+    """
+    Service class to get a list of logins in the system.
 
-    model = Login
+    Channel ``/genesisng/logins/list``.
+
+    Uses `SimpleIO`_.
+
+    Stores the returned records in the ``logins`` cache (minus the password).
+    Returns a ``Cache-Control`` header.
+
+    Returns ``NO_CONTENT`` if the returned list is empty, or ``OK`` otherwise.
+
+    Pagination and sorting are always enforced. Filtering is optional. Multiple
+    filters are allowed but only one operator for all the filters. Fields
+    projection is allowed. Search is optional and the passed search term is
+    case insensitive.
+
+    In case of error, it does not return ``BAD_REQUEST`` but, instead, it
+    assumes the default parameter values and carries on.
+
+    """
+
     criteria_allowed = ('id', 'username', 'name', 'surname', 'email')
     direction_allowed = ('asc', 'desc')
     filters_allowed = ('id', 'username', 'name', 'surname', 'email',
@@ -300,12 +435,52 @@ class List(Service):
         skip_empty_keys = True
 
     def handle(self):
+        """
+        Service handler.
+
+        Query string parameters:
+
+        :param page: The page number. Default is 1.
+        :type page: int
+        :param size: The page size. Default is located in the user config.
+        :type size: int
+        :param sort: The sort criteria (field name) and direction (ascending
+            ``asc`` or descending ``desc``), using the pipe ``|`` as separator
+            (i.e. ``<criteria>|<direction>``. The default criteria is ``id``
+            and the default direction is ``asc``, so the default value of this
+            paramter is ``id|asc``.
+        :type sort: str
+        :param filters: A filter to process the data stream to produce the
+            desired output. Each filter is made of a field name, a comparator
+            and a value, using the pipe ``|`` as separator (i.e.
+            ``<field>|<comparator>|<value>``). Multiple occurrences of this
+            parameter are allowed. Supported comparators are ``lt`` (less
+            than), ``lte`` (less than or equal), ``eq`` (equal), ``ne`` (not
+            equal), ``gte`` (greater than or equal) and ``gt`` (greater than).
+        :type filters: str
+        :param operator: The operator to apply to or join all filters. The
+            supported operators are ``and`` and ``or``. The default value is
+            ``and``.
+        :type operator: str
+        :param fields: Fields projection. A field name of the model class.
+            Multiple occurrences of this parameter are allowed. Supported
+            fields are all in the :class:`~genesisng.schema.login.Login` model
+            class but the password.
+        :type fields: str
+
+        :returns: A list of dicts with all attributes of a
+            :class:`~genesisng.schema.login.Login` model class, minus the
+            password.
+        :rtype: list
+
+        """
+
         conn = self.user_config.genesisng.database.connection
         default_page_size = int(
             self.user_config.genesisng.pagination.default_page_size)
         max_page_size = int(
             self.user_config.genesisng.pagination.max_page_size)
-        Cols = self.model.__table__.columns
+        Cols = self.Login.__table__.columns
 
         # TODO: Have these default values in user config?
         default_criteria = 'id'

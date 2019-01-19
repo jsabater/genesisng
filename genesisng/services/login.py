@@ -420,6 +420,7 @@ class List(Service):
     In case of error, it does not return ``BAD_REQUEST`` but, instead, it
     assumes the default parameter values and carries on.
 
+    Includes the count of records returned.
     """
 
     criteria_allowed = ('id', 'username', 'name', 'surname', 'email')
@@ -435,8 +436,8 @@ class List(Service):
         input_optional = (List('page'), List('size'), List('sort'),
                           List('filters'), List('fields'), List('operator'),
                           List('search'))
-        output_optional = ('count', 'id', 'username', 'name', 'surname',
-                           'email', 'is_admin')
+        output_optional = ('id', 'username', 'name', 'surname', 'email',
+                           'is_admin', 'count')
         skip_empty_keys = True
         output_repeated = True
 

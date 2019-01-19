@@ -400,6 +400,7 @@ class List(Service):
     In case of error, it does not return ``BAD_REQUEST`` but, instead, it
     assumes the default parameter values and carries on.
 
+    Includes the count of records returned.
     """
 
     criteria_allowed = ('id', 'name', 'surname', 'gender', 'email',
@@ -427,7 +428,7 @@ class List(Service):
                            'passport', Date('birthdate'), 'address1',
                            'address2', 'locality', 'postcode', 'province',
                            'country', 'home_phone', 'mobile_phone',
-                           DateTime('deleted'))
+                           DateTime('deleted'), 'count')
         skip_empty_keys = True
         output_repeated = True
 
@@ -665,8 +666,8 @@ class Bookings(Service):
 
         :returns: All attributes of a :class:`~genesisng.schema.guest.Guest`
             model class, including the hybrid properties. A list of dicts
-            under the `booking` key with all bookings, and a list of dicts
-            under the `room` key with all the rooms in such bookings, without
+            under the ``booking`` key with all bookings, and a list of dicts
+            under the ``room`` key with all the rooms in such bookings, without
             duplicates.
         :rtype: dict
         """
@@ -683,6 +684,7 @@ class Bookings(Service):
             result = guest['response']
 
             # Store the result in the cache
+            # Result is already a dict
             cache = self.cache.get_cache('builtin', 'guests')
             cache_key = 'id-%s' % guest['response']['id']
             cache.set(cache_key, guest['response'])
@@ -705,11 +707,13 @@ class Bookings(Service):
                     room_ids.append(b['id_room'])
 
                     # Store booking in the cache
+                    # Result is already a dict
                     cache_key = 'id-%s' % b['id']
                     cache.set(cache_key, b)
 
-                # Get room data from the list of saved rooms
-                result['rooms'] = []
+            # Get room data from the list of saved rooms
+            result['rooms'] = []
+            if room_ids:
                 input_data = {'operator': 'or', 'filters': []}
                 for i in room_ids:
                     input_data['filters'].append('id|eq|%d' % i)
@@ -723,8 +727,9 @@ class Bookings(Service):
                         result['rooms'].append(r)
 
                         # Store room in the cache
+                        # Result is already a dict
                         cache_key = 'id-%s' % r['id']
-                        cache.set(cache_key, r.asdict())
+                        cache.set(cache_key, r)
 
         # Return the dictionary with guest, bookings and rooms
         if result:
@@ -737,19 +742,42 @@ class Bookings(Service):
 
 
 class Restore(Service):
-    """Service class to restore a deleted an existing guest."""
-    """Channel /genesisng/guests/{id}/restore."""
+    """
+    Service class to restore a deleted guest.
+
+    Channel ``/genesisng/guests/{id}/restore``.
+
+    Uses `SimpleIO`_.
+
+    Sets the ``deleted`` field to None if, and only if, the guest exists and it
+    had been previously marked as deleted.
+
+    Stores the record in the ``guests`` cache. Returns a ``Cache-Control``
+    header.
+
+    Returns ``OK`` upon successful restoration, or ``NOT_FOUND`` otherwise.
+    """
 
     class SimpleIO:
         input_required = (Integer('id'))
-        output_optional = ('id', 'name',
-                           'surname', 'gender', 'email', 'passport',
-                           Date('birthdate'), 'address1', 'address2',
-                           'locality', 'postcode', 'province', 'country',
-                           'home_phone', 'mobile_phone')
+        output_optional = ('id', 'name', 'surname', 'gender', 'email',
+                           'passport', Date('birthdate'), 'address1',
+                           'address2', 'locality', 'postcode', 'province',
+                           'country', 'home_phone', 'mobile_phone')
         skip_empty_keys = True
 
     def handle(self):
+        """
+        Service handler.
+
+        :param id: The id of the guest.
+        :type id: int
+
+        :returns: All attributes of a :class:`~genesisng.schema.guest.Guest`
+            model class.
+        :rtype: dict
+        """
+
         conn = self.user_config.genesisng.database.connection
         id_ = self.request.input.id
 
@@ -763,7 +791,7 @@ class Restore(Service):
                 result.deleted = None
                 session.commit()
 
-                # Save the result in the cache
+                # Save the result in the cache, as dict
                 cache_key = 'id-%s' % id_
                 cache = self.cache.get_cache('builtin', 'guests')
                 result = result.asdict()

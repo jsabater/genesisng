@@ -107,7 +107,7 @@ class Booking(Base):
     __tablename__ = 'booking'
     __rels__ = []
     __table_args__ = (
-        # FIXME: Prevent overlappings using dates as well
+        # TODO: Prevent overlappings using dates as well
         UniqueConstraint('id_guest', 'id_room', 'check_in',
                          name='booking_id_guest_id_room_check_in'),
         # Never check out before checking in

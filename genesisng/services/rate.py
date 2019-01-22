@@ -325,7 +325,6 @@ class Update(Service):
 
 class List(Service):
     """
-
     Service class to get a list of all rates in the system.
 
     Channel ``/genesisng/rates/list``.

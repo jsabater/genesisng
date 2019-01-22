@@ -24,7 +24,7 @@ class Get(Service):
     Stores the record in the ``guests`` cache. Returns ``Cache-Control``,
     ``Last-Modified`` and ``ETag`` headers.
 
-    Returns ``OK`` upon successful validation, or ``NOT_FOUND`` otherwise.
+    Returns ``OK`` upon successful retrieval, or ``NOT_FOUND`` otherwise.
     """
 
     class SimpleIO(object):
@@ -262,6 +262,7 @@ class Update(Service):
     Returns ``OK`` upon successful modification, ``NOT_FOUND`` if the record
     cannot be found, or ``CONFLICT`` in case of a constraint error.
 
+    Attributes not sent through the request are not updated.
     """
 
     class SimpleIO:
@@ -280,6 +281,8 @@ class Update(Service):
         """
         Service handler.
 
+        :param id: The id of the guest. Mandatory.
+        :type id: int
         :param name: The first name of the guest.
         :type name: str
         :param surname: The last name of the guest.
@@ -467,18 +470,20 @@ class List(Service):
         :type fields: str
         :param search: Search term (case insensitive). The passed term will be
             searched using pattern-matching indexes in the all fields.
+        :type search: str
 
         :returns: A list of dicts with all attributes of a
             :class:`~genesisng.schema.guest.Guest` model class, minus the
             ``fullname`` hybrid attribute.
         :rtype: list
         """
+
         conn = self.user_config.genesisng.database.connection
         default_page_size = int(
             self.user_config.genesisng.pagination.default_page_size)
         max_page_size = int(
             self.user_config.genesisng.pagination.max_page_size)
-        cols = self.Guest.__table__.columns
+        cols = Guest.__table__.columns
 
         # TODO: Have these default values in user config?
         default_criteria = 'id'

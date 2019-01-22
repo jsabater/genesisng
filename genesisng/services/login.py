@@ -26,7 +26,7 @@ class Get(Service):
     Stores the record in the ``logins`` cache (minus the password). Returns
     ``Cache-Control``, ``Last-Modified`` and ``ETag`` headers.
 
-    Returns ``OK`` upon successful validation, or ``NOT_FOUND`` otherwise.
+    Returns ``OK`` upon successful retrieval, or ``NOT_FOUND`` otherwise.
     """
 
     class SimpleIO:
@@ -310,12 +310,14 @@ class Update(Service):
 
     Returns ``OK`` upon successful modification, ``NOT_FOUND`` if the record
     cannot be found, or ``CONFLICT`` in case of a constraint error.
+
+    Attributes not sent through the request are not updated.
     """
 
     class SimpleIO:
         input_required = (Integer('id'))
         input_optional = ('username', AsIs('password'), 'name', 'surname',
-                          'email', Boolean('is_admin'))
+                          'email', Boolean('is_admin', default=False))
         output_optional = ('id', 'username', 'name', 'surname', 'email',
                            'is_admin')
         skip_empty_keys = True
@@ -324,7 +326,7 @@ class Update(Service):
         """
         Service handler.
 
-        :param id: The id of the user.
+        :param id: The id of the user. Mandatory.
         :type id: int
         :param username: The username of the user.
         :type username: str
@@ -336,7 +338,7 @@ class Update(Service):
         :type surname: str
         :param email: The electronic mail address of the user.
         :type email: str
-        :param is_admin: Is the user an administrator? Default is False.
+        :param is_admin: Is the user an administrator?
         :type is_admin: bool
 
         :returns: All attributes of a :class:`~genesisng.schema.login.Login`
@@ -486,7 +488,7 @@ class List(Service):
             self.user_config.genesisng.pagination.default_page_size)
         max_page_size = int(
             self.user_config.genesisng.pagination.max_page_size)
-        cols = self.Login.__table__.columns
+        cols = Login.__table__.columns
 
         # TODO: Have these default values in user config?
         default_criteria = 'id'

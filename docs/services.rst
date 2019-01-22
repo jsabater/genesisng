@@ -24,3 +24,21 @@ The guest module
 .. automodule:: genesisng.services.guest
    :members:
 
+The room module
+---------------
+
+.. automodule:: genesisng.services.room
+   :members:
+
+The rate module
+---------------
+
+.. automodule:: genesisng.services.rate
+   :members:
+
+The booking module
+------------------
+
+.. automodule:: genesisng.services.booking
+   :members:
+

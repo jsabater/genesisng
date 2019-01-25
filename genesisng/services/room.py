@@ -51,7 +51,7 @@ class Get(Service):
         id_ = self.request.input.id
 
         # Check whether a copy exists in the cache
-        cache_key = 'id-%s' % id_
+        cache_key = 'id:%s' % id_
         cache = self.cache.get_cache('builtin', 'rooms')
         cache_data = cache.get(cache_key, details=True)
         if cache_data:
@@ -65,6 +65,7 @@ class Get(Service):
             self.response.payload = cache_data.value
             return
 
+        # Otherwise, retrieve the data
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Room).\
                 filter(and_(Room.id == id_, Room.deleted.is_(None))).\
@@ -75,13 +76,18 @@ class Get(Service):
                 cache_data = cache.set(
                     cache_key, result.asdict(), details=True)
 
+                # Set cache headers in response
+                if cache_data:
+                    self.response.headers['Cache-Control'] = cache_control
+                    self.response.headers['Last-Modified'] = format_date_time(
+                        cache_data.last_write)
+                    self.response.headers['ETag'] = md5(str(
+                            cache_data.value)).hexdigest()
+                else:
+                    self.response.headers['Cache-Control'] = 'no-cache'
+
                 # Return the result
                 self.response.status_code = OK
-                self.response.headers['Cache-Control'] = cache_control
-                self.response.headers['Last-Modified'] = format_date_time(
-                    cache_data.last_write)
-                self.response.headers['ETag'] = md5(str(
-                    cache_data.value)).hexdigest()
                 self.response.headers['Content-Language'] = 'en'
                 self.response.payload = cache_data.value
             else:
@@ -156,7 +162,7 @@ class Create(Service):
                 session.commit()
 
                 # Save the record in the cache
-                cache_key = 'id-%s' % result.id
+                cache_key = 'id:%s' % result.id
                 cache = self.cache.get_cache('builtin', 'rooms')
                 result = result.asdict()
                 cache.set(cache_key, result)
@@ -220,7 +226,7 @@ class Delete(Service):
                 self.response.headers['Cache-Control'] = 'no-cache'
 
                 # Invalidate the cache
-                cache_key = 'id-%s' % id_
+                cache_key = 'id:%s' % id_
                 cache = self.cache.get_cache('builtin', 'rooms')
                 cache.delete(cache_key)
 
@@ -315,7 +321,7 @@ class Update(Service):
                     session.commit()
 
                     # Save the record in the cache
-                    cache_key = 'id-%s' % result.id
+                    cache_key = 'id:%s' % result.id
                     cache = self.cache.get_cache('builtin', 'rooms')
                     cache_data = cache.set(
                         cache_key, result.asdict(), details=True)

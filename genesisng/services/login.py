@@ -53,7 +53,7 @@ class Get(Service):
         id_ = self.request.input.id
 
         # Check whether a copy exists in the cache
-        cache_key = 'id-%s' % id_
+        cache_key = 'id:%s' % id_
         cache = self.cache.get_cache('builtin', 'logins')
         cache_data = cache.get(cache_key, details=True)
         if cache_data:
@@ -286,7 +286,7 @@ class Delete(Service):
                 self.response.headers['Cache-Control'] = 'no-cache'
 
                 # Invalidate the cache
-                cache_key = 'id-%s' % id_
+                cache_key = 'id:%s' % id_
                 cache = self.cache.get_cache('builtin', 'logins')
                 cache.delete(cache_key)
 
@@ -376,7 +376,7 @@ class Update(Service):
                     session.commit()
 
                     # Save the record in the cache, minus the password
-                    cache_key = 'id-%s' % result.id
+                    cache_key = 'id:%s' % result.id
                     cache = self.cache.get_cache('builtin', 'logins')
                     result = result.asdict()
                     del (result['password'])
@@ -632,7 +632,7 @@ class List(Service):
                     for r in result:
                         # Items are already dictionaries. Passwords have
                         # already been excluded.
-                        cache_key = 'id-%s' % r.id
+                        cache_key = 'id:%s' % r.id
                         cache.set(cache_key, r)
 
                 self.response.status_code = OK

@@ -175,6 +175,10 @@ class Booking(Base):
         """The amount of nights the guests are staying for this booking."""
         return (self.check_out - self.check_in).days
 
+    @nights.expression
+    def nights(cls):
+        return func.date_part('day', func.age(cls.check_out, cls.check_in))
+
     # room = relationship("Room", backref="booking")
     # guest = relationship("Guest", backref="booking")
 

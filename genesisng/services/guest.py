@@ -231,6 +231,7 @@ class Delete(Service):
             result = session.query(Guest).\
                 filter(and_(Guest.id == id_, Guest.deleted.is_(None))).\
                 one_or_none()
+
             if result:
                 # Set deleted field
                 result.deleted = datetime.utcnow()

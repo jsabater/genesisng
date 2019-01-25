@@ -75,13 +75,13 @@ Scenario: REST login creation with all fields and administrator privileges
 
     When the URL is invoked
 
-    Then JSON Pointer "/response/id" isn't empty
+    Then status is "201"
+    And JSON Pointer "/response/id" isn't empty
     And JSON Pointer "/response/username" is "bkenobi"
     And JSON Pointer "/response/name" is "Obi-Wan"
     And JSON Pointer "/response/surname" is "Kenobi"
     And JSON Pointer "/response/email" is "bkenobi@gmail.com"
     And JSON Pointer "/response/is_admin" is true
-    And status is "201"
     And header "Location" isn't empty
     And I store "/response/id" from response under "id"
 

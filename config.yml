@@ -17,6 +17,7 @@ channel_plain_http:
     id: 659
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: GET
     name: /genesisng/logins/{id}/get
@@ -31,7 +32,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: login.get
-    service_id: 594
+    service_id: 606
     service_name: login.get
     soap_action:
     soap_version:
@@ -53,6 +54,7 @@ channel_plain_http:
     id: 660
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: POST
     name: /genesisng/logins/validate
@@ -67,7 +69,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: login.validate
-    service_id: 597
+    service_id: 609
     service_name: login.validate
     soap_action:
     soap_version:
@@ -89,6 +91,7 @@ channel_plain_http:
     id: 661
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: POST
     name: /genesisng/logins/create
@@ -103,7 +106,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: login.create
-    service_id: 592
+    service_id: 604
     service_name: login.create
     soap_action:
     soap_version:
@@ -125,6 +128,7 @@ channel_plain_http:
     id: 662
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: GET
     name: /genesisng/logins/{id}/delete
@@ -139,7 +143,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: login.delete
-    service_id: 593
+    service_id: 605
     service_name: login.delete
     soap_action:
     soap_version:
@@ -161,6 +165,7 @@ channel_plain_http:
     id: 663
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: POST
     name: /genesisng/logins/{id}/update
@@ -175,7 +180,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: login.update
-    service_id: 596
+    service_id: 608
     service_name: login.update
     soap_action:
     soap_version:
@@ -197,6 +202,7 @@ channel_plain_http:
     id: 664
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: GET
     name: /genesisng/logins/list
@@ -211,7 +217,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: login.list
-    service_id: 595
+    service_id: 607
     service_name: login.list
     soap_action:
     soap_version:
@@ -233,6 +239,7 @@ channel_plain_http:
     id: 665
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: GET
     name: /genesisng/guests/{id}/get
@@ -247,7 +254,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: guest.get
-    service_id: 588
+    service_id: 600
     service_name: guest.get
     soap_action:
     soap_version:
@@ -269,6 +276,7 @@ channel_plain_http:
     id: 666
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: POST
     name: /genesisng/guests/create
@@ -283,7 +291,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: guest.create
-    service_id: 586
+    service_id: 598
     service_name: guest.create
     soap_action:
     soap_version:
@@ -305,6 +313,7 @@ channel_plain_http:
     id: 667
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: GET
     name: /genesisng/guests/list
@@ -319,7 +328,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: guest.list
-    service_id: 589
+    service_id: 601
     service_name: guest.list
     soap_action:
     soap_version:
@@ -341,6 +350,7 @@ channel_plain_http:
     id: 668
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: GET
     name: /genesisng/guests/{id}/delete
@@ -355,7 +365,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: guest.delete
-    service_id: 587
+    service_id: 599
     service_name: guest.delete
     soap_action:
     soap_version:
@@ -377,6 +387,7 @@ channel_plain_http:
     id: 669
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: POST
     name: /genesisng/guests/{id}/update
@@ -391,7 +402,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: guest.update
-    service_id: 591
+    service_id: 603
     service_name: guest.update
     soap_action:
     soap_version:
@@ -413,6 +424,7 @@ channel_plain_http:
     id: 670
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: GET
     name: /genesisng/guests/{id}/restore
@@ -427,7 +439,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: guest.restore
-    service_id: 590
+    service_id: 602
     service_name: guest.restore
     soap_action:
     soap_version:
@@ -449,6 +461,7 @@ channel_plain_http:
     id: 671
     is_active: true
     is_internal: false
+    match_slash:
     merge_url_params_req: true
     method: GET
     name: /genesisng/guests/{id}/bookings
@@ -463,7 +476,7 @@ channel_plain_http:
     security_name:
     serialization_type: string
     service: guest.bookings
-    service_id: 585
+    service_id: 597
     service_name: guest.bookings
     soap_action:
     soap_version:
@@ -471,6 +484,746 @@ channel_plain_http:
     transport: plain_http
     url_params_pri: qs-over-path
     url_path: /genesisng/guests/{id}/bookings
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 672
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/rooms/list
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: room.list
+    service_id: 613
+    service_name: room.list
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rooms/list
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 673
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/bookings/list
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: booking.list
+    service_id: 593
+    service_name: booking.list
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/bookings/list
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 674
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/rooms/{id}/get
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: room.get
+    service_id: 612
+    service_name: room.get
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rooms/{id}/get
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 675
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/bookings/{id}/get
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: booking.get
+    service_id: 592
+    service_name: booking.get
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/bookings/{id}/get
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 676
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/bookings/{locator}/locate
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: booking.locate
+    service_id: 594
+    service_name: booking.locate
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/bookings/{locator}/locate
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 677
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: POST
+    name: /genesisng/rooms/create
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: room.create
+    service_id: 610
+    service_name: room.create
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rooms/create
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 678
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/rooms/{id}/delete
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: room.delete
+    service_id: 611
+    service_name: room.delete
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rooms/{id}/delete
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 679
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: POST
+    name: /genesisng/rooms/{id}/update
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: room.update
+    service_id: 614
+    service_name: room.update
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rooms/{id}/update
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 680
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/rates/list
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: rate.list
+    service_id: 618
+    service_name: rate.list
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rates/list
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 681
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/rates/{id}/delete
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: rate.delete
+    service_id: 616
+    service_name: rate.delete
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rates/{id}/delete
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 682
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: POST
+    name: /genesisng/rates/create
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: rate.create
+    service_id: 615
+    service_name: rate.create
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rates/create
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 683
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/rates/{id}/get
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: rate.get
+    service_id: 617
+    service_name: rate.get
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rates/{id}/get
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 684
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: POST
+    name: /genesisng/rates/{id}/update
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: rate.update
+    service_id: 619
+    service_name: rate.update
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rates/{id}/update
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 685
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: POST
+    name: /genesisng/bookings/create
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: booking.create
+    service_id: 590
+    service_name: booking.create
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/bookings/create
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 686
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/bookings/{id}/cancel
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: booking.cancel
+    service_id: 589
+    service_name: booking.cancel
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/bookings/{id}/cancel
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 687
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/bookings/{id}/delete
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: booking.delete
+    service_id: 591
+    service_name: booking.delete
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/bookings/{id}/delete
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 688
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: POST
+    name: /genesisng/bookings/{id}/update
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: booking.update
+    service_id: 596
+    service_name: booking.update
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/bookings/{id}/update
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 689
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/bookings/{id}/pin
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: booking.change-pin
+    service_id: 624
+    service_name: booking.change-pin
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/bookings/{id}/pin
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 690
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: POST
+    name: /genesisng/bookings/{locator}/validate
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: booking.validate
+    service_id: 625
+    service_name: booking.validate
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/bookings/{locator}/validate
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 691
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/bookingss/{id}/restore
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: booking.restore
+    service_id: 595
+    service_name: booking.restore
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/bookingss/{id}/restore
 
 channel_zmq: []
 
@@ -490,7 +1243,7 @@ def_sec:
 
   - id: 1
     name: Create
-    opaque1:
+    opaque1: {}
     type: rbac_permission
 
   - id: 1
@@ -502,7 +1255,7 @@ def_sec:
 
   - id: 2
     name: Read
-    opaque1:
+    opaque1: {}
     type: rbac_permission
 
   - id: 2
@@ -514,7 +1267,7 @@ def_sec:
 
   - id: 3
     name: Update
-    opaque1:
+    opaque1: {}
     type: rbac_permission
 
   - id: 4
@@ -526,7 +1279,7 @@ def_sec:
 
   - id: 4
     name: Delete
-    opaque1:
+    opaque1: {}
     type: rbac_permission
 
 email_imap: []
@@ -599,8 +1352,83 @@ zato_cache_builtin:
     max_item_size: 1000
     max_size: 10000
     name: default
-    opaque1:
+    opaque1: {}
     persistent_storage: sql
+    sync_method: in-background
+
+  - cache_id: 2
+    cache_type: builtin
+    current_size: 1
+    extend_expiry_on_get: true
+    extend_expiry_on_set: true
+    id: 2
+    is_active: true
+    is_default: false
+    max_item_size: 1000
+    max_size: 10000
+    name: logins
+    opaque1: {}
+    persistent_storage: no-persistent-storage
+    sync_method: in-background
+
+  - cache_id: 3
+    cache_type: builtin
+    current_size: 0
+    extend_expiry_on_get: true
+    extend_expiry_on_set: true
+    id: 3
+    is_active: true
+    is_default: false
+    max_item_size: 1000
+    max_size: 10000
+    name: guests
+    opaque1: {}
+    persistent_storage: no-persistent-storage
+    sync_method: in-background
+
+  - cache_id: 4
+    cache_type: builtin
+    current_size: 0
+    extend_expiry_on_get: true
+    extend_expiry_on_set: true
+    id: 4
+    is_active: true
+    is_default: false
+    max_item_size: 1000
+    max_size: 10000
+    name: bookings
+    opaque1: {}
+    persistent_storage: no-persistent-storage
+    sync_method: in-background
+
+  - cache_id: 5
+    cache_type: builtin
+    current_size: 0
+    extend_expiry_on_get: true
+    extend_expiry_on_set: true
+    id: 5
+    is_active: true
+    is_default: false
+    max_item_size: 1000
+    max_size: 10000
+    name: rooms
+    opaque1: {}
+    persistent_storage: no-persistent-storage
+    sync_method: in-background
+
+  - cache_id: 6
+    cache_type: builtin
+    current_size: 0
+    extend_expiry_on_get: true
+    extend_expiry_on_set: true
+    id: 6
+    is_active: true
+    is_default: false
+    max_item_size: 1000
+    max_size: 10000
+    name: rates
+    opaque1: {}
+    persistent_storage: no-persistent-storage
     sync_method: in-background
 
 zato_cache_memcached: []

@@ -229,7 +229,10 @@ class Create(Service):
                 cache_key = 'id-%s' % result.id
                 cache = self.cache.get_cache('builtin', 'logins')
                 result = result.asdict()
-                del (result['password'])
+                # Password should not be present due to the column being
+                # deferred, but just in case.
+                if result['password']:
+                    del (result['password'])
                 cache.set(cache_key, result)
 
                 # Return the result

@@ -1025,7 +1025,7 @@ class Restore(Service):
     """
     Service class to restore a deleted booking.
 
-    Channel /genesisng/bookingss/{id}/restore``.
+    Channel ``/genesisng/bookingss/{id}/restore``.
 
     Uses `SimpleIO`_.
 

@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
-from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
+from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, FORBIDDEN
 from zato.server.service import Service, Boolean, Integer, AsIs, List
 from genesisng.schema.login import Login
 from sqlalchemy import or_, and_, func
@@ -98,7 +98,7 @@ class Validate(Service):
     Stores the record in the ``logins`` cache (minus the password). Returns a
     ``Cache-Control`` header.
 
-    Returns ``OK`` upon successful validation, or ``NOT_FOUND`` otherwise.
+    Returns ``OK`` upon successful validation, or ``FORBIDDEN`` otherwise.
 
     Depending on the config value ``security.login_validation``, it uses the
     database cryptographic functions to verify the password or it verifies it
@@ -159,7 +159,7 @@ class Validate(Service):
                 self.response.headers['Cache-Control'] = 'no-cache'
                 self.response.payload = result
             else:
-                self.response.status_code = NOT_FOUND
+                self.response.status_code = FORBIDDEN
                 self.response.headers['Cache-Control'] = 'no-cache'
 
 

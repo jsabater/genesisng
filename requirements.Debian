@@ -1,2 +1,8 @@
 libffi-dev
 libssl-dev
+libpq-dev
+libxml2-dev
+libxslt1-dev
+python-dev
+libyaml-dev
+

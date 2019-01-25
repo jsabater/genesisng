@@ -226,14 +226,9 @@ class Create(Service):
                 session.commit()
 
                 # Save the record in the cache, minus the password
-                cache_key = 'id-%s' % result.id
+                cache_key = 'id:%s' % result.id
                 cache = self.cache.get_cache('builtin', 'logins')
-                result = result.asdict()
-                # Password should not be present due to the column being
-                # deferred, but just in case.
-                if result['password']:
-                    del (result['password'])
-                cache.set(cache_key, result)
+                cache.set(cache_key, result.asdict(exclude=['password']))
 
                 # Return the result
                 self.response.status_code = CREATED

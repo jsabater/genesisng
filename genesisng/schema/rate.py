@@ -4,6 +4,7 @@ from __future__ import print_function, unicode_literals
 from .base import Base
 from sqlalchemy import Column, Boolean, Integer, Float, Date
 from sqlalchemy import UniqueConstraint, CheckConstraint
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.sql.elements import quoted_name
@@ -51,6 +52,10 @@ class Rate(Base):
     def days(self):
         """The number of days in the date range of this rate."""
         return (self.date_to - self.date_from).days
+
+    @days.expression
+    def days(cls):
+        return func.date_part('day', func.age(cls.date_to, cls.date_from))
 
     def __repr__(self):
         """String representation of the object."""

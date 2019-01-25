@@ -63,7 +63,7 @@ class Get(Service):
         # Check whether a copy exists in the cache
         cache_key = 'id:%s' % id_
         cache = self.cache.get_cache('builtin', 'bookings')
-        cache_data = cache.get_by_prefix(cache_key, details=True)
+        cache_data = cache.get_by_prefix(cache_key, details=True, limit=1)
         if cache_data:
             self.response.status_code = OK
             self.response.headers['Cache-Control'] = cache_control
@@ -157,7 +157,7 @@ class Locate(Service):
         # Check whether a copy exists in the cache
         cache_key = 'locator:%s' % locator
         cache = self.cache.get_cache('builtin', 'bookings')
-        cache_data = cache.get_by_suffix(cache_key, details=True)
+        cache_data = cache.get_by_suffix(cache_key, details=True, limit=1)
         if cache_data:
             self.response.status_code = OK
             self.response.headers['Cache-Control'] = cache_control

@@ -9,8 +9,6 @@ from genesisng.schema.guest import Guest
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
-from wsgiref.handlers import format_date_time
-from hashlib import md5
 
 
 class Get(Service):
@@ -52,16 +50,14 @@ class Get(Service):
         id_ = self.request.input.id
 
         # Check whether a copy exists in the cache
-        cache_key = 'id-%s' % id_
+        cache_key = 'id:%s' % id_
         cache = self.cache.get_cache('builtin', 'guests')
         cache_data = cache.get(cache_key, details=True)
         if cache_data:
             self.response.status_code = OK
             self.response.headers['Cache-Control'] = cache_control
-            self.response.headers['Last-Modified'] = format_date_time(
-                cache_data.last_write)
-            self.response.headers['ETag'] = md5(str(
-                cache_data.value)).hexdigest()
+            self.response.headers['Last-Modified'] = cache_data.last_write_http
+            self.response.headers['ETag'] = cache_data.hash
             self.response.payload = cache_data.value
             return
 
@@ -71,21 +67,28 @@ class Get(Service):
                 one_or_none()
 
             if result:
+
                 # Save the record in the cache
                 cache_data = cache.set(
                     cache_key, result.asdict(), details=True)
 
+                # Set cache headers in response
+                if cache_data:
+                    self.response.headers['Cache-Control'] = cache_control
+                    self.response.headers['Last-Modified'] = cache_data.\
+                        last_write_http
+                    self.response.headers['ETag'] = cache_data.hash
+                else:
+                    self.response.headers['Cache-Control'] = 'no-cache'
+
                 # Return the result
                 self.response.status_code = OK
-                self.response.headers['Cache-Control'] = cache_control
-                self.response.headers['Last-Modified'] = format_date_time(
-                    cache_data.last_write)
-                self.response.headers['ETag'] = md5(str(
-                    cache_data.value)).hexdigest()
-                self.response.payload = cache_data.value
+                self.response.headers['Content-Language'] = 'en'
+                self.response.payload = result
             else:
                 self.response.status_code = NOT_FOUND
                 self.response.headers['Cache-Control'] = 'no-cache'
+                self.response.headers['Content-Language'] = 'en'
 
 
 class Create(Service):

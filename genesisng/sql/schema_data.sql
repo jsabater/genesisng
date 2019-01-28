@@ -1000,14 +1000,7 @@ INSERT INTO login (username, password, name, surname, email, is_admin)
             ('user997', '123456', 'Felix', 'Mclean', 'tincidunt.pede.ac@urnaconvalliserat.com', false),
             ('user998', '123456', 'Karen', 'Howard', 'sed.leo@pharetraut.ca', false),
             ('user999', '123456', 'Kiona', 'Hansen', 'nisi.nibh@dolorvitae.ca', false),
-            ('user1000', '123456', 'Prescott', 'Stanley', 'libero@tempordiamdictum.com', false)
-ON CONFLICT (username) DO UPDATE
-        SET username = excluded.username,
-            password = excluded.password,
-            name = excluded.name,
-            surname = excluded.surname,
-            email = excluded.email,
-            is_admin = excluded.is_admin;
+            ('user1000', '123456', 'Prescott', 'Stanley', 'libero@tempordiamdictum.com', false);
 
 -- Encrypt a hashed version of all passwords using Blowfish (BCrypt)
 UPDATE login SET password = crypt('123456', gen_salt('bf'));
@@ -1814,22 +1807,7 @@ INSERT INTO guest (name, surname, gender, email, passport, birthdate, address1, 
             ('Ramona', 'Spencer', 'Male', 'metus@nisi.co.uk', '1647112510699', '2000-05-25', '464-2057 At, Road', NULL, 'Ciudad Real', '83-240', 'CM', 'KM', '+44.2079460702', '+44.2079460701'),
             ('Yael', 'Nieves', 'Male', 'dolor.Donec@maurisblandit.ca', '1697022432599', '1965-11-30', 'Ap #760-7085 Non Street', NULL, 'Toledo', '2744', 'CM', 'CG', '+44.2079460702', '+44.2079460701'),
             ('Iona', 'Salazar', 'Female', 'turpis.vitae.purus@risusDuis.edu', '1656082827999', '1980-03-02', 'Ap #259-7567 Curabitur Rd.', NULL, 'A Coruña', '353432', 'Galicia', 'CD', '+44.2079460702', '+44.2079460701'),
-            ('Shaine', 'Gilbert', 'Female', 'ut.erat.Sed@massa.com', '1633020438499', '1969-12-09', 'Ap #759-665 Nec St.', NULL, 'Pamplona', '92301', 'Navarra', 'CK', '+44.2079460702', '+44.2079460701')
-ON CONFLICT (email) DO UPDATE
-        SET name = excluded.name,
-            surname = excluded.surname,
-            gender = excluded.gender,
-            email = excluded.email,
-            passport = excluded.passport,
-            birthdate = excluded.birthdate,
-            address1 = excluded.address1,
-            address2 = excluded.address2,
-            locality = excluded.locality,
-            postcode = excluded.postcode,
-            province = excluded.province,
-            country = excluded.country,
-            home_phone = excluded.home_phone,
-            mobile_phone = excluded.mobile_phone;
+            ('Shaine', 'Gilbert', 'Female', 'ut.erat.Sed@massa.com', '1633020438499', '1969-12-09', 'Ap #759-665 Nec St.', NULL, 'Pamplona', '92301', 'Navarra', 'CK', '+44.2079460702', '+44.2079460701');
 
 -- Rooms
 INSERT INTO room (id, floor_no, room_no, name, sgl_beds, dbl_beds, supplement, code)
@@ -1838,15 +1816,7 @@ INSERT INTO room (id, floor_no, room_no, name, sgl_beds, dbl_beds, supplement, c
             (3, 1, 3, 'Very large bedroom with three single and one double beds', 3, 1, 50, 'white'),
             (4, 1, 4, 'Very large bedroom with four single beds', 4, 0, 40, 'purple'),
             (5, 1, 5, 'Large bedroom with three single beds', 3, 0, 30, 'blue'),
-            (6, 1, 6, 'Normal bedroom with one double bed', 0, 1, 20, 'brown')
-ON CONFLICT (id) DO UPDATE
-        SET floor_no = excluded.floor_no,
-            room_no = excluded.room_no,
-            name = excluded.name,
-            sgl_beds = excluded.sgl_beds,
-            dbl_beds = excluded.dbl_beds,
-            supplement = excluded.supplement,
-            code = excluded.code;
+            (6, 1, 6, 'Normal bedroom with one double bed', 0, 1, 20, 'brown');
 
 -- Rates
 INSERT INTO rate (date_from, date_to, base_price, bed_price, published)
@@ -1861,13 +1831,7 @@ INSERT INTO rate (date_from, date_to, base_price, bed_price, published)
             ('2019-03-01', '2019-04-30', 10, 20, True),
             ('2019-05-01', '2019-06-30', 20, 30, True),
             ('2019-07-01', '2019-08-31', 30, 40, True),
-            ('2019-09-01', '2019-10-31', 20, 30, True)
-ON CONFLICT (date_from, date_to) DO UPDATE
-        SET date_from = excluded.date_from,
-            date_to = excluded.date_to,
-            base_price = excluded.base_price,
-            bed_price = excluded.bed_price,
-            published = excluded.published;
+            ('2019-09-01', '2019-10-31', 20, 30, True);
 
 -- Bookings
 INSERT INTO booking (id_guest, id_room, reserved, guests, check_in, check_out, checked_in, checked_out, cancelled, base_price, taxes_percentage, taxes_value, total_price, locator, pin, status, meal_plan, additional_services)
@@ -1904,20 +1868,4 @@ INSERT INTO booking (id_guest, id_room, reserved, guests, check_in, check_out, c
             (5, 1, '2016-01-25 14:43:00', 2, '2017-07-01', '2017-07-11', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAA5', '1234', 'Confirmed', 'BedAndBreakfast', ''),
             (6, 2, '2016-01-25 14:43:00', 3, '2017-07-15', '2017-07-30', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAA6', '1234', 'Confirmed', 'BedAndBreakfast', ''),
             (7, 3, '2016-01-25 14:43:00', 2, '2017-06-01', '2017-06-08', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAA7', '1234', 'Confirmed', 'BedAndBreakfast', ''),
-            (8, 4, '2016-01-25 14:43:00', 3, '2017-08-08', '2017-08-16', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAA8', '1234', 'Confirmed', 'BedAndBreakfast', '')
-ON CONFLICT (id_guest, id_room, check_in) DO UPDATE
-        SET id_guest = excluded.id_guest,
-            id_room = excluded.id_room,
-            reserved = excluded.reserved,
-            guests = excluded.guests,
-            check_in  = excluded.check_in,
-            check_out = excluded.check_out,
-            checked_in = excluded.checked_in,
-            checked_out = excluded.checked_out,
-            cancelled = excluded.cancelled,
-            base_price = excluded.base_price,
-            taxes_percentage = excluded.taxes_percentage,
-            taxes_value = excluded.taxes_value,
-            total_price = excluded.total_price,
-            locator = excluded.locator,
-            pin = excluded.pin;
+            (8, 4, '2016-01-25 14:43:00', 3, '2017-08-08', '2017-08-16', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAA8', '1234', 'Confirmed', 'BedAndBreakfast', '');

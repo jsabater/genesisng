@@ -8,8 +8,6 @@ from genesisng.schema.login import Login
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
-from wsgiref.handlers import format_date_time
-from hashlib import md5
 from passlib.hash import bcrypt
 
 
@@ -59,10 +57,8 @@ class Get(Service):
         if cache_data:
             self.response.status_code = OK
             self.response.headers['Cache-Control'] = cache_control
-            self.response.headers['Last-Modified'] = format_date_time(
-                cache_data.last_write)
-            self.response.headers['ETag'] = md5(str(
-                cache_data.value)).hexdigest()
+            self.response.headers['Last-Modified'] = cache_data.last_write_http
+            self.response.headers['ETag'] = cache_data.hash
             self.response.payload = cache_data.value
             return
 
@@ -70,21 +66,28 @@ class Get(Service):
             result = session.query(Login).filter(Login.id == id_).one_or_none()
 
             if result:
+
                 # Save the record in the cache, minus the password
                 result = result.asdict(exclude=['password'])
                 cache_data = cache.set(cache_key, result, details=True)
 
+                # Set cache headers in response
+                if cache_data:
+                    self.response.headers['Cache-Control'] = cache_control
+                    self.response.headers['Last-Modified'] = cache_data.\
+                        last_write_http
+                    self.response.headers['ETag'] = cache_data.hash
+                else:
+                    self.response.headers['Cache-Control'] = 'no-cache'
+
                 # Return the result
                 self.response.status_code = OK
-                self.response.headers['Cache-Control'] = cache_control
-                self.response.headers['Last-Modified'] = format_date_time(
-                    cache_data.last_write)
-                self.response.headers['ETag'] = md5(str(
-                    cache_data.value)).hexdigest()
-                self.response.payload = cache_data.value
+                self.response.headers['Content-Language'] = 'en'
+                self.response.payload = result
             else:
                 self.response.status_code = NOT_FOUND
                 self.response.headers['Cache-Control'] = 'no-cache'
+                self.response.headers['Content-Language'] = 'en'
 
 
 class Validate(Service):
@@ -150,11 +153,13 @@ class Validate(Service):
                         result = None
 
             if result:
+
                 # Save the record in the cache, minus the password
                 cache_key = 'id-%s' % result.id
                 cache = self.cache.get_cache('builtin', 'logins')
                 result = result.asdict(exclude=['password'])
                 cache.set(cache_key, result)
+
                 self.response.status_code = OK
                 self.response.headers['Cache-Control'] = 'no-cache'
                 self.response.payload = result
@@ -378,13 +383,11 @@ class Update(Service):
                     # Save the record in the cache, minus the password
                     cache_key = 'id:%s' % result.id
                     cache = self.cache.get_cache('builtin', 'logins')
-                    result = result.asdict()
-                    del (result['password'])
-                    cache_data = cache.set(cache_key, result, details=True)
+                    cache.set(cache_key, result.asdict())
 
                     # Return the result
                     self.response.status_code = OK
-                    self.response.payload = cache_data.value
+                    self.response.payload = result
                     self.response.headers['Cache-Control'] = 'no-cache'
                 else:
                     self.response.status_code = NOT_FOUND

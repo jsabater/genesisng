@@ -7,8 +7,6 @@ from zato.server.service import Service, Integer, Float, Date, Boolean, List
 from genesisng.schema.rate import Rate
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
-from wsgiref.handlers import format_date_time
-from hashlib import md5
 
 
 class Get(Service):
@@ -55,10 +53,8 @@ class Get(Service):
         if cache_data:
             self.response.status_code = OK
             self.response.headers['Cache-Control'] = cache_control
-            self.response.headers['Last-Modified'] = format_date_time(
-                cache_data.last_write)
-            self.response.headers['ETag'] = md5(str(
-                cache_data.value)).hexdigest()
+            self.response.headers['Last-Modified'] = cache_data.last_write_http
+            self.response.headers['ETag'] = cache_data.hash
             self.response.headers['Content-Language'] = 'en'
             self.response.payload = cache_data.value
             return
@@ -76,12 +72,11 @@ class Get(Service):
                 # Return the result
                 self.response.status_code = OK
                 self.response.headers['Cache-Control'] = cache_control
-                self.response.headers['Last-Modified'] = format_date_time(
-                    cache_data.last_write)
-                self.response.headers['ETag'] = md5(str(
-                    cache_data.value)).hexdigest()
+                self.response.headers['Last-Modified'] = cache_data.\
+                    last_write_http
+                self.response.headers['ETag'] = cache_data.hash
                 self.response.headers['Content-Language'] = 'en'
-                self.response.payload = cache_data.value
+                self.response.payload = result
             else:
                 self.response.status_code = NOT_FOUND
                 self.response.headers['Cache-Control'] = 'no-cache'

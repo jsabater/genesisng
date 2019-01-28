@@ -9,8 +9,6 @@ from genesisng.schema.booking import Booking, generate_pin
 from sqlalchemy import and_, or_, func
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
-from wsgiref.handlers import format_date_time
-from hashlib import md5
 
 
 class Get(Service):
@@ -67,10 +65,8 @@ class Get(Service):
         if cache_data:
             self.response.status_code = OK
             self.response.headers['Cache-Control'] = cache_control
-            self.response.headers['Last-Modified'] = format_date_time(
-                cache_data.last_write)
-            self.response.headers['ETag'] = md5(str(
-                cache_data.value)).hexdigest()
+            self.response.headers['Last-Modified'] = cache_data.last_write_http
+            self.response.headers['ETag'] = cache_data.hash
             self.response.headers['Content-Language'] = 'en'
             self.response.payload = cache_data.value
             return
@@ -90,10 +86,9 @@ class Get(Service):
                 # Set cache headers in response
                 if cache_data:
                     self.response.headers['Cache-Control'] = cache_control
-                    self.response.headers['Last-Modified'] = format_date_time(
-                        cache_data.last_write)
-                    self.response.headers['ETag'] = md5(str(
-                        cache_data.value)).hexdigest()
+                    self.response.headers['Last-Modified'] = cache_data.\
+                        last_write_http
+                    self.response.headers['ETag'] = cache_data.hash
                 else:
                     self.response.headers['Cache-Control'] = 'no-cache'
 
@@ -161,10 +156,8 @@ class Locate(Service):
         if cache_data:
             self.response.status_code = OK
             self.response.headers['Cache-Control'] = cache_control
-            self.response.headers['Last-Modified'] = format_date_time(
-                cache_data.last_write)
-            self.response.headers['ETag'] = md5(str(
-                cache_data.value)).hexdigest()
+            self.response.headers['Last-Modified'] = cache_data.last_write_http
+            self.response.headers['ETag'] = cache_data.hash
             self.response.headers['Content-Language'] = 'en'
             self.response.payload = cache_data.value
             return
@@ -185,10 +178,9 @@ class Locate(Service):
                 # Set cache headers in response
                 if cache_data:
                     self.response.headers['Cache-Control'] = cache_control
-                    self.response.headers['Last-Modified'] = format_date_time(
-                        cache_data.last_write)
-                    self.response.headers['ETag'] = md5(str(
-                        cache_data.value)).hexdigest()
+                    self.response.headers['Last-Modified'] = cache_data.\
+                        last_write_http
+                    self.response.headers['ETag'] = cache_data.hash
                 else:
                     self.response.headers['Cache-Control'] = 'no-cache'
 

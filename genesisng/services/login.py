@@ -477,6 +477,9 @@ class List(Service):
             fields are all in the :class:`~genesisng.schema.login.Login` model
             class but the password.
         :type fields: str
+        :param search: Search term (case insensitive). The passed term will be
+            searched using pattern-matching indexes in the all fields.
+        :type search: str
 
         :returns: A list of dicts with all attributes of a
             :class:`~genesisng.schema.login.Login` model class, minus the

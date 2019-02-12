@@ -10,9 +10,9 @@ from sqlalchemy import UniqueConstraint, CheckConstraint, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
 from hashids import Hashids
 import random
-# from sqlalchemy.orm import relationship
 
 
 class BookingStatus(str, enum.Enum):
@@ -179,8 +179,8 @@ class Booking(Base):
     def nights(cls):
         return func.date_part('day', func.age(cls.check_out, cls.check_in))
 
-    # room = relationship("Room", backref="booking")
-    # guest = relationship("Guest", backref="booking")
+    room = relationship("Room", backref="booking")
+    guest = relationship("Guest", backref="booking")
 
     def __repr__(self):
         """String representation of the object."""

@@ -8,10 +8,11 @@ from zato.server.service import Integer, Date, List
 from genesisng.schema.room import Room
 from genesisng.schema.rate import Rate
 from genesisng.schema.booking import Booking
-from sqlalchemy import func, tuple_, case, cast
+from sqlalchemy import func, tuple_, case, cast, any_
 from sqlalchemy import Integer as sqlInteger
 from sqlalchemy import Float as sqlFloat
 from sqlalchemy import Date as sqlDate
+from datetime import datetime
 
 
 class Search(Service):
@@ -59,9 +60,13 @@ class Search(Service):
         """
 
         conn = self.user_config.genesisng.database.connection
+        cache_control = self.user_config.genesisng.cache.default_cache_control
         check_in = self.request.input.check_in
         check_out = self.request.input.check_out
         guests = self.request.input.guests
+
+        check_in = datetime.strptime(check_in, '%Y-%m-%d').date()
+        check_out = datetime.strptime(check_out, '%Y-%m-%d').date()
 
         # Check dates
         if check_in >= check_out:
@@ -127,9 +132,10 @@ class Search(Service):
                 filter(Room.id.notin_(subq)).\
                 filter(Room.accommodates >= guests)
             if rooms:
-                a = a.filter(Room.id.any(rooms))
+                a = a.filter(Room.id == any_(rooms))
             a = a.cte(name='a')
 
+            # Execute query
             result = session.query(
                 a.c.id, a.c.floor_no, a.c.room_no, a.c.name, a.c.sgl_beds,
                 a.c.dbl_beds, a.c.code, a.c.number, a.c.accommodates,
@@ -145,7 +151,40 @@ class Search(Service):
                 all()
 
             if result:
-                self.response.payload[:] = result
+                lod = []
+                for r in result:
+                    d = {
+                        'id': r.id,
+                        'number': r.number,
+                        'name': r.name,
+                        'sbl_beds': r.sgl_beds,
+                        'dbl_beds': r.dbl_beds,
+                        'accommodates': r.accommodates,
+                        'code': r.code,
+                        'nights': r.nights,
+                        'total_price': r.total_price
+                    }
+                    lod.append(d)
+
+                # Store results in the cache
+                cache = self.cache.get_cache('builtin', 'availability')
+                cache_key = 'check_in:%s|check_out:%s|guests:%s|rooms:%s' % (
+                    check_in.strftime('%Y-%m-%d'),
+                    check_out.strftime('%Y-%m-%d'),
+                    guests, str(rooms))
+                cache_data = cache.set(cache_key, lod, details=True)
+
+                if cache_data:
+                    self.response.headers['Cache-Control'] = cache_control
+                    self.response.headers['Last-Modified'] = cache_data.\
+                        last_write_http
+                    self.response.headers['ETag'] = cache_data.hash
+                else:
+                    self.response.headers['Cache-Control'] = 'no-cache'
+
+                # Return the result
+                self.response.payload[:] = lod
                 self.response.status_code = OK
             else:
                 self.response.status_code = NO_CONTENT
+                self.response.headers['Cache-Control'] = 'no-cache'

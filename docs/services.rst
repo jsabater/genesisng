@@ -42,3 +42,9 @@ The booking module
 .. automodule:: genesisng.services.booking
    :members:
 
+The availability module
+-----------------------
+
+.. automodule:: genesisng.services.availability
+   :members:
+

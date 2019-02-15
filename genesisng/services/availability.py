@@ -81,6 +81,21 @@ class Search(Service):
         except ValueError:
             rooms = []
 
+        # Check whether a copy exists in the cache
+        cache_key = 'check_in:%s|check_out:%s|guests:%s|rooms:%s' % (
+            check_in.strftime('%Y-%m-%d'), check_out.strftime('%Y-%m-%d'),
+            guests, str(rooms))
+        cache = self.cache.get_cache('builtin', 'availability')
+        cache_data = cache.get(cache_key, details=True)
+        if cache_data:
+            self.response.status = OK
+            self.response.headers['Cache-Control'] = cache_control
+            self.response.headers['Last-Modified'] = cache_data.last_write_http
+            self.response.headers['ETag'] = cache_data.hash
+            self.response.headers['Content-Language'] = 'en'
+            self.response.payload = cache_data.value
+            return
+
         # Otherwise, retrieve the data
         with closing(self.outgoing.sql.get(conn).session()) as session:
 
@@ -151,6 +166,9 @@ class Search(Service):
                 all()
 
             if result:
+                # A complex result set cannot be stored in the cache (a list of
+                # WritableKeyedTuple in this case), so we transform it into a
+                # list of dictionaries
                 lod = []
                 for r in result:
                     d = {
@@ -167,11 +185,6 @@ class Search(Service):
                     lod.append(d)
 
                 # Store results in the cache
-                cache = self.cache.get_cache('builtin', 'availability')
-                cache_key = 'check_in:%s|check_out:%s|guests:%s|rooms:%s' % (
-                    check_in.strftime('%Y-%m-%d'),
-                    check_out.strftime('%Y-%m-%d'),
-                    guests, str(rooms))
                 cache_data = cache.set(cache_key, lod, details=True)
 
                 if cache_data:

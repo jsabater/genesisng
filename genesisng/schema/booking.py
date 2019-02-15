@@ -165,8 +165,8 @@ class Booking(Base):
                   server_default=text('uuid_generate_v4()'),
                   default=uuid4,
                   comment='Unique code used to detect duplicates')
-    """Universally Unique IDentifier of the reservation. Used to back up the
-    primary key."""
+    """Universally Unique IDentifier of the reservation. Used to prevent
+    double-booking by mistake."""
     deleted = Column(DateTime, index=True, default=None)
     """Timestamp of the deletion of the record. Defaults to None."""
 

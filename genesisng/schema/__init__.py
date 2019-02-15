@@ -9,4 +9,4 @@ from . import rate
 from . import booking
 
 
-__all__ = ['base', 'login', 'guest', 'room', 'rate', 'booking']
+__all__ = ['base', 'login', 'guest', 'room', 'rate', 'booking', 'extra']

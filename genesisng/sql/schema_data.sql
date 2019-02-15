@@ -1869,3 +1869,9 @@ INSERT INTO booking (id_guest, id_room, reserved, guests, check_in, check_out, c
             (6, 2, '2016-01-25 14:43:00', 3, '2017-07-15', '2017-07-30', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAA6', '1234', 'Confirmed', 'BedAndBreakfast', ''),
             (7, 3, '2016-01-25 14:43:00', 2, '2017-06-01', '2017-06-08', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAA7', '1234', 'Confirmed', 'BedAndBreakfast', ''),
             (8, 4, '2016-01-25 14:43:00', 3, '2017-08-08', '2017-08-16', NULL, NULL, NULL, 500, 10, 50, 550, 'AAAA8', '1234', 'Confirmed', 'BedAndBreakfast', '');
+
+-- Extras
+INSERT INTO extra (code, name, description, price)
+     VALUES ('LateDinner', 'Dinner for late arrivals', 'Find a cold dinner in your room when arriving later than 22:00 h.', 0),
+	    ('PoolKit', 'Swimming pool kit', 'Bathrobe and slippers to wear in the hotel', 10),
+            ('Massage30', '30 minutes massage', 'To help you relax or recover from physical exercise', 30);

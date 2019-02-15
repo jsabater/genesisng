@@ -97,7 +97,7 @@ class Booking(Base):
     the :attr:`~genesisng.schema.Booking.booking.pin` attribute.
 
     Records are not deleted from the database but instead marked as deleted
-    via the :attr:`~genesisng.schema.Booking.booking.deleted` attribute, which
+    via the :attr:`~genesisng.schema.booking.Booking.deleted` attribute, which
     contains a timestamp of the date and time when the record was deleted.
 
     .. _hashids: https://pypi.org/project/hashids/

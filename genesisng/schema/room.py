@@ -32,7 +32,7 @@ class Room(Base):
     the accommodates attribute is a positive integer.
 
     Records are not deleted from the database but instead marked as deleted
-    via the :attr:`~genesisng.schema.Room.room.deleted` attribute, which
+    via the :attr:`~genesisng.schema.room.Room.deleted` attribute, which
     contains a timestamp of the date and time when the record was deleted.
 
     .. _hashids: https://pypi.org/project/hashids/

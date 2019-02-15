@@ -34,7 +34,7 @@ class Guest(Base):
     `gender`, `email`, `birthdate`, `country` and `deleted`.
 
     Records are not deleted from the database but instead marked as deleted
-    via the :attr:`~genesisng.schema.Guest.guest.deleted` attribute, which
+    via the :attr:`~genesisng.schema.guest.Guest.deleted` attribute, which
     contains a timestamp of the date and time when the record was deleted.
     """
 

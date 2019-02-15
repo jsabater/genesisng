@@ -55,9 +55,9 @@ class Search(Service):
         :param rooms: A list of room ids to filter the results
         :type rooms: list
 
-        :returns: All attributes of a
-            :class:`~genesisng.schema.availability.Result` model class.
-        :rtype: dict
+        :returns: A sub-set of :class:`~genesisng.schema.room.Room` properties,
+            the number of nights and the total price of the booking.
+        :rtype: list of dict
         """
 
         conn = self.user_config.genesisng.database.connection
@@ -229,7 +229,8 @@ class Extras(Service):
         """
         Service handler.
 
-        :returns: All available extras.
+        :returns: All available extras, each including all attributes of a
+            :class:`~genesisng.schema.rate.Rate` model class.
         :rtype: dict
         """
 

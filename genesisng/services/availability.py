@@ -94,7 +94,7 @@ class Search(Service):
             self.response.headers['Last-Modified'] = cache_data.last_write_http
             self.response.headers['ETag'] = cache_data.hash
             self.response.headers['Content-Language'] = 'en'
-            self.response.payload = cache_data.value
+            self.response.payload[:] = cache_data.value
             return
 
         # Otherwise, retrieve the data
@@ -246,7 +246,7 @@ class Extras(Service):
             self.response.headers['Last-Modified'] = cache_data.last_write_http
             self.response.headers['ETag'] = cache_data.hash
             self.response.headers['Content-Language'] = 'en'
-            self.response.payload = cache_data.value
+            self.response.payload[:] = cache_data.value
             return
 
         # Otherwise, retrieve the data

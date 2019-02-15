@@ -88,7 +88,7 @@ class Search(Service):
         cache = self.cache.get_cache('builtin', 'availability')
         cache_data = cache.get(cache_key, details=True)
         if cache_data:
-            self.response.status = OK
+            self.response.status_code = OK
             self.response.headers['Cache-Control'] = cache_control
             self.response.headers['Last-Modified'] = cache_data.last_write_http
             self.response.headers['ETag'] = cache_data.hash
@@ -151,13 +151,13 @@ class Search(Service):
             a = a.cte(name='a')
 
             # Execute query
+            total_price = a.c.supplement * p.c.nights + p.c.price
             result = session.query(
                 a.c.id, a.c.floor_no, a.c.room_no, a.c.name, a.c.sgl_beds,
                 a.c.dbl_beds, a.c.code, a.c.number, a.c.accommodates,
                 cast(p.c.nights, sqlInteger).label('nights'),
-                cast(a.c.supplement * p.c.nights + p.c.price, sqlFloat).
-                label('total_price')).\
-                order_by('total_price ASC').\
+                cast(total_price, sqlFloat).label('total_price')).\
+                order_by(total_price.asc()).\
                 order_by(a.c.accommodates.asc()).\
                 order_by(a.c.sgl_beds.asc()).\
                 order_by(a.c.dbl_beds.asc()).\
@@ -201,3 +201,100 @@ class Search(Service):
             else:
                 self.response.status_code = NO_CONTENT
                 self.response.headers['Cache-Control'] = 'no-cache'
+
+
+class Extras(Service):
+    """
+    Service class to get a list of available extras for a room.
+
+    Channel ``/genesisng/availability/extras``.
+
+    Uses `SimpleIO`_.
+
+    Stores the list of extras in the ``availability`` cache. Returns
+    ``Cache-Control``, ``Last-Modified`` and ``ETag`` headers. Returns a
+    ``Content-Language`` header.
+
+    Returns ``OK`` if results have been found, ``NO_CONTENT`` if there are no
+    available extras for the room.
+    """
+
+    class SimpleIO(object):
+        output_optional = ('id', 'code', 'name', 'description', 'price')
+        skip_empty_keys = True
+        output_repeated = True
+
+    def handle(self):
+        """
+        Service handler.
+
+        :returns: All available extras.
+        :rtype: dict
+        """
+
+        conn = self.user_config.genesisng.database.connection
+        cache_control = self.user_config.genesisng.cache.default_cache_control
+
+        # Check whether a copy exists in the cache
+        cache_key = 'extras'
+        cache = self.cache.get_cache('builtin', 'availability')
+        cache_data = cache.get(cache_key, details=True)
+        if cache_data:
+            self.response.status_code = OK
+            self.response.headers['Cache-Control'] = cache_control
+            self.response.headers['Last-Modified'] = cache_data.last_write_http
+            self.response.headers['ETag'] = cache_data.hash
+            self.response.headers['Content-Language'] = 'en'
+            self.response.payload = cache_data.value
+            return
+
+        # Otherwise, retrieve the data
+        with closing(self.outgoing.sql.get(conn).session()) as session:
+
+            # result = session.query(Extra).filter(Extra.deleted.is_(None)).all()
+
+            result = [
+                {
+                    'id': 1,
+                    'code': 'LateDinner',
+                    'name': 'Dinner for late arrivals',
+                    'description': 'Find a cold dinner in your room when arriving later than 22:00 h.',
+                    'price': 0
+                },
+                {
+                    'id': 2,
+                    'code': 'PoolKit',
+                    'name': 'Swimming pool kit',
+                    'description': 'Bathrobe and slippers to wear in the hotel',
+                    'price': 0
+                },
+                {
+                    'id': 3,
+                    'code': 'Massage30',
+                    'name': '30 minutes massage',
+                    'description': 'To help you relax or recover from physical exercise',
+                    'price': 0
+                }
+            ]
+
+            if result:
+                # Save the record in the cache
+                cache_data = cache.set(cache_key, result, details=True)
+
+                # Set cache headers in response
+                if cache_data:
+                    self.response.headers['Cache-Control'] = cache_control
+                    self.response.headers['Last-Modified'] = cache_data.\
+                        last_write_http
+                    self.response.headers['ETag'] = cache_data.hash
+                else:
+                    self.response.headers['Cache-Control'] = 'no-cache'
+
+                # Return the result
+                self.response.status_code = OK
+                self.response.payload[:] = result
+                self.response.headers['Content-Language'] = 'en'
+            else:
+                self.response.status_code = NO_CONTENT
+                self.response.headers['Cache-Control'] = 'no-cache'
+                self.response.headers['Content-Language'] = 'en'

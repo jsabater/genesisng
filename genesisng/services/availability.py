@@ -8,7 +8,7 @@ from zato.server.service import Integer, Date, List
 from genesisng.schema.room import Room
 from genesisng.schema.rate import Rate
 from genesisng.schema.booking import Booking
-from genesisng.schema.booking import Extra
+from genesisng.schema.extra import Extra
 from sqlalchemy import func, tuple_, case, cast, any_
 from sqlalchemy import Integer as sqlInteger
 from sqlalchemy import Float as sqlFloat
@@ -221,7 +221,7 @@ class Extras(Service):
     """
 
     class SimpleIO(object):
-        output_optional = ('id', 'name', 'description', 'price')
+        output_optional = ('id', 'code', 'name', 'description', 'price')
         skip_empty_keys = True
         output_repeated = True
 
@@ -252,32 +252,16 @@ class Extras(Service):
         # Otherwise, retrieve the data
         with closing(self.outgoing.sql.get(conn).session()) as session:
 
-            # result = session.query(Extra).filter(Extra.deleted.is_(None)).all()
-
-            result = [
-                {
-                    'id': 1,
-                    'name': 'Dinner for late arrivals',
-                    'description': 'Find a cold dinner in your room when arriving later than 22:00 h.',
-                    'price': 0
-                },
-                {
-                    'id': 2,
-                    'name': 'Swimming pool kit',
-                    'description': 'Bathrobe and slippers to wear in the hotel',
-                    'price': 0
-                },
-                {
-                    'id': 3,
-                    'name': '30 minutes massage',
-                    'description': 'To help you relax or recover from physical exercise',
-                    'price': 0
-                }
-            ]
+            result = session.query(Extra).filter(Extra.deleted.is_(None)).all()
 
             if result:
+
+                # Transform the result (a list of Extra objects) into a list of
+                # dictionaries so that they can be stored in the cache.
+                lod = [r.asdict() for r in result]
+
                 # Save the record in the cache
-                cache_data = cache.set(cache_key, result, details=True)
+                cache_data = cache.set(cache_key, lod, details=True)
 
                 # Set cache headers in response
                 if cache_data:
@@ -290,7 +274,7 @@ class Extras(Service):
 
                 # Return the result
                 self.response.status_code = OK
-                self.response.payload[:] = result
+                self.response.payload[:] = lod
                 self.response.headers['Content-Language'] = 'en'
             else:
                 self.response.status_code = NO_CONTENT

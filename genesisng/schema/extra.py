@@ -20,6 +20,8 @@ class Extra(Base):
 
     id = Column(Integer, primary_key=True)
     """Primary key. Autoincrementing integer."""
+    code = Column(String(15), nullable=False)
+    """An internal code to be used when storing the data as a dictionary."""
     name = Column(String(50), nullable=False)
     """The name of the extra."""
     description = Column(String(255), nullable=False)
@@ -31,5 +33,5 @@ class Extra(Base):
 
     def __repr__(self):
         """String representation of the object."""
-        return "<Extra(id='%s', name='%s', price='%s')>" % (
-            self.id, self.name, self.price)
+        return "<Extra(id='%s', code='%s', name='%s', price='%s')>" % (
+            self.id, self.code, self.name, self.price)

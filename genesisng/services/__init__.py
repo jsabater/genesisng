@@ -6,7 +6,8 @@ from . import guest
 from . import login
 from . import rate
 from . import room
+from . import availability
 
 
-__all__ = ['booking', 'guest', 'login', 'rate', 'room']
+__all__ = ['booking', 'guest', 'login', 'rate', 'room', 'availability']
 

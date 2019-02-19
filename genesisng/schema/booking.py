@@ -5,7 +5,7 @@ import enum
 from uuid import uuid4
 from .base import Base
 from sqlalchemy import Column, Integer, Float, String, Date, DateTime
-from sqlalchemy import func, text
+from sqlalchemy import func
 from sqlalchemy import UniqueConstraint, CheckConstraint, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.dialects.postgresql import UUID
@@ -59,12 +59,12 @@ class BookingMealPlan(str, enum.Enum):
 
 
 def generate_locator(context):
-    """Generates a lowercased 6-letter hashed value for the locator attribute.
+    """Generates a lowercased 6-character hashed value for the locator attribute.
     """
     p = context.current_parameters
-    # hashids = Hashids(salt=p.get('nights'))
-    hashids = Hashids(min_length=6, alphabet='abcdefghijklmnopqrstuvwxyz')
-    return hashids.encode(p.get('id'), p.get('id_guest'), p.get('id_room'))
+    hashids = Hashids(min_length=6, salt=p.get('guests'),
+                      alphabet='0123456789abcdefghijklmnopqrstuvwxyz')
+    return hashids.encode(p.get('id'))
 
 
 def generate_pin(context):
@@ -158,11 +158,12 @@ class Booking(Base):
     meal_plan = Column(Enum(BookingMealPlan), nullable=False, index=True,
                        default='BedAndBreakfast')
     """Meal plan included in the reservation. Defaults to BedAndBreakfast."""
-    additional_services = Column(HSTORE, default={})
-    """Additional services included in the reservation, stored as a key/pair
-    JSON document."""
+    extras = Column(HSTORE, nullable=False, default={})
+    """Additional services included in the reservation, taken from the values
+    in the :class:`~genesisng.schema.extra.Extra` model class and stored as a
+    key/pair JSON document. The column defaults to an empty dictionary instead
+    of None to prevent newly added values to be swallowed without error."""
     uuid = Column(UUID(as_uuid=True), nullable=False, index=True, unique=True,
-                  server_default=text('uuid_generate_v4()'),
                   default=uuid4,
                   comment='Unique code used to detect duplicates')
     """Universally Unique IDentifier of the reservation. Used to prevent

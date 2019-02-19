@@ -2,23 +2,23 @@
 CREATE OR REPLACE FUNCTION IIF(BOOLEAN, DATE, DATE) RETURNS DATE
 AS $$
     SELECT CASE $1 WHEN True THEN $2 ELSE $3 END
-$$
-LANGUAGE SQL IMMUTABLE;
+$$ LANGUAGE SQL IMMUTABLE;
 
 -- Function to have together all steps that lead to availability and pricing calculation
-CREATE OR REPLACE FUNCTION availability(check_in DATE, check_out DATE, guests INTEGER, room INTEGER[] DEFAULT '{}')
-RETURNS TABLE (
-    r_id INTEGER,
-    r_floor_no INTEGER,
-    r_room_no INTEGER,
-    r_name VARCHAR,
-    r_sgl_beds INTEGER,
-    r_dbl_beds INTEGER,
-    r_accommodates INTEGER,
-    r_code VARCHAR,
-    t_nights INTEGER,
-    t_price REAL
-) AS $$
+CREATE OR REPLACE FUNCTION availability_search(check_in DATE, check_out DATE,
+    guests INTEGER, rooms INTEGER[] DEFAULT '{}')
+    RETURNS TABLE (
+        r_id INTEGER,
+        r_floor_no INTEGER,
+        r_room_no INTEGER,
+        r_name VARCHAR,
+        r_sgl_beds INTEGER,
+        r_dbl_beds INTEGER,
+        r_accommodates INTEGER,
+        r_code VARCHAR,
+        t_nights INTEGER,
+        t_price REAL
+    ) AS $$
 BEGIN
 RETURN QUERY
 (

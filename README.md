@@ -22,7 +22,7 @@ PostgreSQL version 9 and 10.
 This is the software used:
 
 * [Zato 3.0](http://zato.io/)
-* [PostgreSQL 9.x and 10](http://www.postgresql.org/)
+* [PostgreSQL 9.x and above](http://www.postgresql.org/)
 
 These are the libraries used:
 
@@ -51,8 +51,10 @@ log_min_duration_statement = 0
 ```
 Restart *PostgreSQL* for the changes to take effect.
 
-As `postgres` user, add the `HSTORE`, `uuid-ossp` and `PG_TRGM` extensions to
-the `template1` database, then create the `genesisng` user and database.
+As `postgres` user, add the `HSTORE`, `uuid-ossp`, `PG_TRGM`, `pgcrypto` and
+[`pg_hashids`](https://github.com/iCyberon/pg_hashids) extensions to the
+`template1` database, then create the `genesisng` user and database. The
+`hashids` extension is only necessary if you plan on using the test data.
 
 ```
 #!bash
@@ -60,6 +62,7 @@ psql --dbname=template1 --command="CREATE EXTENSION HSTORE"
 psql --dbname=template1 --command="CREATE EXTENSION PG_TRGM"
 psql --dbname=template1 --command='CREATE EXTENSION "uuid-ossp"'
 psql --dbname=template1 --command="CREATE EXTENSION pgcrypto"
+psql --dbname=template1 --command="CREATE EXTENSION pg_hashids"
 createuser --no-createdb --no-createrole --no-superuser genesisng
 createdb --encoding=UTF8 --owner=genesisng --template=template1 genesisng
 ```

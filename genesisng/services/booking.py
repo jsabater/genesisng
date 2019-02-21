@@ -3,11 +3,13 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, FORBIDDEN
+from httplib import BAD_REQUEST
 from zato.server.service import Service
 from zato.server.service import Integer, Float, Date, DateTime, Dict, List
 from genesisng.schema.booking import Booking, generate_pin
 from sqlalchemy import and_, or_, func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 
 
@@ -216,7 +218,7 @@ class Create(Service):
                           Float('total_price'))
         input_optional = (DateTime('checked_in'), DateTime('checked_out'),
                           DateTime('cancelled'), 'status', 'meal_plan',
-                          Dict('extras'))
+                          Dict('extras'), 'uuid')
         output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
                            'guests', Date('check_in'), Date('check_out'),
                            'base_price', 'taxes_percentage', 'taxes_value',
@@ -286,8 +288,25 @@ class Create(Service):
         # TODO: Use Cerberus to validate input?
         # http://docs.python-cerberus.org/en/stable/
         conn = self.user_config.genesisng.database.connection
-
         p = self.request.input
+
+        # Check UUID string and convert it into an actual UUID
+        # UUID is optional. If not passed, one will be created.
+        if p.uuid:
+            try:
+                uuid = UUID(p.uuid, version=4)
+            except ValueError:
+                self.response.status_code = BAD_REQUEST
+                msg = 'Wrong UUID format.'
+                self.response.payload = {
+                    'error': {
+                        'message': msg
+                    }
+                }
+                return
+        else:
+            uuid = None
+
         result = Booking(
             id_guest=p.id_guest,
             id_room=p.id_room,
@@ -303,7 +322,8 @@ class Create(Service):
             cancelled=p.get('cancelled', None),
             status=p.get('status', 'New'),
             meal_plan=p.get('meal_plan', 'BedAndBreakfast'),
-            extras=p.get('extras', {}))
+            extras=p.get('extras', {}),
+            uuid=uuid)
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             try:

@@ -1,8 +1,10 @@
 # Genesis Next-Generation
 
-This simple project is an example repository on how to use SQL Alchemy with
-Zato. It is based upon the Java project
-[genesis](https://bitbucket.org/jsabater/genesis).
+A prototype application to demonstrate the many features of Zato. Roughly based
+upon the Java project [genesis](https://bitbucket.org/jsabater/genesis), it
+features a back-end for a boutique hotel management system. Many of its
+features are not supposed to make strict sense in the real world, but rather
+show how a functionality is meant to be used or its possibilities.
 
 ## Overview
 

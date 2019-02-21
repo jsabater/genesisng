@@ -20,7 +20,7 @@ class Extra(Base):
 
     id = Column(Integer, primary_key=True)
     """Primary key. Autoincrementing integer."""
-    code = Column(String(15), nullable=False)
+    code = Column(String(15), index=True, nullable=False)
     """An internal code to be used when storing the data as a dictionary."""
     name = Column(String(50), nullable=False)
     """The name of the extra."""

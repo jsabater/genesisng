@@ -34,7 +34,7 @@ class Get(Service):
                            DateTime('cancelled'), 'base_price',
                            'taxes_percentage', 'taxes_value', 'total_price',
                            'locator', 'pin', 'status', 'meal_plan',
-                           Dict('additional_services'),
+                           Dict('extras'),
                            # 'uuid' # JSON serializaction error
                            # https://forum.zato.io/t/returning-uuid-types-from-services-using-json/1735
                            'nights'
@@ -125,7 +125,7 @@ class Locate(Service):
                            DateTime('cancelled'), 'base_price',
                            'taxes_percentage', 'taxes_value', 'total_price',
                            'locator', 'pin', 'status', 'meal_plan',
-                           Dict('additional_services'),
+                           Dict('extras'),
                            # 'uuid' # JSON serializaction error
                            # https://forum.zato.io/t/returning-uuid-types-from-services-using-json/1735
                            'nights'
@@ -216,12 +216,12 @@ class Create(Service):
                           Float('total_price'))
         input_optional = (DateTime('checked_in'), DateTime('checked_out'),
                           DateTime('cancelled'), 'status', 'meal_plan',
-                          Dict('additional_services'))
+                          Dict('extras'))
         output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
                            'guests', Date('check_in'), Date('check_out'),
                            'base_price', 'taxes_percentage', 'taxes_value',
                            'total_price', 'locator', 'pin', 'status',
-                           'meal_plan', Dict('additional_services'),
+                           'meal_plan', Dict('extras'),
                            DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'),
                            # 'uuid', # JSON serializaction error
@@ -274,9 +274,9 @@ class Create(Service):
             :class:`~genesisng.schema.booking.BookingMealPlan`. Optional.
             Default is ``BedAndBreakfast``.
         :type meal_plan: enum
-        :param additional_services: A dictionary with the additional services
+        :param extras: A dictionary with the additional services
             the guest has hired for this reservation. Optional. Default is {}.
-        :type additional_services: dict
+        :type extras: dict
 
         :returns: All attributes of a
             :class:`~genesisng.schema.booking.Booking` model class.
@@ -303,7 +303,7 @@ class Create(Service):
             cancelled=p.get('cancelled', None),
             status=p.get('status', 'New'),
             meal_plan=p.get('meal_plan', 'BedAndBreakfast'),
-            additional_services=p.get('additional_services', {}))
+            extras=p.get('extras', {}))
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             try:
@@ -355,7 +355,7 @@ class Cancel(Service):
                            DateTime('cancelled'), 'base_price',
                            'taxes_percentage', 'taxes_value', 'total_price',
                            'locator', 'pin', 'status', 'meal_plan',
-                           Dict('additional_services'),
+                           Dict('extras'),
                            # 'uuid' # JSON serializaction error
                            # https://forum.zato.io/t/returning-uuid-types-from-services-using-json/1735
                            'nights'
@@ -482,14 +482,14 @@ class Update(Service):
                           DateTime('checked_out'), DateTime('cancelled'),
                           Float('base_price'), Float('taxes_percentage'),
                           Float('taxes_value'), Float('total_price'), 'status',
-                          'meal_plan', Dict('additional_services'))
+                          'meal_plan', Dict('extras'))
         output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
                            'guests', Date('check_in'), Date('check_out'),
                            DateTime('checked_in'), DateTime('checked_out'),
                            DateTime('cancelled'), 'base_price',
                            'taxes_percentage', 'taxes_value', 'total_price',
                            'locator', 'pin', 'status', 'meal_plan',
-                           Dict('additional_services'),
+                           Dict('extras'),
                            # 'uuid' # JSON serializaction error
                            # https://forum.zato.io/t/returning-uuid-types-from-services-using-json/1735
                            'nights'
@@ -539,9 +539,9 @@ class Update(Service):
             of the enumerate
             :class:`~genesisng.schema.booking.BookingMealPlan`.
         :type meal_plan: enum
-        :param additional_services: A dictionary with the additional services
+        :param extras: A dictionary with the additional services
             the guest has hired for this reservation. Optional.
-        :type additional_services: dict
+        :type extras: dict
 
         :returns: All attributes of a
             :class:`~genesisng.schema.booking.Booking` model class.
@@ -591,8 +591,8 @@ class Update(Service):
                         result.status = p.status
                     if p.meal_plan:
                         result.meal_plan = p.meal_plan
-                    if p.additional_services:
-                        result.additional_services = p.additional_services
+                    if p.extras:
+                        result.extras = p.extras
                     session.commit()
 
                     # Save the record in the cache
@@ -641,7 +641,7 @@ class ChangePIN(Service):
                            DateTime('cancelled'), 'base_price',
                            'taxes_percentage', 'taxes_value', 'total_price',
                            'locator', 'pin', 'status', 'meal_plan',
-                           Dict('additional_services'),
+                           Dict('extras'),
                            # 'uuid' # JSON serializaction error
                            # https://forum.zato.io/t/returning-uuid-types-from-services-using-json/1735
                            'nights'
@@ -712,7 +712,7 @@ class Validate(Service):
                            DateTime('cancelled'), 'base_price',
                            'taxes_percentage', 'taxes_value', 'total_price',
                            'locator', 'pin', 'status', 'meal_plan',
-                           Dict('additional_services'),
+                           Dict('extras'),
                            # 'uuid' # JSON serializaction error
                            # https://forum.zato.io/t/returning-uuid-types-from-services-using-json/1735
                            'nights'
@@ -800,14 +800,14 @@ class List(Service):
     direction_allowed = ('asc', 'desc')
     filters_allowed = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
                        'check_in', 'check_out', 'base_price', 'total_price',
-                       'status', 'meal_plan', 'additional_services')
+                       'status', 'meal_plan', 'extras')
     comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
     operators_allowed = ('and', 'or')
     fields_allowed = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
                       'check_in', 'check_out', 'checked_in', 'checked_out',
                       'cancelled', 'base_price', 'taxes_percentage',
                       'taxes_value', 'total_price', 'locator', 'pin',
-                      'status', 'meal_plan', 'additional_services', 'uuid',
+                      'status', 'meal_plan', 'extras', 'uuid',
                       'deleted', 'nights')
     search_allowed = ()
 
@@ -821,7 +821,7 @@ class List(Service):
                            DateTime('cancelled'), 'base_price',
                            'taxes_percentage', 'taxes_value', 'total_price',
                            'locator', 'pin', 'status', 'meal_plan',
-                           Dict('additional_services'),
+                           Dict('extras'),
                            # 'uuid' # JSON serializaction error
                            # https://forum.zato.io/t/returning-uuid-types-from-services-using-json/1735
                            'nights', 'count'
@@ -1036,7 +1036,7 @@ class Restore(Service):
                            DateTime('cancelled'), 'base_price',
                            'taxes_percentage', 'taxes_value', 'total_price',
                            'locator', 'pin', 'status', 'meal_plan',
-                           Dict('additional_services'),
+                           Dict('extras'),
                            # 'uuid' # JSON serializaction error
                            # https://forum.zato.io/t/returning-uuid-types-from-services-using-json/1735
                            'nights'

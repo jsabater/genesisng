@@ -1225,6 +1225,191 @@ channel_plain_http:
     url_params_pri: qs-over-path
     url_path: /genesisng/bookingss/{id}/restore
 
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 692
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/availability/search
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: availability.search
+    service_id: 646
+    service_name: availability.search
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/availability/search
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 693
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/availability/extras
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: availability.extras
+    service_id: 647
+    service_name: availability.extras
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/availability/extras
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 694
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: POST
+    name: /genesisng/guests/upsert
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: guest.upsert
+    service_id: 649
+    service_name: guest.upsert
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/guests/upsert
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 695
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: POST
+    name: /genesisng/availability/confirm
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: availability.confirm
+    service_id: 648
+    service_name: availability.confirm
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/availability/confirm
+
+  - cache_expiry: 0
+    cache_id:
+    cache_name:
+    cache_type:
+    connection: channel
+    content_encoding:
+    content_type:
+    data_format: json
+    has_rbac: false
+    host:
+    id: 696
+    is_active: true
+    is_internal: false
+    match_slash: true
+    merge_url_params_req: true
+    method: GET
+    name: /genesisng/rooms/{id}/restore
+    params_pri: channel-params-over-msg
+    ping_method: HEAD
+    pool_size: 20
+    sec_def: zato-no-security
+    sec_tls_ca_cert_id:
+    sec_type:
+    sec_use_rbac: false
+    security_id:
+    security_name:
+    serialization_type: string
+    service: room.restore
+    service_id: 650
+    service_name: room.restore
+    soap_action:
+    soap_version:
+    timeout: 10
+    transport: plain_http
+    url_params_pri: qs-over-path
+    url_path: /genesisng/rooms/{id}/restore
+
 channel_zmq: []
 
 cloud_aws_s3: []
@@ -1333,8 +1518,6 @@ search_es: []
 
 search_solr: []
 
-stomp: []
-
 web_socket: []
 
 xpath: []
@@ -1358,7 +1541,7 @@ zato_cache_builtin:
 
   - cache_id: 2
     cache_type: builtin
-    current_size: 1
+    current_size: 0
     extend_expiry_on_get: true
     extend_expiry_on_set: true
     id: 2
@@ -1427,6 +1610,21 @@ zato_cache_builtin:
     max_item_size: 1000
     max_size: 10000
     name: rates
+    opaque1: {}
+    persistent_storage: no-persistent-storage
+    sync_method: in-background
+
+  - cache_id: 7
+    cache_type: builtin
+    current_size: 0
+    extend_expiry_on_get: true
+    extend_expiry_on_set: true
+    id: 7
+    is_active: true
+    is_default: false
+    max_item_size: 1000
+    max_size: 10000
+    name: availability
     opaque1: {}
     persistent_storage: no-persistent-storage
     sync_method: in-background

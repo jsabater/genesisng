@@ -2,9 +2,10 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
-from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
+from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, BAD_REQUEST
 from zato.server.service import Service
-from zato.server.service import Integer, Date, DateTime, ListOfDicts, List
+from zato.server.service import Integer, Date, DateTime, ListOfDicts
+from zato.server.service import Dict, List, AsIs
 from genesisng.schema.guest import Guest
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
@@ -178,7 +179,7 @@ class Create(Service):
                 session.commit()
 
                 # Save the record in the cache
-                cache_key = 'id-%s' % result.id
+                cache_key = 'id:%s' % result.id
                 cache = self.cache.get_cache('builtin', 'guests')
                 result = result.asdict()
                 cache.set(cache_key, result)
@@ -187,7 +188,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = result
                 url = self.user_config.genesisng.location.guests
-                self.response.headers['Location'] = url.format(id=result.id)
+                self.response.headers['Location'] = url.format(id=result['id'])
                 self.response.headers['Cache-Control'] = 'no-cache'
 
             except IntegrityError:
@@ -243,7 +244,7 @@ class Delete(Service):
                 self.response.headers['Cache-Control'] = 'no-cache'
 
                 # Invalidate the cache
-                cache_key = 'id-%s' % id_
+                cache_key = 'id:%s' % id_
                 cache = self.cache.get_cache('builtin', 'guests')
                 cache.delete(cache_key)
 
@@ -365,7 +366,7 @@ class Update(Service):
                     session.commit()
 
                     # Save the record in the cache
-                    cache_key = 'id-%s' % result.id
+                    cache_key = 'id:%s' % result.id
                     cache = self.cache.get_cache('builtin', 'guests')
                     cache_data = cache.set(
                         cache_key, result.asdict(), details=True)
@@ -384,6 +385,164 @@ class Update(Service):
                 self.response.headers['Cache-Control'] = 'no-cache'
                 # TODO: Return well-formed error response
                 # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
+
+
+class Upsert(Service):
+    """
+    Service class to insert or update a guest in the system.
+
+    Channel ``/genesisng/guests/upsert
+
+    Uses `SimpleIO`_.
+
+    If there was an existing user but it was deleted, it is restored.
+
+    Stores the record in the ``guests`` cache. Returns a ``Cache-Control``
+    header.
+
+    Returns ``OK`` upon successful creation or update, or ``CONFLICT``
+    otherwise.
+    """
+
+    class SimpleIO:
+        input_required = ('name', 'surname', 'email')
+        input_optional = ('gender', 'passport', Date('birthdate'), 'address1',
+                          'address2', 'locality', 'postcode', 'province',
+                          'country', 'home_phone', 'mobile_phone',
+                          AsIs('session'))
+        output_optional = ('id', 'name', 'surname', 'gender', 'email',
+                           'passport', Date('birthdate'), 'address1',
+                           'address2', 'locality', 'postcode', 'province',
+                           'country', 'home_phone', 'mobile_phone',
+                           Dict('error'))
+        skip_empty_keys = True
+
+    def handle(self):
+        """
+        Service handler.
+
+        :param name: The first name of the guest.
+        :type name: str
+        :param surname: The last name of the guest.
+        :type surname: str
+        :param gender: The gender of the guest.
+        :type gender: enum
+        :param email: The electronic mail address of the guest.
+        :type email: str
+        :param passport: The passport number, tax id or similar identification
+            number.
+        :type passport: str
+        :param address1: The postal address of the guest.
+        :type address1: str
+        :param address2: Additional information of the postal address.
+        :type address2: str
+        :param locality: The city, town or similar.
+        :type locality: str
+        :param postcode: The postal code.
+        :type postcode: str
+        :param province: The province, county, state or similar.
+        :type province: str
+        :param home_phone: The home phone number.
+        :type home_phone: str
+        :param mobile_phone: The mobile phone number.
+        :type mobile_phone: str
+        :param session: A live session (transaction) to be reused.
+        :type session: :class:`~sqlalchemy.orm.session.Session`
+
+        :returns: All attributes of a :class:`~genesisng.schema.guest.Guest`
+            model class.
+        :rtype: dict
+        """
+
+        # TODO: Use Cerberus to validate input?
+        # http://docs.python-cerberus.org/en/stable/
+        conn = self.user_config.genesisng.database.connection
+        p = self.request.input
+
+        try:
+            if p.birthdate:
+                datetime.strptime(p.birthdate, '%Y-%m-%d').date()
+        except ValueError:
+            self.response.status_code = BAD_REQUEST
+            msg = 'Wrong birthdate format.'
+            self.response.payload = {'error': {'message': msg}}
+            return
+
+        params = {
+            'name': p.name,
+            'surname': p.surname,
+            'gender': p.gender,
+            'email': p.email,
+            'passport': p.passport,
+            'birthdate': p.birthdate,
+            'address1': p.address1,
+            'address2': p.address2,
+            'locality': p.locality,
+            'postcode': p.postcode,
+            'province': p.province,
+            'country': p.country,
+            'home_phone': p.home_phone,
+            'mobile_phone': p.mobile_phone,
+            'deleted': None
+        }
+
+        # Remove empty strings from params
+        for k in params.keys():
+            if params[k] == '':
+                del(params[k])
+
+        # Reuse the session if any has been provided
+        if self.request.input.session:
+            session = self.request.input.session
+        else:
+            session = self.outgoing.sql.get(conn).session()
+
+        # INSERT .. ON CONFLICT DO UPDATE is not well supported by the
+        # current version of SQLAlchemy (1.3), so we do it manually.
+        result = session.query(Guest).\
+            filter(Guest.email == p.email).one_or_none()
+
+        try:
+            if result:
+                # Update the record
+                result.fromdict(params)
+            else:
+                # Add a new record
+                result = Guest().fromdict(params)
+                session.add(result)
+
+            # Flush if we are reusing the session, otherwise commit
+            if self.request.input.session:
+                session.flush()
+            else:
+                session.commit()
+
+            # Save the record in the cache only if the session was new
+            if not self.request.input.session:
+                cache_key = 'id:%s' % result.id
+                cache = self.cache.get_cache('builtin', 'guests')
+                cache.set(cache_key, result.asdict())
+
+            # Return the result
+            self.response.status_code = OK
+            self.response.payload = result
+            url = self.user_config.genesisng.location.guests
+            self.response.headers['Location'] = url.format(id=result.id)
+            self.response.headers['Cache-Control'] = 'no-cache'
+
+        except IntegrityError:
+            # Constraint prevents duplication of emails.
+            # Given the nature of this service, this situation should never be
+            # reached.
+            session.rollback()
+            self.response.status_code = CONFLICT
+            self.response.headers['Cache-Control'] = 'no-cache'
+            # TODO: Return well-formed error response
+            # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
+
+        # Close the session only if we created a new one
+        if not self.request.input.session:
+            session.close()
 
 
 class List(Service):
@@ -628,7 +787,7 @@ class List(Service):
                     cache = self.cache.get_cache('builtin', 'guests')
                     for r in result:
                         # Items are already dictionaries.
-                        cache_key = 'id-%s' % r.id
+                        cache_key = 'id:%s' % r.id
                         cache.set(cache_key, r)
 
                 self.response.status_code = OK
@@ -695,7 +854,7 @@ class Bookings(Service):
             # Store the result in the cache
             # Result is already a dict
             cache = self.cache.get_cache('builtin', 'guests')
-            cache_key = 'id-%s' % guest['response']['id']
+            cache_key = 'id:%s' % guest['response']['id']
             cache.set(cache_key, guest['response'])
 
             # Get the list of bookings from the guest
@@ -717,7 +876,7 @@ class Bookings(Service):
 
                     # Store booking in the cache
                     # Result is already a dict
-                    cache_key = 'id-%s' % b['id']
+                    cache_key = 'id:%s' % b['id']
                     cache.set(cache_key, b)
 
             # Get room data from the list of saved rooms
@@ -737,7 +896,7 @@ class Bookings(Service):
 
                         # Store room in the cache
                         # Result is already a dict
-                        cache_key = 'id-%s' % r['id']
+                        cache_key = 'id:%s' % r['id']
                         cache.set(cache_key, r)
 
         # Return the dictionary with guest, bookings and rooms
@@ -801,7 +960,7 @@ class Restore(Service):
                 session.commit()
 
                 # Save the result in the cache, as dict
-                cache_key = 'id-%s' % id_
+                cache_key = 'id:%s' % id_
                 cache = self.cache.get_cache('builtin', 'guests')
                 result = result.asdict()
                 cache.set(cache_key, result)

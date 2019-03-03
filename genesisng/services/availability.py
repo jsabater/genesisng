@@ -57,7 +57,7 @@ class Search(Service):
         :type check_out: date
         :param rooms: A list of room ids to filter the results
         :type rooms: list
-        :param session: A live session (transaction) to be reused.
+        :param session: A live session (transaction) to be reused. Optional.
         :type session: :class:`~sqlalchemy.orm.session.Session`
 
         :returns: A sub-set of :class:`~genesisng.schema.room.Room` properties,
@@ -251,7 +251,7 @@ class Extras(Service):
         """
         Service handler.
 
-        :param session: A live session (transaction) to be reused.
+        :param session: A live session (transaction) to be reused. Optional.
         :type session: :class:`~sqlalchemy.orm.session.Session`
 
         :returns: All available extras, each including all attributes of a
@@ -327,14 +327,15 @@ class Confirm(Service):
     Creates the guest, or updates an existing one if the email already exists,
     and a booking.
 
-    Publishes a message to the ``/genesisng/bookings/new`` topic name.
+    Publishes a message to the ``/genesisng/bookings`` topic name.
 
     Invalidates the affected portion of the ``availability`` cache collection,
     if possible, or the whole collection otherwise.
 
     Returns ``CREATED`` if the new reservation was successfully created and the
-    associated client was successfully created or updated, or ``BAD_REQUEST``
-    if the reservation could not be made.
+    associated client was successfully created or updated, ``BAD_REQUEST`` if
+    an issue was found with the input parameters and ``CONFLICT`` if the
+    reservation could not be made due to lack of availability.
     """
 
     class SimpleIO(object):
@@ -586,7 +587,7 @@ class Confirm(Service):
 
             if result:
 
-                # Invalite the ``availability`` cache.
+                # Invalidate the ``availability`` cache.
                 # TODO: Invalidate the affected portion only (i.e. entries
                 # whose dates overlap for the same room id.
                 self.logger.debug('Clearing availability cache')

@@ -5,11 +5,12 @@ from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, FORBIDDEN
 from httplib import BAD_REQUEST
 from zato.server.service import Service
-from zato.server.service import Integer, Float, Date, DateTime, Dict, List
+from zato.server.service import Integer, Float, Date, DateTime
+from zato.server.service import Dict, List, AsIs
 from genesisng.schema.booking import Booking, generate_pin
 from sqlalchemy import and_, or_, func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.dialects.postgresql import UUID
+from uuid import UUID
 from datetime import datetime
 
 
@@ -218,7 +219,7 @@ class Create(Service):
                           Float('total_price'))
         input_optional = (DateTime('checked_in'), DateTime('checked_out'),
                           DateTime('cancelled'), 'status', 'meal_plan',
-                          Dict('extras'), 'uuid')
+                          Dict('extras'), 'uuid', AsIs('session'))
         output_optional = ('id', 'id_guest', 'id_room', DateTime('reserved'),
                            'guests', Date('check_in'), Date('check_out'),
                            'base_price', 'taxes_percentage', 'taxes_value',
@@ -290,6 +291,20 @@ class Create(Service):
         conn = self.user_config.genesisng.database.connection
         p = self.request.input
 
+        # TODO: Sanitize more input parameters
+        try:
+            datetime.strptime(p.check_in, '%Y-%m-%d').date()
+            datetime.strptime(p.check_out, '%Y-%m-%d').date()
+        except ValueError:
+            self.response.status_code = BAD_REQUEST
+            msg = 'Wrong check-in or check-out date format.'
+            self.response.payload = {
+                'error': {
+                    'message': msg
+                }
+            }
+            return
+
         # Check UUID string and convert it into an actual UUID
         # UUID is optional. If not passed, one will be created.
         if p.uuid:
@@ -307,50 +322,72 @@ class Create(Service):
         else:
             uuid = None
 
-        result = Booking(
-            id_guest=p.id_guest,
-            id_room=p.id_room,
-            guests=p.guests,
-            check_in=p.check_in,
-            check_out=p.check_out,
-            base_price=p.base_price,
-            taxes_percentage=p.taxes_percentage,
-            taxes_value=p.taxes_value,
-            total_price=p.total_price,
-            checked_in=p.get('checked_in', None),
-            checked_out=p.get('checked_out', None),
-            cancelled=p.get('cancelled', None),
-            status=p.get('status', 'New'),
-            meal_plan=p.get('meal_plan', 'BedAndBreakfast'),
-            extras=p.get('extras', {}),
-            uuid=uuid)
+        params = {
+            'id_guest': p.id_guest,
+            'id_room': p.id_room,
+            'guests': p.guests,
+            'check_in': p.check_in,
+            'check_out': p.check_out,
+            'base_price': p.base_price,
+            'taxes_percentage': p.taxes_percentage,
+            'taxes_value': p.taxes_value,
+            'total_price': p.total_price,
+            'checked_in': p.checked_in,
+            'checked_out': p.checked_out,
+            'cancelled': p.cancelled,
+            'status': p.status,
+            'meal_plan': p.meal_plan,
+            'extras': p.extras,
+            'uuid': uuid
+        }
 
-        with closing(self.outgoing.sql.get(conn).session()) as session:
-            try:
-                session.add(result)
+        # Remove empty strings from params
+        for k in params.keys():
+            if params[k] == '':
+                del(params[k])
+
+        result = Booking().fromdict(params)
+
+        # Reuse the session if any has been provided
+        if self.request.input.session:
+            session = self.request.input.session
+        else:
+            session = self.outgoing.sql.get(conn).session()
+
+        try:
+            session.add(result)
+
+            # Flush if we are reusing the session, otherwise commit
+            if self.request.input.session:
+                session.flush()
+            else:
                 session.commit()
 
-                # Save the record in the cache
-                cache_key = 'id:%s|locator:%s' % (result.id, result.locator)
-                cache = self.cache.get_cache('builtin', 'bookings')
-                result = result.asdict()
-                cache.set(cache_key, result)
+            # Save the record in the cache
+            cache_key = 'id:%s|locator:%s' % (result.id, result.locator)
+            cache = self.cache.get_cache('builtin', 'bookings')
+            result = result.asdict()
+            cache.set(cache_key, result)
 
-                self.response.status_code = CREATED
-                self.response.payload = result
-                url = self.user_config.genesisng.location.bookings
-                self.response.headers['Location'] = url.format(id=result.id)
-                self.response.headers['Cache-Control'] = 'no-cache'
+            self.response.status_code = CREATED
+            self.response.payload = result
+            url = self.user_config.genesisng.location.bookings
+            self.response.headers['Location'] = url.format(id=result['id'])
+            self.response.headers['Cache-Control'] = 'no-cache'
 
-            except IntegrityError:
-                # Constraints prevent duplication of bookings via id_guest,
-                # id_room and check_in attributes. Also checks that the
-                # check-in date is before the check-out date.
-                session.rollback()
-                self.response.status_code = CONFLICT
-                self.response.headers['Cache-Control'] = 'no-cache'
-                # TODO: Return well-formed error response
-                # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
+        except IntegrityError:
+            # Constraints prevent duplication of bookings via id_guest,
+            # id_room and check_in attributes. Also checks that the
+            # check-in date is before the check-out date.
+            session.rollback()
+            self.response.status_code = CONFLICT
+            self.response.headers['Cache-Control'] = 'no-cache'
+            # TODO: Return well-formed error response
+            # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
+
+        # Close the session only if we created a new one
+        if not self.request.input.session:
+            session.close()
 
 
 class Cancel(Service):

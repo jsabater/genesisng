@@ -372,7 +372,7 @@ class Update(Service):
                         cache_key, result.asdict(), details=True)
 
                     self.response.status_code = OK
-                    self.response.payload = cache_data.value
+                    self.response.payload = result
                     self.response.headers['Cache-Control'] = 'no-cache'
                 else:
                     self.response.status_code = NOT_FOUND
@@ -391,7 +391,7 @@ class Upsert(Service):
     """
     Service class to insert or update a guest in the system.
 
-    Channel ``/genesisng/guests/upsert
+    Channel ``/genesisng/guests/upsert``.
 
     Uses `SimpleIO`_.
 

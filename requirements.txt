@@ -2,6 +2,7 @@ bcrypt
 configparser
 enum34
 hashids
+nanoid
 passlib
 psycopg2
 psycopg2-binary

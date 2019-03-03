@@ -42,3 +42,9 @@ The booking module
 .. automodule:: genesisng.schema.booking
    :members:
 
+The extras module
+------------------
+
+.. automodule:: genesisng.schema.extra
+   :members:
+

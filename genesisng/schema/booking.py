@@ -2,17 +2,16 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 import enum
-from uuid import uuid4
 from .base import Base
-from sqlalchemy import Column, Integer, Float, String, Date, DateTime
+from sqlalchemy import Column, Integer, Float, String, Date, DateTime, JSON
 from sqlalchemy import func
 from sqlalchemy import UniqueConstraint, CheckConstraint, ForeignKey, Enum
-from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
-from hashids import Hashids
-import random
+from nanoid import generate
+from random import randint
+from datetime import datetime
 
 
 class BookingStatus(str, enum.Enum):
@@ -59,18 +58,18 @@ class BookingMealPlan(str, enum.Enum):
 
 
 def generate_locator(context):
-    """Generates a lowercased 6-character hashed value for the locator attribute.
-    """
-    p = context.current_parameters
-    hashids = Hashids(min_length=6, salt=p.get('guests'),
-                      alphabet='0123456789abcdefghijklmnopqrstuvwxyz')
-    return hashids.encode(p.get('id'))
+    """Generates a lowercased 6-character hashed value for the locator
+    attribute using the Nano ID library. Locators may contain uppercase letters
+    or numbers only."""
+
+    return generate('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6)
 
 
 def generate_pin(context):
     """Generates a 4-digit Personal Identification Number (PIN) for the pin
     attribute, as a string."""
-    return '%04d' % random.randint(0, 9999)
+
+    return '%04d' % randint(0, 9999)
 
 
 class Booking(Base):
@@ -120,7 +119,8 @@ class Booking(Base):
     """Guest id. Foreign key."""
     id_room = Column(Integer, ForeignKey('room.id'))
     """Room id. Foreign key."""
-    reserved = Column(DateTime, nullable=False, server_default=func.now())
+    reserved = Column(DateTime, nullable=False, default=datetime.now,
+                      server_default=func.now())
     """Date and time when the reservation was placed. Defaults to now."""
     guests = Column(Integer, nullable=False, default=1)
     """The number of guests in the reservation. Defaults to 1."""
@@ -146,9 +146,9 @@ class Booking(Base):
     total_price = Column(Float, nullable=False, default=0)
     """The total price of the booking, calculated by the availability engine
     and saved here upon creation. Defaults to 0."""
-    locator = Column(String(6), nullable=False, default=generate_locator,
-                     index=True, unique=True)
-    """Unique locator of the reservation."""
+    locator = Column(String(6), nullable=False, index=True, unique=True,
+                     default=generate_locator)
+    """Unique locator of the reservation. Generated through a trigger."""
     pin = Column(String(4), nullable=False, default=generate_pin)
     """Personal Identification Number (PIN) for the reservation, used to
     access the client area."""
@@ -158,13 +158,13 @@ class Booking(Base):
     meal_plan = Column(Enum(BookingMealPlan), nullable=False, index=True,
                        default='BedAndBreakfast')
     """Meal plan included in the reservation. Defaults to BedAndBreakfast."""
-    extras = Column(HSTORE, nullable=False, default={})
+    extras = Column(JSON, nullable=False, default=lambda: {})
     """Additional services included in the reservation, taken from the values
     in the :class:`~genesisng.schema.extra.Extra` model class and stored as a
-    key/pair JSON document. The column defaults to an empty dictionary instead
+    JSON document. The column defaults to an empty dictionary instead
     of None to prevent newly added values to be swallowed without error."""
     uuid = Column(UUID(as_uuid=True), nullable=False, index=True, unique=True,
-                  default=uuid4,
+                  server_default=func.uuid_generate_v4(),
                   comment='Unique code used to detect duplicates')
     """Universally Unique IDentifier of the reservation. Used to prevent
     double-booking by mistake."""
@@ -185,5 +185,5 @@ class Booking(Base):
 
     def __repr__(self):
         """String representation of the object."""
-        return "<Booking(id='%s', nights='%s', guests='%s', check_in='%s', check_out='%s')>" % (
-            self.id, self.nights, self.guests, self.check_in, self.check_out)
+        return "<Booking(id='%s', guests='%s', check_in='%s', check_out='%s')>" % (
+            self.id, self.guests, self.check_in, self.check_out)

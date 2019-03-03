@@ -6,15 +6,22 @@ from sqlalchemy import Column, Integer, Float, String, DateTime, func
 from sqlalchemy import UniqueConstraint, CheckConstraint
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.dialects import postgresql
+from datetime import datetime
+from time import mktime
 from hashids import Hashids
 
 
 def generate_code(context):
-    """Generates a lowercased 6-letter hashed value for the code attribute."""
-    # hashids = Hashids(salt=context.current_parameters.get('accommodates'))
-    hashids = Hashids(min_length=6, alphabet='abcdefghijklmnopqrstuvwxyz')
-    p = context.current_parameters
-    return hashids.encode(p.get('id'), p.get('floor_no'), p.get('room_no'))
+    """Generates a lowercased 6-letter hashed value for the code attribute
+    using the Hashids library."""
+
+    # p = context.get_current_parameters()
+    hashids = Hashids(min_length=6, salt='Evelyn Salt')
+    dt = datetime.now().timetuple()
+    ts = mktime(dt)
+    # Python 3
+    # ts = datetime.now().timestamp()
+    return hashids.encode(int(ts))
 
 
 class Room(Base):
@@ -63,12 +70,17 @@ class Room(Base):
     supplement = Column(Float, nullable=False, default=0)
     """An amount to be added to the total price per day based on whatever
     random criteria the owner of the hotel wishes to use. Defaults to 0."""
-    code = Column(String(6), nullable=False, default=generate_code,
+    code = Column(String, nullable=False, default=generate_code,
                   unique=True, comment='Unique code used to link to images')
     """A unique code used to build the URL linking to the static content
-    associated with this room."""
+    associated with this room. Generated through a trigger."""
+    created = Column(DateTime, default=datetime.now, server_default=func.now())
+    """Date and time when the room was created. Defaults to now."""
+    last_updated = Column(DateTime, default=None, onupdate=datetime.now)
+    """Date and time of the last update of the record. Defaults to None on
+    insert, to now on update."""
     deleted = Column(DateTime, index=True, default=None)
-    """Timestamp of the deletion of the record. Defaults to None."""
+    """Date and time of the deletion of the record. Defaults to None."""
 
     @hybrid_property
     def accommodates(self):
@@ -88,7 +100,7 @@ class Room(Base):
 
     @number.expression
     def number(cls):
-        return (func.cast(cls.floor_no, String) +
+        return (func.cast(cls.floor_no, postgresql.TEXT) +
                 func.lpad(func.cast(cls.room_no, postgresql.TEXT), 2, '0'))
 
     def __repr__(self):

@@ -3,7 +3,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
-from zato.server.service import Service, Integer, Float, List
+from zato.server.service import Service, Integer, Float, List, AsIs
 from genesisng.schema.room import Room
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
@@ -27,6 +27,7 @@ class Get(Service):
 
     class SimpleIO:
         input_required = (Integer('id'))
+        input_optional = (AsIs('session'))
         output_optional = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
                            'supplement', 'code', 'name', 'accommodates',
                            'number')
@@ -38,6 +39,8 @@ class Get(Service):
 
         :param id: The id of the room.
         :type id: int
+        :param session: A live session (transaction) to be reused.
+        :type session: :class:`~sqlalchemy.orm.session.Session`
 
         :returns: All attributes of a :class:`~genesisng.schema.room.Room`
             model class, including the hybrid properties.
@@ -61,35 +64,44 @@ class Get(Service):
             self.response.payload = cache_data.value
             return
 
+        # Reuse the session if any has been provided
+        if self.request.input.session:
+            session = self.request.input.session
+        else:
+            session = self.outgoing.sql.get(conn).session()
+
         # Otherwise, retrieve the data
-        with closing(self.outgoing.sql.get(conn).session()) as session:
-            result = session.query(Room).\
-                filter(and_(Room.id == id_, Room.deleted.is_(None))).\
-                one_or_none()
+        result = session.query(Room).\
+            filter(and_(Room.id == id_, Room.deleted.is_(None))).\
+            one_or_none()
 
-            if result:
+        if result:
 
-                # Save the record in the cache
-                cache_data = cache.set(
-                    cache_key, result.asdict(), details=True)
+            # Save the record in the cache
+            cache_data = cache.set(
+                cache_key, result.asdict(), details=True)
 
-                # Set cache headers in response
-                if cache_data:
-                    self.response.headers['Cache-Control'] = cache_control
-                    self.response.headers['Last-Modified'] = cache_data.\
-                        last_write_http
-                    self.response.headers['ETag'] = cache_data.hash
-                else:
-                    self.response.headers['Cache-Control'] = 'no-cache'
-
-                # Return the result
-                self.response.status_code = OK
-                self.response.headers['Content-Language'] = 'en'
-                self.response.payload = cache_data.value
+            # Set cache headers in response
+            if cache_data:
+                self.response.headers['Cache-Control'] = cache_control
+                self.response.headers['Last-Modified'] = cache_data.\
+                    last_write_http
+                self.response.headers['ETag'] = cache_data.hash
             else:
-                self.response.status_code = NOT_FOUND
                 self.response.headers['Cache-Control'] = 'no-cache'
-                self.response.headers['Content-Language'] = 'en'
+
+            # Return the result
+            self.response.status_code = OK
+            self.response.headers['Content-Language'] = 'en'
+            self.response.payload = cache_data.value
+        else:
+            self.response.status_code = NOT_FOUND
+            self.response.headers['Cache-Control'] = 'no-cache'
+            self.response.headers['Content-Language'] = 'en'
+
+        # Close the session only if we created a new one
+        if not self.request.input.session:
+            session.close()
 
 
 class Create(Service):
@@ -167,7 +179,7 @@ class Create(Service):
                 self.response.status_code = CREATED
                 self.response.payload = result
                 url = self.user_config.genesisng.location.rooms
-                self.response.headers['Location'] = url.format(id=result.id)
+                self.response.headers['Location'] = url.format(id=result['id'])
                 self.response.headers['Cache-Control'] = 'no-cache'
 
             except IntegrityError:
@@ -226,6 +238,69 @@ class Delete(Service):
                 cache = self.cache.get_cache('builtin', 'rooms')
                 cache.delete(cache_key)
 
+            else:
+                self.response.status_code = NOT_FOUND
+                self.response.headers['Cache-Control'] = 'no-cache'
+
+
+class Restore(Service):
+    """
+    Service class to restore a deleted room.
+
+    Channel ``/genesisng/rooms/{id}/restore``.
+
+    Uses `SimpleIO`_.
+
+    Sets the ``deleted`` field to None if, and only if, the room exists and it
+    had been previously marked as deleted.
+
+    Stores the record in the ``rooms`` cache. Returns a ``Cache-Control``
+    header.
+
+    Returns ``OK`` upon successful restoration, or ``NOT_FOUND`` otherwise.
+    """
+
+    class SimpleIO:
+        input_required = (Integer('id'))
+        output_optional = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
+                           'supplement', 'code', 'name', 'accommodates',
+                           'number')
+        skip_empty_keys = True
+
+    def handle(self):
+        """
+        Service handler.
+
+        :param id: The id of the room.
+        :type id: int
+
+        :returns: All attributes of a :class:`~genesisng.schema.room.Room`
+            model class.
+        :rtype: dict
+        """
+
+        conn = self.user_config.genesisng.database.connection
+        id_ = self.request.input.id
+
+        with closing(self.outgoing.sql.get(conn).session()) as session:
+            result = session.query(Room).\
+                filter(and_(Room.id == id_, Room.deleted.isnot(None))).\
+                one_or_none()
+
+            if result:
+                # Update dictionary key
+                result.deleted = None
+                session.commit()
+
+                # Save the result in the cache, as dict
+                cache_key = 'id:%s' % id_
+                cache = self.cache.get_cache('builtin', 'rooms')
+                result = result.asdict()
+                cache.set(cache_key, result)
+
+                self.response.status_code = OK
+                self.response.payload = result
+                self.response.headers['Cache-Control'] = 'no-cache'
             else:
                 self.response.status_code = NOT_FOUND
                 self.response.headers['Cache-Control'] = 'no-cache'

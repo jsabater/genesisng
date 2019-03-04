@@ -1,3 +1,19 @@
+-- Delete all records,
+DELETE FROM extra;
+DELETE FROM booking;
+DELETE FROM rate;
+DELETE FROM room;
+DELETE FROM guest;
+DELETE FROM login;
+
+-- Restart all sequences
+ALTER SEQUENCE login_id_seq RESTART;
+ALTER SEQUENCE guest_id_seq RESTART;
+ALTER SEQUENCE room_id_seq RESTART;
+ALTER SEQUENCE rate_id_seq RESTART;
+ALTER SEQUENCE booking_id_seq RESTART;
+ALTER SEQUENCE extra_id_seq RESTART;
+
 -- Users
 -- Note: crypt('123456', gen_salt('bf')) = '$2a$06$vjdM.QyjCobN4UbsJQg0e.kUiGQEtk18t.tfbt03L3zZ74ZQ/4O1.'
 INSERT INTO login (username, password, name, surname, email, is_admin)

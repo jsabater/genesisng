@@ -1278,7 +1278,7 @@ channel_plain_http:
     match_slash: true
     merge_url_params_req: true
     method: GET
-    name: /genesisng/availability/extras
+    name: /genesisng/extras/list
     params_pri: channel-params-over-msg
     ping_method: HEAD
     pool_size: 20
@@ -1289,15 +1289,15 @@ channel_plain_http:
     security_id:
     security_name:
     serialization_type: string
-    service: availability.extras
-    service_id: 647
-    service_name: availability.extras
+    service: extra.list
+    service_id: 651
+    service_name: extra.list
     soap_action:
     soap_version:
     timeout: 10
     transport: plain_http
     url_params_pri: qs-over-path
-    url_path: /genesisng/availability/extras
+    url_path: /genesisng/extras/list
 
   - cache_expiry: 0
     cache_id:
@@ -1625,6 +1625,21 @@ zato_cache_builtin:
     max_item_size: 1000
     max_size: 10000
     name: availability
+    opaque1: {}
+    persistent_storage: no-persistent-storage
+    sync_method: in-background
+
+  - cache_id: 8
+    cache_type: builtin
+    current_size: 0
+    extend_expiry_on_get: true
+    extend_expiry_on_set: true
+    id: 8
+    is_active: true
+    is_default: false
+    max_item_size: 1000
+    max_size: 10000
+    name: extras
     opaque1: {}
     persistent_storage: no-persistent-storage
     sync_method: in-background

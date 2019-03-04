@@ -225,11 +225,9 @@ class Search(Service):
             self.response.payload[:] = lod
             self.response.status_code = OK
             self.environ.status_code = OK
-            self.logger.info('There was availability')
         else:
             self.response.status_code = NO_CONTENT
             self.environ.status_code = NO_CONTENT
-            self.logger.info('There was no availability')
             self.response.headers['Cache-Control'] = 'no-cache'
 
         # Close the session only if we created a new one
@@ -517,6 +515,9 @@ class Confirm(Service):
             if environ.status_code == OK:
                 result['room'] = room['response']
 
+            # Commit the transaction
+            session.commit()
+
             if result:
 
                 # Invalidate the availability cache.
@@ -524,17 +525,14 @@ class Confirm(Service):
                 # whose dates overlap for the same room id).
                 cache = self.cache.get_cache('builtin', 'availability')
                 if cache:
+                    self.logger.debug('Clearing availability cache')
                     cache.clear()
 
-                # Publish a message to ``/genesisng/bookings`` topic name.
-                # topic_name = '/genesisng/bookings'
-                # data = 'booking-new:%s' % booking['response'].id
-                # self.logger.info(
-                #     'Publishing message to queue %s for a new booking with id %s' % (
-                #         topic_name, booking['response'].id))
-                # msg_id = self.pubsub.publish(topic_name, data=data,
-                #                              has_gd=True, priority=5)
-                # self.logger.info('Message id is %s' % msg_id)
+                # Publish a message to ``/genesisng/bookings/new`` topic name.
+                topic_name = '/genesisng/bookings/new'
+                data = 'id:%s' % booking['response'].id
+                msg_id = self.pubsub.publish(topic_name, data=data,
+                                             has_gd=True, priority=5)
 
                 # Return the result
                 self.response.headers['Cache-Control'] = 'no-cache'
@@ -546,6 +544,3 @@ class Confirm(Service):
                 self.response.status_code = CONFLICT
                 msg = 'Could not confirm availability for the given parameters'
                 self.response.payload = {'error': {'message': msg}}
-
-            # Commit the transaction
-            session.commit()

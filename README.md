@@ -101,8 +101,8 @@ The following schema classes have been defined using SQLAlchemy's declarative
 model:
 
 * **login:** represents a user that can log into the system.
-* guest: represents a guest that makes a reservation and fatures an enumerate
-    type `Gender`, a hybrid property and a number of GIN indexes.
+* **guest:** represents a guest that makes a reservation and features an
+    enumerate type `Gender`, a hybrid property and a number of GIN indexes.
 * **room:** represents a room in the system and features the use of the `Hashids`
     library to generate a unique, public code for each room, two hybrid
     properties and a check constraint.
@@ -135,10 +135,10 @@ the timestamp of deletion on the `deleted` column.
 There are two types of services:
 
 * Tier-1. Services that work with one model class only in order to create,
-    delete, update, get or list records of such entity in the database.
-* Tier-2. Services that use tier-1 services to offer more complex
-    functionality and may pass on a session parameter to keep all SQL sentences
-    inside a single transaction.
+  delete, update, get or list records of such entity in the database.
+* Tier-2. Services that use tier-1 services to offer more complex functionality
+  and may pass on a session parameter to keep all SQL sentences inside a single
+  transaction.
 
 All services make use of the Cache API, using hand-crafted cache keys. Handling
 of cache entries in cache collections is done in every service following the
@@ -150,7 +150,7 @@ Some listings include a number of common features in REST API, such as:
 * Sorting, using a direction and a criteria.
 * Filtering, which allows multiple filters and operators.
 * Fields projection, which lets the developer choose which fields from the
-    model class are to be returned.
+  model class are to be returned.
 * Search, which are case insensitive and take just one term.
 
 ## Documentation

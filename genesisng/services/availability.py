@@ -336,6 +336,12 @@ class Confirm(Service):
     associated client was successfully created or updated, ``BAD_REQUEST`` if
     an issue was found with the input parameters and ``CONFLICT`` if the
     reservation could not be made due to lack of availability.
+
+    Invokes the services :class:`~genesisng.services.guest.Upsert`,
+    :class:`~genesisng.services.booking.Create`,
+    :class:`~genesisng.services.availability.Extras`,
+    :class:`~genesisng.services.availability.Search` and
+    :class:`~genesisng.services.room.Get` to retrieve the required data.
     """
 
     class SimpleIO(object):

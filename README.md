@@ -2,9 +2,9 @@
 
 A prototype application to demonstrate the many features of Zato. Roughly based
 upon the Java project [genesis](https://bitbucket.org/jsabater/genesis), it
-features a back-end for a boutique hotel management system. Many of its
-features are not supposed to make strict sense in the real world, but rather
-show how a functionality is meant to be used or its possibilities.
+features a services back-end for a boutique hotel management system. Many of
+its features are not supposed to make strict sense in the real world, but
+rather show how a functionality is meant to be used or its possibilities.
 
 ## Overview
 
@@ -15,7 +15,7 @@ The application is prepared to be deployed as a package through
 * `services`
 
 `schema` contains the database schema of the application. It's been tested with
-PostgreSQL version 9 and 10.
+PostgreSQL version 9.x, 10 and 11.
 
 `services` contains the Zato services to be hot-deployed.
 
@@ -26,9 +26,14 @@ This is the software used:
 * [Zato 3.0](http://zato.io/)
 * [PostgreSQL 9.x and above](http://www.postgresql.org/)
 
-These are the libraries used:
+These are the most relevant libraries used:
 
-* [SQLAlchemy](http://www.sqlalchemy.org/)
+* [SQLAlchemy](http://www.sqlalchemy.org/) as Object-Relation Mapper (ORM) and
+    [Dictalchemy](https://pypi.org/project/dictalchemy/) to expand its features.
+* [Hashids](http://www.hashids.org/) to create short ids from integers.
+* [Nano ID](https://pypi.org/project/nanoid/) to create random short ids.
+* [Sphinx](https://pypi.org/project/Sphinx/) to create the documentation.
+* [Passlib](https://pypi.org/project/passlib/) to safely store passwords.
 
 ### PostgreSQL configuration
 
@@ -56,7 +61,7 @@ Restart *PostgreSQL* for the changes to take effect.
 As `postgres` user, add the `HSTORE`, `uuid-ossp`, `PG_TRGM`, `pgcrypto` and
 [`pg_hashids`](https://github.com/iCyberon/pg_hashids) extensions to the
 `template1` database, then create the `genesisng` user and database. The
-`hashids` extension is only necessary if you plan on using the test data.
+`hashids` extension is only necessary if you plan on using the test data and must be downloaded, compiled from sources and installed manually.
 
 ```
 #!bash
@@ -92,4 +97,30 @@ Use this command to connect to the database from the console:
 
 ## Current features
 
-CRUD on login, guest, room and rate. Get all bookings from guest.
+The application currently has two main packages: schema and services. The
+following schema classes have been defined using SQLAlchemy's declarative
+model:
+
+* login:
+* guest
+* room
+* rate
+* booking
+* extra
+
+The application also has a number of services, spread among the following
+modules:
+
+* login
+* guest
+* room
+* rate
+* booking
+* availability
+
+There are two types of services:
+
+* Tier-1. Services that work with one model class only in order to create,
+    delete, update, get or list records of such entity in the database.
+* Tier-2. Services that use tier-1 services to offer more complex
+    functionality.

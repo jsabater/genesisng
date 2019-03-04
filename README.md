@@ -100,32 +100,34 @@ Use this command to connect to the database from the console:
 The following schema classes have been defined using SQLAlchemy's declarative
 model:
 
-* login: represents a user that can log into the system.
+* **login:** represents a user that can log into the system.
 * guest: represents a guest that makes a reservation and fatures an enumerate
     type `Gender`, a hybrid property and a number of GIN indexes.
-* room: represents a room in the system and features the use of the `Hashids`
+* **room:** represents a room in the system and features the use of the `Hashids`
     library to generate a unique, public code for each room, two hybrid
     properties and a check constraint.
-* rate: represents a pricing rate in the system and features an hybrid property
+* **rate:** represents a pricing rate in the system and features an hybrid property
     and an exclude constraint using date ranges.
-* booking: represents a booking in the system and features two enumerate types,
+* **booking:** represents a booking in the system and features two enumerate types,
     the use of the Nano ID library to generate a random, short, public locator,
     the use of the random library to create a Personal Identification Number
     (PIN), a check constraint, a hybrid property and the use of the UUID and
     JSON types.
-* extra: represents an additional service of a booking in the system, which are
+* **extra:** represents an additional service of a booking in the system, which are
     retrieved from this table but then stored as a JSON document inside the
     `extras` column of the `booking` model class.
 
 The application also has a number of services, spread among the following
 modules. The following list summarizes the services in each module:
 
-* login: get, validate, create, delete, update and list.
-* guest: get, create, delete, update, upsert, list, booking and restore.
-* room: get, create, delete, restore, update and list.
-* rate: get, create, delete, update and list.
-* booking: get, locate, create, cancel, delete, update, changepin, validate, list and restore.
-* availability: search, extras and confirm.
+* **login:** `get`, `validate`, `create`, `delete`, `update` and `list`.
+* **guest:** `get`, `create`, `delete`, `update` , `upsert`, `list`, `booking`
+    and `restore`.
+* **room:** `get`, `create`, `delete`, `restore`, `update` and `list`.
+* **rate:** `get`, `create`, `delete`, `update` and `list`.
+* **booking:** `get`, `locate`, `create`, `cancel`, `delete`, `update`,
+    `changepin`, `validate`, `list` and `restore`.
+* **availability:** `search`, `extras` and `confirm`.
 
 Logins and rates records are deleted. The rest are marked as deleted by setting
 the timestamp of deletion on the `deleted` column.

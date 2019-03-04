@@ -46,6 +46,7 @@ class List(Service):
         cache_data = cache.get(cache_key, details=True)
         if cache_data:
             self.response.status_code = OK
+            self.environ.status_code = OK
             self.response.headers['Cache-Control'] = cache_control
             self.response.headers['Last-Modified'] = cache_data.last_write_http
             self.response.headers['ETag'] = cache_data.hash
@@ -82,10 +83,12 @@ class List(Service):
 
             # Return the result
             self.response.status_code = OK
+            self.environ.status_code = OK
             self.response.payload[:] = lod
             self.response.headers['Content-Language'] = 'en'
         else:
             self.response.status_code = NO_CONTENT
+            self.environ.status_code = NO_CONTENT
             self.response.headers['Cache-Control'] = 'no-cache'
             self.response.headers['Content-Language'] = 'en'
 

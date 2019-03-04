@@ -80,7 +80,9 @@ class Search(Service):
         # Check dates
         if check_in >= check_out:
             self.response.status_code = BAD_REQUEST
+            self.environ.status_code = BAD_REQUEST
             msg = 'Check-in date must be at least 1 day before check-out date.'
+            self.environ.error_msg = msg
             self.response.payload = {'error': {'message': msg}}
             return
 
@@ -93,6 +95,8 @@ class Search(Service):
             rooms = []
 
         # Check whether a copy exists in the cache
+        # TODO: Use regexp to filter multiple entries by room number so that
+        # a greater number of cache entries can be of use.
         cache_key = 'check_in:%s|check_out:%s|guests:%s|rooms:%s' % (
             check_in.strftime('%Y-%m-%d'), check_out.strftime('%Y-%m-%d'),
             guests, str(rooms))
@@ -100,11 +104,13 @@ class Search(Service):
         cache_data = cache.get(cache_key, details=True)
         if cache_data:
             self.response.status_code = OK
+            self.environ.status_code = OK
             self.response.headers['Cache-Control'] = cache_control
             self.response.headers['Last-Modified'] = cache_data.last_write_http
             self.response.headers['ETag'] = cache_data.hash
             self.response.headers['Content-Language'] = 'en'
             self.response.payload[:] = cache_data.value
+            self.logger.info('Returning availability from cache.')
             return
 
         # Reuse the session if any has been provided
@@ -218,12 +224,16 @@ class Search(Service):
             # Return the result
             self.response.payload[:] = lod
             self.response.status_code = OK
+            self.environ.status_code = OK
+            self.logger.info('There was availability')
         else:
             self.response.status_code = NO_CONTENT
+            self.environ.status_code = NO_CONTENT
+            self.logger.info('There was no availability')
             self.response.headers['Cache-Control'] = 'no-cache'
 
         # Close the session only if we created a new one
-        if not self.request.input.session:
+        if not self.environ.session:
             session.close()
 
 
@@ -398,14 +408,14 @@ class Confirm(Service):
         with closing(self.outgoing.sql.get(conn).session()) as session:
 
             # Environment variables to be passed when invoking other services
-            environ = Bunch(code=CONTINUE, session=session)
+            environ = Bunch(status_code=CONTINUE, session=session)
 
             # Prepare extras to be saved by turning a list of integers into a
             # dictionary with code, name, description and price.
             extras = {'list': []}
             if loe:
                 input_data = {}
-                all_extras = self.invoke('availability.extras', input_data,
+                all_extras = self.invoke('extra.list', input_data,
                                          environ=environ, as_bunch=True)
                 for extra in all_extras['response']:
                     if extra.id in loe:
@@ -417,7 +427,7 @@ class Confirm(Service):
                         })
 
             # Check for availability and get pricing information
-            environ.code = CONTINUE
+            environ.status_code = CONTINUE
             input_data = {
                 'check_in': p.check_in,
                 'check_out': p.check_out,
@@ -426,8 +436,7 @@ class Confirm(Service):
             }
             availability = self.invoke('availability.search', input_data,
                                        environ=environ, as_bunch=True)
-            # DEL: if availability['response']:
-            if environ.code == OK:
+            if environ.status_code == OK:
                 res = availability['response'][0]
                 price = res.price
                 taxes_percentage = res.taxes_percentage
@@ -444,7 +453,7 @@ class Confirm(Service):
             result = {}
 
             # Save the guest and add it to the result
-            environ.code = CONTINUE
+            environ.status_code = CONTINUE
             input_data = {
                 'name': p.name,
                 'surname': p.surname,
@@ -467,8 +476,7 @@ class Confirm(Service):
                     del (input_data[k])
             guest = self.invoke('guest.upsert', input_data, environ=environ,
                                 as_bunch=True)
-            # if guest['response']:
-            if environ.code == OK:
+            if environ.status_code == OK:
                 result['guest'] = guest['response']
             else:
                 self.response.status_code = CONFLICT
@@ -477,7 +485,7 @@ class Confirm(Service):
                 return
 
             # Save the booking and add it to the result
-            environ.code = CONTINUE
+            environ.status_code = CONTINUE
             input_data = {
                 'id_guest': guest['response'].id,
                 'id_room': p.id_room,
@@ -499,23 +507,21 @@ class Confirm(Service):
                     del (input_data[k])
             booking = self.invoke('booking.create', input_data,
                                   environ=environ, as_bunch=True)
-            # if booking['response']:
-            if environ.code == CREATED:
+            if environ.status_code == CREATED:
                 result['booking'] = booking['response']
 
             # Get room information and add it to the result
-            environ.code = CONTINUE
+            environ.status_code = CONTINUE
             input_data = {'id': p.id_room}
             room = self.invoke('room.get', input_data, environ=environ)
-            if room['response']:
+            if environ.status_code == OK:
                 result['room'] = room['response']
 
             if result:
 
-                # Invalidate the ``availability`` cache.
+                # Invalidate the availability cache.
                 # TODO: Invalidate the affected portion only (i.e. entries
-                # whose dates overlap for the same room id.
-                self.logger.debug('Clearing availability cache')
+                # whose dates overlap for the same room id).
                 cache = self.cache.get_cache('builtin', 'availability')
                 if cache:
                     cache.clear()

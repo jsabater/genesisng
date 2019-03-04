@@ -463,7 +463,9 @@ class Upsert(Service):
                 datetime.strptime(p.birthdate, '%Y-%m-%d').date()
         except ValueError:
             self.response.status_code = BAD_REQUEST
+            self.environ.status_code = BAD_REQUEST
             msg = 'Wrong birthdate format.'
+            self.environ.error_msg = msg
             self.response.payload = {'error': {'message': msg}}
             return
 
@@ -522,7 +524,7 @@ class Upsert(Service):
             cache.set(cache_key, result.asdict())
 
             # Return the result
-            self.environ.status = OK
+            self.environ.status_code = OK
             self.response.status_code = OK
             self.response.payload = result
             url = self.user_config.genesisng.location.guests
@@ -535,7 +537,7 @@ class Upsert(Service):
             # reached.
             session.rollback()
             self.response.status_code = CONFLICT
-            self.environ.status = CONFLICT
+            self.environ.status_code = CONFLICT
             self.response.headers['Cache-Control'] = 'no-cache'
             # TODO: Return well-formed error response
             # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948

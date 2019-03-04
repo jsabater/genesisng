@@ -299,7 +299,9 @@ class Create(Service):
             datetime.strptime(p.check_out, '%Y-%m-%d').date()
         except ValueError:
             self.response.status_code = BAD_REQUEST
+            self.environ.status_code = BAD_REQUEST
             msg = 'Wrong check-in or check-out date format'
+            self.environ.error_msg = msg
             self.response.payload = {'error': {'message': msg}}
             return
 
@@ -310,7 +312,9 @@ class Create(Service):
                 uuid = UUID(p.uuid, version=4)
             except ValueError:
                 self.response.status_code = BAD_REQUEST
+                self.environ.status_code = BAD_REQUEST
                 msg = 'Wrong UUID format'
+                self.environ.error_msg = msg
                 self.response.payload = {'error': {'message': msg}}
                 return
         else:
@@ -326,7 +330,9 @@ class Create(Service):
                         raise
             except Exception:
                 self.response.status_code = BAD_REQUEST
+                self.environ.status_code = BAD_REQUEST
                 msg = 'Wrong format in extras'
+                self.environ.error_msg = msg
                 self.response.payload = {'error': {'message': msg}}
                 return
 
@@ -378,6 +384,7 @@ class Create(Service):
             cache.set(cache_key, result)
 
             self.response.status_code = CREATED
+            self.environ.status_code = CREATED
             self.response.payload = result
             url = self.user_config.genesisng.location.bookings
             self.response.headers['Location'] = url.format(id=result['id'])
@@ -389,6 +396,7 @@ class Create(Service):
             # check-in date is before the check-out date.
             session.rollback()
             self.response.status_code = CONFLICT
+            self.environ.status_code = CONFLICT
             self.response.headers['Cache-Control'] = 'no-cache'
             # TODO: Return well-formed error response
             # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948

@@ -2,13 +2,12 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
-from httplib import OK, NO_CONTENT, BAD_REQUEST, CREATED, CONFLICT
+from httplib import OK, NO_CONTENT, BAD_REQUEST, CREATED, CONFLICT, CONTINUE
 from zato.server.service import Service
-from zato.server.service import Integer, Date, List, Dict, AsIs
+from zato.server.service import Integer, Date, List, Dict
 from genesisng.schema.room import Room
 from genesisng.schema.rate import Rate
 from genesisng.schema.booking import Booking
-from genesisng.schema.extra import Extra
 from sqlalchemy import func, tuple_, case, cast, any_
 from sqlalchemy import Integer as sqlInteger
 from sqlalchemy import Float as sqlFloat
@@ -16,6 +15,7 @@ from sqlalchemy import Date as sqlDate
 from uuid import UUID
 from datetime import datetime
 from math import ceil
+from bunch import Bunch
 
 
 class Search(Service):
@@ -33,12 +33,16 @@ class Search(Service):
     Returns ``OK`` if results have been found, ``NO_CONTENT`` if there is no
     availability or ``BAD_REQUEST`` if the check-in date is not before the
     check-out date and there is at least 1 day in between.
+
+    May receive a live session through the ``self.environ`` parameter, which is
+    to be reused in order to encapsulate the SQL sentences inside an active
+    transaction.
     """
 
     class SimpleIO(object):
         input_required = (Date('check_in'), Date('check_out'),
                           Integer('guests'))
-        input_optional = (List('rooms'), AsIs('session'))
+        input_optional = (List('rooms'))
         output_optional = ('id', 'number', 'name', 'sgl_beds', 'dbl_beds',
                            'accommodates', 'code', 'nights', 'price',
                            'taxes_percentage', 'taxes_value', 'total_price')
@@ -57,8 +61,6 @@ class Search(Service):
         :type check_out: date
         :param rooms: A list of room ids to filter the results
         :type rooms: list
-        :param session: A live session (transaction) to be reused. Optional.
-        :type session: :class:`~sqlalchemy.orm.session.Session`
 
         :returns: A sub-set of :class:`~genesisng.schema.room.Room` properties,
             the number of nights and the pricing details of the booking.
@@ -106,8 +108,8 @@ class Search(Service):
             return
 
         # Reuse the session if any has been provided
-        if self.request.input.session:
-            session = self.request.input.session
+        if self.environ.session:
+            session = self.environ.session
         else:
             session = self.outgoing.sql.get(conn).session()
 
@@ -219,97 +221,6 @@ class Search(Service):
         else:
             self.response.status_code = NO_CONTENT
             self.response.headers['Cache-Control'] = 'no-cache'
-
-        # Close the session only if we created a new one
-        if not self.request.input.session:
-            session.close()
-
-
-class Extras(Service):
-    """
-    Service class to get a list of available extras for a room.
-
-    Channel ``/genesisng/availability/extras``.
-
-    Uses `SimpleIO`_.
-
-    Stores the list of extras in the ``availability`` cache. Returns
-    ``Cache-Control``, ``Last-Modified`` and ``ETag`` headers. Returns a
-    ``Content-Language`` header.
-
-    Returns ``OK`` if results have been found, ``NO_CONTENT`` if there are no
-    available extras for the room.
-    """
-
-    class SimpleIO(object):
-        input_optional = (AsIs('session'))
-        output_optional = ('id', 'code', 'name', 'description', 'price')
-        skip_empty_keys = True
-        output_repeated = True
-
-    def handle(self):
-        """
-        Service handler.
-
-        :param session: A live session (transaction) to be reused. Optional.
-        :type session: :class:`~sqlalchemy.orm.session.Session`
-
-        :returns: All available extras, each including all attributes of a
-            :class:`~genesisng.schema.rate.Rate` model class.
-        :rtype: dict
-        """
-
-        conn = self.user_config.genesisng.database.connection
-        cache_control = self.user_config.genesisng.cache.default_cache_control
-
-        # Check whether a copy exists in the cache
-        cache_key = 'extras'
-        cache = self.cache.get_cache('builtin', 'availability')
-        cache_data = cache.get(cache_key, details=True)
-        if cache_data:
-            self.response.status_code = OK
-            self.response.headers['Cache-Control'] = cache_control
-            self.response.headers['Last-Modified'] = cache_data.last_write_http
-            self.response.headers['ETag'] = cache_data.hash
-            self.response.headers['Content-Language'] = 'en'
-            self.response.payload[:] = cache_data.value
-            return
-
-        # Reuse the session if any has been provided
-        if self.request.input.session:
-            session = self.request.input.session
-        else:
-            session = self.outgoing.sql.get(conn).session()
-
-        # Get the list of extras
-        result = session.query(Extra).filter(Extra.deleted.is_(None)).all()
-
-        if result:
-
-            # Transform the result (a list of Extra objects) into a list of
-            # dictionaries so that they can be stored in the cache.
-            lod = [r.asdict() for r in result]
-
-            # Save the record in the cache
-            cache_data = cache.set(cache_key, lod, details=True)
-
-            # Set cache headers in response
-            if cache_data:
-                self.response.headers['Cache-Control'] = cache_control
-                self.response.headers['Last-Modified'] = cache_data.\
-                    last_write_http
-                self.response.headers['ETag'] = cache_data.hash
-            else:
-                self.response.headers['Cache-Control'] = 'no-cache'
-
-            # Return the result
-            self.response.status_code = OK
-            self.response.payload[:] = lod
-            self.response.headers['Content-Language'] = 'en'
-        else:
-            self.response.status_code = NO_CONTENT
-            self.response.headers['Cache-Control'] = 'no-cache'
-            self.response.headers['Content-Language'] = 'en'
 
         # Close the session only if we created a new one
         if not self.request.input.session:
@@ -486,13 +397,16 @@ class Confirm(Service):
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
 
+            # Environment variables to be passed when invoking other services
+            environ = Bunch(code=CONTINUE, session=session)
+
             # Prepare extras to be saved by turning a list of integers into a
             # dictionary with code, name, description and price.
             extras = {'list': []}
             if loe:
-                input_data = {'session': session}
+                input_data = {}
                 all_extras = self.invoke('availability.extras', input_data,
-                                         as_bunch=True)
+                                         environ=environ, as_bunch=True)
                 for extra in all_extras['response']:
                     if extra.id in loe:
                         extras['list'].append({
@@ -503,16 +417,17 @@ class Confirm(Service):
                         })
 
             # Check for availability and get pricing information
+            environ.code = CONTINUE
             input_data = {
                 'check_in': p.check_in,
                 'check_out': p.check_out,
                 'guests': p.guests,
-                'rooms': [p.id_room],
-                'session': session
+                'rooms': [p.id_room]
             }
             availability = self.invoke('availability.search', input_data,
-                                       as_bunch=True)
-            if availability['response']:
+                                       environ=environ, as_bunch=True)
+            # DEL: if availability['response']:
+            if environ.code == OK:
                 res = availability['response'][0]
                 price = res.price
                 taxes_percentage = res.taxes_percentage
@@ -529,6 +444,7 @@ class Confirm(Service):
             result = {}
 
             # Save the guest and add it to the result
+            environ.code = CONTINUE
             input_data = {
                 'name': p.name,
                 'surname': p.surname,
@@ -543,15 +459,16 @@ class Confirm(Service):
                 'province': p.province,
                 'country': p.country,
                 'home_phone': p.home_phone,
-                'mobile_phone': p.mobile_phone,
-                'session': session
+                'mobile_phone': p.mobile_phone
             }
             # Remove empty strings from input data
             for k in input_data.keys():
                 if input_data[k] == '':
                     del (input_data[k])
-            guest = self.invoke('guest.upsert', input_data, as_bunch=True)
-            if guest['response']:
+            guest = self.invoke('guest.upsert', input_data, environ=environ,
+                                as_bunch=True)
+            # if guest['response']:
+            if environ.code == OK:
                 result['guest'] = guest['response']
             else:
                 self.response.status_code = CONFLICT
@@ -560,6 +477,7 @@ class Confirm(Service):
                 return
 
             # Save the booking and add it to the result
+            environ.code = CONTINUE
             input_data = {
                 'id_guest': guest['response'].id,
                 'id_room': p.id_room,
@@ -573,21 +491,22 @@ class Confirm(Service):
                 'status': p.status,
                 'meal_plan': p.meal_plan,
                 'extras': extras,
-                'uuid': uuid,
-                'session': session
+                'uuid': uuid
             }
             # Remove empty strings from input data
             for k in input_data.keys():
                 if input_data[k] == '':
                     del (input_data[k])
-            booking = self.invoke('booking.create', input_data, as_bunch=True)
-            if booking['response']:
+            booking = self.invoke('booking.create', input_data,
+                                  environ=environ, as_bunch=True)
+            # if booking['response']:
+            if environ.code == CREATED:
                 result['booking'] = booking['response']
-            self.logger.info('Booking response is: %s' % booking['response'])
 
             # Get room information and add it to the result
-            input_data = {'id': p.id_room, 'session': session}
-            room = self.invoke('room.get', input_data)
+            environ.code = CONTINUE
+            input_data = {'id': p.id_room}
+            room = self.invoke('room.get', input_data, environ=environ)
             if room['response']:
                 result['room'] = room['response']
 
@@ -598,17 +517,18 @@ class Confirm(Service):
                 # whose dates overlap for the same room id.
                 self.logger.debug('Clearing availability cache')
                 cache = self.cache.get_cache('builtin', 'availability')
-                cache.clear()
+                if cache:
+                    cache.clear()
 
                 # Publish a message to ``/genesisng/bookings`` topic name.
-                topic_name = '/genesisng/bookings'
-                data = 'booking-new:%s' % booking['response'].id
-                self.logger.info(
-                    'Publishing message to queue %s for a new booking with id %s' % (
-                        topic_name, booking['response'].id))
-                msg_id = self.pubsub.publish(topic_name, data=data,
-                                             has_gd=True, priority=5)
-                self.logger.info('Message id is %s' % msg_id)
+                # topic_name = '/genesisng/bookings'
+                # data = 'booking-new:%s' % booking['response'].id
+                # self.logger.info(
+                #     'Publishing message to queue %s for a new booking with id %s' % (
+                #         topic_name, booking['response'].id))
+                # msg_id = self.pubsub.publish(topic_name, data=data,
+                #                              has_gd=True, priority=5)
+                # self.logger.info('Message id is %s' % msg_id)
 
                 # Return the result
                 self.response.headers['Cache-Control'] = 'no-cache'

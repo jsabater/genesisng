@@ -277,8 +277,11 @@ class Create(Service):
             :class:`~genesisng.schema.booking.BookingMealPlan`. Optional.
             Default is ``BedAndBreakfast``.
         :type meal_plan: enum
-        :param extras: A dictionary with the additional services
-            the guest has hired for this reservation. Optional. Default is {}.
+        :param extras: A dictionary with the additional services the guest has
+            hired for this reservation. It will have just one key, named
+            'list', with a list of dicts as value. Each dict in the list will
+            have the following attributes: code, name, description and price.
+            Optional. Default is {}.
         :type extras: dict
 
         :returns: All attributes of a
@@ -291,18 +294,13 @@ class Create(Service):
         conn = self.user_config.genesisng.database.connection
         p = self.request.input
 
-        # TODO: Sanitize more input parameters
         try:
             datetime.strptime(p.check_in, '%Y-%m-%d').date()
             datetime.strptime(p.check_out, '%Y-%m-%d').date()
         except ValueError:
             self.response.status_code = BAD_REQUEST
-            msg = 'Wrong check-in or check-out date format.'
-            self.response.payload = {
-                'error': {
-                    'message': msg
-                }
-            }
+            msg = 'Wrong check-in or check-out date format'
+            self.response.payload = {'error': {'message': msg}}
             return
 
         # Check UUID string and convert it into an actual UUID
@@ -312,15 +310,25 @@ class Create(Service):
                 uuid = UUID(p.uuid, version=4)
             except ValueError:
                 self.response.status_code = BAD_REQUEST
-                msg = 'Wrong UUID format.'
-                self.response.payload = {
-                    'error': {
-                        'message': msg
-                    }
-                }
+                msg = 'Wrong UUID format'
+                self.response.payload = {'error': {'message': msg}}
                 return
         else:
             uuid = None
+
+        # Check the extras parameter has the correct format, i.e. a dictionary
+        # with a 'list' key whose value is a list of dictionaries, each with
+        # the keys 'code', 'name', 'description' and 'price'.
+        if p.extras:
+            try:
+                for e in p.extras['list']:
+                    if not {'code', 'name', 'description', 'price'} <= set(e):
+                        raise
+            except Exception:
+                self.response.status_code = BAD_REQUEST
+                msg = 'Wrong format in extras'
+                self.response.payload = {'error': {'message': msg}}
+                return
 
         params = {
             'id_guest': p.id_guest,
@@ -358,7 +366,7 @@ class Create(Service):
             session.add(result)
 
             # Flush if we are reusing the session, otherwise commit
-            if self.request.input.session:
+            if self.environ.session:
                 session.flush()
             else:
                 session.commit()
@@ -386,7 +394,7 @@ class Create(Service):
             # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
 
         # Close the session only if we created a new one
-        if not self.request.input.session:
+        if not self.environ.session:
             session.close()
 
 

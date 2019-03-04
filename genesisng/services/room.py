@@ -3,7 +3,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
-from zato.server.service import Service, Integer, Float, List, AsIs
+from zato.server.service import Service, Integer, Float, List
 from genesisng.schema.room import Room
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
@@ -27,7 +27,6 @@ class Get(Service):
 
     class SimpleIO:
         input_required = (Integer('id'))
-        input_optional = (AsIs('session'))
         output_optional = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
                            'supplement', 'code', 'name', 'accommodates',
                            'number')
@@ -65,9 +64,10 @@ class Get(Service):
             return
 
         # Reuse the session if any has been provided
-        if self.request.input.session:
-            session = self.request.input.session
+        if self.environ.session:
+            session = self.environ.session
         else:
+
             session = self.outgoing.sql.get(conn).session()
 
         # Otherwise, retrieve the data
@@ -100,7 +100,7 @@ class Get(Service):
             self.response.headers['Content-Language'] = 'en'
 
         # Close the session only if we created a new one
-        if not self.request.input.session:
+        if not self.environ.session:
             session.close()
 
 

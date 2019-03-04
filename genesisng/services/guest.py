@@ -5,7 +5,7 @@ from contextlib import closing
 from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, BAD_REQUEST
 from zato.server.service import Service
 from zato.server.service import Integer, Date, DateTime, ListOfDicts
-from zato.server.service import Dict, List, AsIs
+from zato.server.service import Dict, List
 from genesisng.schema.guest import Guest
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
@@ -408,8 +408,7 @@ class Upsert(Service):
         input_required = ('name', 'surname', 'email')
         input_optional = ('gender', 'passport', Date('birthdate'), 'address1',
                           'address2', 'locality', 'postcode', 'province',
-                          'country', 'home_phone', 'mobile_phone',
-                          AsIs('session'))
+                          'country', 'home_phone', 'mobile_phone')
         output_optional = ('id', 'name', 'surname', 'gender', 'email',
                            'passport', Date('birthdate'), 'address1',
                            'address2', 'locality', 'postcode', 'province',
@@ -492,8 +491,8 @@ class Upsert(Service):
                 del(params[k])
 
         # Reuse the session if any has been provided
-        if self.request.input.session:
-            session = self.request.input.session
+        if self.environ.session:
+            session = self.environ.session
         else:
             session = self.outgoing.sql.get(conn).session()
 
@@ -512,18 +511,18 @@ class Upsert(Service):
                 session.add(result)
 
             # Flush if we are reusing the session, otherwise commit
-            if self.request.input.session:
+            if self.environ.session:
                 session.flush()
             else:
                 session.commit()
 
             # Save the record in the cache only if the session was new
-            if not self.request.input.session:
-                cache_key = 'id:%s' % result.id
-                cache = self.cache.get_cache('builtin', 'guests')
-                cache.set(cache_key, result.asdict())
+            cache_key = 'id:%s' % result.id
+            cache = self.cache.get_cache('builtin', 'guests')
+            cache.set(cache_key, result.asdict())
 
             # Return the result
+            self.environ.status = OK
             self.response.status_code = OK
             self.response.payload = result
             url = self.user_config.genesisng.location.guests
@@ -536,12 +535,13 @@ class Upsert(Service):
             # reached.
             session.rollback()
             self.response.status_code = CONFLICT
+            self.environ.status = CONFLICT
             self.response.headers['Cache-Control'] = 'no-cache'
             # TODO: Return well-formed error response
             # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
 
         # Close the session only if we created a new one
-        if not self.request.input.session:
+        if not self.environ.session:
             session.close()
 
 

@@ -6,7 +6,7 @@ from zato.server.service import Service
 
 class Sender(Service):
     def handle(self):
-        self.logger.info('********** Executing sender subscriber service **********')
+        self.logger.info('Executing sender subscriber service')
         topic_name = '/genesisng/bookings/new'
         sub_key = self.pubsub.subscribe(topic_name, service=self)
         self.logger.info('Sender service subscribed to topic name %s and received subscription key %s',

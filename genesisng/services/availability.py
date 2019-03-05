@@ -511,7 +511,8 @@ class Confirm(Service):
             # Get room information and add it to the result
             environ.status_code = CONTINUE
             input_data = {'id': p.id_room}
-            room = self.invoke('room.get', input_data, environ=environ)
+            room = self.invoke('room.get', input_data, environ=environ,
+                               as_bunch=True)
             if environ.status_code == OK:
                 result['room'] = room['response']
 
@@ -534,6 +535,7 @@ class Confirm(Service):
                 priority = self.user_config.genesisng.availability.pubsub_priority
                 msg_id = self.pubsub.publish(topic_name, data=data,
                                              priority=priority)
+                self.logger.info('Added message with id %s to topic %s for booking with id %s' % (msg_id, topic_name, booking['response'].id))
 
                 # Return the result
                 self.response.headers['Cache-Control'] = 'no-cache'

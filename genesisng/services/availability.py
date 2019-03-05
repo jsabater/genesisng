@@ -531,8 +531,9 @@ class Confirm(Service):
                 # Publish a message to ``/genesisng/bookings/new`` topic name.
                 topic_name = '/genesisng/bookings/new'
                 data = 'id:%s' % booking['response'].id
+                priority = self.user_config.genesisng.availability.pubsub_priority
                 msg_id = self.pubsub.publish(topic_name, data=data,
-                                             has_gd=True, priority=5)
+                                             priority=priority)
 
                 # Return the result
                 self.response.headers['Cache-Control'] = 'no-cache'

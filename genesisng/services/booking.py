@@ -380,14 +380,13 @@ class Create(Service):
             # Save the record in the cache
             cache_key = 'id:%s|locator:%s' % (result.id, result.locator)
             cache = self.cache.get_cache('builtin', 'bookings')
-            result = result.asdict()
-            cache.set(cache_key, result)
+            cache.set(cache_key, result.asdict())
 
             self.response.status_code = CREATED
             self.environ.status_code = CREATED
             self.response.payload = result
             url = self.user_config.genesisng.location.bookings
-            self.response.headers['Location'] = url.format(id=result['id'])
+            self.response.headers['Location'] = url.format(id=result.id)
             self.response.headers['Cache-Control'] = 'no-cache'
 
         except IntegrityError:

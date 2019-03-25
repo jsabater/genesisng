@@ -3,10 +3,10 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 import enum
 from .base import Base
-from sqlalchemy import Column, Integer, Float, String, Date, DateTime, JSON
+from sqlalchemy import Column, Integer, Float, String, Date, DateTime
 from sqlalchemy import func
 from sqlalchemy import UniqueConstraint, CheckConstraint, ForeignKey, Enum
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from nanoid import generate
@@ -158,7 +158,7 @@ class Booking(Base):
     meal_plan = Column(Enum(BookingMealPlan), nullable=False, index=True,
                        default='BedAndBreakfast')
     """Meal plan included in the reservation. Defaults to BedAndBreakfast."""
-    extras = Column(JSON, nullable=False, default=lambda: {})
+    extras = Column(JSONB, nullable=False, default=lambda: {})
     """Additional services included in the reservation, taken from the values
     in the :class:`~genesisng.schema.extra.Extra` model class and stored as a
     JSON document. The column defaults to an empty dictionary instead

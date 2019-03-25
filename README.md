@@ -1,10 +1,11 @@
 # Genesis Next-Generation
 
-A prototype application to demonstrate the many features of Zato. Roughly based
-upon the Java project [genesis](https://bitbucket.org/jsabater/genesis), it
-features a services back-end for a boutique hotel management system. Many of
-its features are not supposed to make strict sense in the real world, but
-rather show how a functionality is meant to be used or its possibilities.
+A prototype application to demonstrate the many features of Zato when using
+SQLAlchemy to access a database. Roughly based upon the Java project
+[genesis](https://bitbucket.org/jsabater/genesis), it features a services
+back-end for a boutique hotel management system. Many of its features are not
+supposed to make strict sense in the real world, but rather show how a
+functionality is meant to be used or just some of its possibilities.
 
 ## Overview
 
@@ -65,7 +66,6 @@ As `postgres` user, add the `HSTORE`, `uuid-ossp`, `PG_TRGM`, `pgcrypto` and
 
 ```
 #!bash
-psql --dbname=template1 --command="CREATE EXTENSION HSTORE"
 psql --dbname=template1 --command="CREATE EXTENSION PG_TRGM"
 psql --dbname=template1 --command='CREATE EXTENSION "uuid-ossp"'
 psql --dbname=template1 --command="CREATE EXTENSION pgcrypto"

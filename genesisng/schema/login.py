@@ -38,13 +38,13 @@ class Login(Base):
     __tablename__ = 'login'
     __rels__ = []
     __table_args__ = (
-        # Trigram GIN indexes for searches (using ILIKE)
-        Index('ix_trgm_login_username', 'username', postgresql_using='gin',
-              postgresql_ops={'username': 'gin_trgm_ops'}),
-        Index('ix_trgm_login_name', 'name', postgresql_using='gin',
-              postgresql_ops={'name': 'gin_trgm_ops'}),
-        Index('ix_trgm_login_surname', 'surname', postgresql_using='gin',
-              postgresql_ops={'surname': 'gin_trgm_ops'}),
+        # Trigram GIST indexes for searches (using ILIKE)
+        Index('ix_trgm_login_username', 'username', postgresql_using='gist',
+              postgresql_ops={'username': 'gist_trgm_ops'}),
+        Index('ix_trgm_login_name', 'name', postgresql_using='gist',
+              postgresql_ops={'name': 'gist_trgm_ops'}),
+        Index('ix_trgm_login_surname', 'surname', postgresql_using='gist',
+              postgresql_ops={'surname': 'gist_trgm_ops'}),
     )
 
     id = Column(Integer, primary_key=True)

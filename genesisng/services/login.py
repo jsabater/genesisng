@@ -632,14 +632,15 @@ class List(Service):
 
             # Return result
             if result:
-                # Store results in the cache only if all fields were retrieved
+                # Store results in the cache only if all fields were retrieved.
+                # TODO: Store the whole result set in the cache.
                 if not fields:
                     cache = self.cache.get_cache('builtin', 'logins')
                     for r in result:
-                        # Items are already dictionaries. Passwords have
-                        # already been excluded.
+                        # Items are WriteableKeyedTuples.
+                        # Passwords have already been excluded.
                         cache_key = 'id:%s' % r.id
-                        cache.set(cache_key, r)
+                        cache.set(cache_key, r._asdict())
 
                 self.response.status_code = OK
                 self.response.payload[:] = result

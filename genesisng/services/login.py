@@ -488,6 +488,7 @@ class List(Service):
         """
 
         conn = self.user_config.genesisng.database.connection
+        cache_control = self.user_config.genesisng.cache.default_cache_control
         default_page_size = int(
             self.user_config.genesisng.pagination.default_page_size)
         max_page_size = int(
@@ -520,13 +521,21 @@ class List(Service):
 
         # Filters
         try:
+            conditions = []
             filters = self.request.input.filters
+            for f in filters:
+                field, comparison, value = f.split('|')
+                if field in self.filters_allowed and \
+                   comparison in self.comparisons_allowed:
+                    conditions.append((field, comparison, value))
             operator = self.request.input.operator[0]
+            if operator not in self.operators_allowed:
+                operator = default_operator
         except (ValueError, KeyError, IndexError):
             filters = []
             operator = default_operator
 
-        # Fields projection
+        # Fields projection is only applied right before returning the result
         try:
             fields = self.request.input.fields
         except (ValueError, KeyError):
@@ -551,36 +560,28 @@ class List(Service):
         if direction not in self.direction_allowed:
             direction = default_direction
 
-        # Handle filtering
-        conditions = []
-        for filter_ in filters:
-            field, comparison, value = filter_.split('|')
-            if field in self.filters_allowed and \
-               comparison in self.comparisons_allowed:
-                conditions.append((field, comparison, value))
-        if operator not in self.operators_allowed:
-            operator = default_operator
-
-        # Handle fields projection
-        columns = []
-        for f in fields:
-            if f in self.fields_allowed:
-                columns.append(f)
-
         # Handle search
         if not self.search_allowed:
             search = None
 
+        # Check whether a copy exists in the cache
+        cache_key = 'page:%s|size:%s|criteria:%s|direction:%s|filters:[%s]|operator:%s|search:%s' % (
+            page, size, criteria, direction, str(filters), operator, search)
+        self.logger.info('Cache key to store the list is: %s' % cache_key)
+        cache = self.cache.get_cache('builtin', 'logins')
+        cache_data = cache.get(cache_key, details=True)
+        if cache_data:
+            self.response.status_code = OK
+            self.response.headers['Cache-Control'] = cache_control
+            self.response.headers['Last-Modified'] = cache_data.last_write_http
+            self.response.headers['ETag'] = cache_data.hash
+            self.response.headers['Content-Language'] = 'en'
+            self.response.payload = cache_data.value
+            return
+
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            query = session.query(func.count().over().label('count'))
-
-            # Add columns
-            if not columns:
-                columns = self.fields_allowed
-
-            for c in columns:
-                query = query.add_columns(cols[c])
+            query = session.query(Login, func.count().over().label('count'))
 
             # Prepare filters
             # TODO: Use sqlalchemy-filters?
@@ -632,19 +633,46 @@ class List(Service):
 
             # Return result
             if result:
-                # Store results in the cache only if all fields were retrieved.
-                # TODO: Store the whole result set in the cache.
-                if not fields:
-                    cache = self.cache.get_cache('builtin', 'logins')
-                    for r in result:
-                        # Items are WriteableKeyedTuples.
-                        # Passwords have already been excluded.
-                        cache_key = 'id:%s' % r.id
-                        cache.set(cache_key, r._asdict())
+                # Store the whole result set as well as each item in the cache.
+                # Useful for paginated listings.
 
+                # Build the list of dicts.
+                lod = []
+
+                # While doing so, store each item.
+                for r in result:
+                    # Items are WriteableKeyedTuples.
+                    # Passwords have already been excluded.
+                    cache.set('id:%s' % r.id, r._asdict())
+                    lod.append(r._asdict())
+
+                cache.set(cache_key, lod)
+
+                # If fields projection apply, remove unwanted fields
+                # before assigning the list of dicts to the payload.
+                # Validate fields, then build the payload to be returned
+                columns = []
+                if fields:
+                    for f in fields:
+                        if f in self.fields_allowed:
+                            columns.append(field)
+
+                    payload = []
+                    for d in lod:
+                        n = {}
+                        for c in columns:
+                            n[c] = d[c]
+                        payload.append(n)
+                else:
+                    payload = lod
+
+                self.response.payload[:] = payload
                 self.response.status_code = OK
-                self.response.payload[:] = result
-                self.response.headers['Cache-Control'] = 'no-cache'
+                self.response.headers['Cache-Control'] = cache_control
+                self.response.headers['Last-Modified'] = cache_data.last_write_http
+                self.response.headers['ETag'] = cache_data.hash
+                self.response.headers['Content-Language'] = 'en'
+
             else:
                 self.response.status_code = NO_CONTENT
                 self.response.headers['Cache-Control'] = 'no-cache'

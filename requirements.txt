@@ -2,6 +2,7 @@ bcrypt
 configparser
 enum34
 hashids
+httplib2
 nanoid
 passlib
 psycopg2

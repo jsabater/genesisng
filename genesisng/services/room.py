@@ -2,7 +2,7 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
-from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
+from http.client import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
 from zato.server.service import Service, Integer, Float, List
 from genesisng.schema.room import Room
 from sqlalchemy import and_, or_

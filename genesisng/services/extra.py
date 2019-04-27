@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
-from httplib import OK, NO_CONTENT
+from http.client import OK, NO_CONTENT
 from zato.server.service import Service
 from genesisng.schema.extra import Extra
 

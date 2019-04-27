@@ -2,8 +2,8 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
-from httplib import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, FORBIDDEN
-from httplib import BAD_REQUEST
+from http.client import OK, NO_CONTENT, BAD_REQUEST, CREATED, NOT_FOUND
+from http.client import CONFLICT, FORBIDDEN
 from zato.server.service import Service
 from zato.server.service import Integer, Float, Date, DateTime
 from zato.server.service import Dict, List, AsIs

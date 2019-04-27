@@ -2,7 +2,8 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from contextlib import closing
-from httplib import OK, NO_CONTENT, BAD_REQUEST, CREATED, CONFLICT, CONTINUE
+from http.client import OK, NO_CONTENT, BAD_REQUEST, CREATED, CONFLICT
+from http.client import CONTINUE
 from zato.server.service import Service
 from zato.server.service import Integer, Date, List, Dict
 from genesisng.schema.room import Room

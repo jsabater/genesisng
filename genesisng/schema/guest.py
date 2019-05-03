@@ -2,21 +2,20 @@
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 from .base import Base
-from sqlalchemy import Column, Integer, String, Date, DateTime, Index, Enum
+from sqlalchemy import Column, Integer, String, Date, DateTime, Index
 from sqlalchemy.ext.hybrid import hybrid_property
-import enum
+from sqlalchemy import Enum as sqlEnum
+from enum import Enum as pyEnum
 
 
-class Gender(str, enum.Enum):
+class Gender(str, pyEnum):
     """
-    Enumeration that uses the `enum34`_ backport library to support the gender.
+    Enumeration to support the gender.
 
     Possibles values are ``Male`` and ``Female``.
 
     Additionally, it also inherits from ``str`` to make JSON serialization
     possible.
-
-    .. _enum34: https://pypi.org/project/enum34/
     """
 
     Male = 1
@@ -72,7 +71,7 @@ class Guest(Base):
     """First name of the person."""
     surname = Column(String(50), index=True, nullable=False)
     """Last name of the person."""
-    gender = Column(Enum(Gender), index=True, default='Male')
+    gender = Column(sqlEnum(Gender), index=True, default='Male')
     """Gender of the person. Defaults to Male."""
     email = Column(String(255), index=True, unique=True, nullable=False)
     """Electronic mail address. Must be unique."""

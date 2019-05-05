@@ -8,7 +8,6 @@ with open("README.md", "r") as fh:
 
 setup(name='genesisng',
       version='0.2',
-      name='Genesis Next Generation',
       description='Example package on how to use SQLAlchemy within Zato',
       long_description=long_description,
       long_description_content_type="text/markdown",

@@ -1,6 +1,4 @@
 # coding: utf8
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 from . import booking
 from . import extra
 from . import guest
@@ -11,4 +9,3 @@ from . import availability
 
 
 __all__ = ['booking', 'extra', 'guest', 'login', 'rate', 'room', 'availability']
-

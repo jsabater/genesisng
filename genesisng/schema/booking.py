@@ -1,6 +1,4 @@
 # coding: utf8
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 import enum
 from .base import Base
 from sqlalchemy import Column, Integer, Float, String, Date, DateTime

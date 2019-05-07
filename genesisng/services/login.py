@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 from contextlib import closing
 from http.client import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, FORBIDDEN
 from zato.server.service import Service, Boolean, Integer, AsIs, List

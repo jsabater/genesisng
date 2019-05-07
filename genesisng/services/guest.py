@@ -487,9 +487,9 @@ class Upsert(Service):
         }
 
         # Remove empty strings from params
-        for k in params.keys():
-            if params[k] == '':
-                del(params[k])
+        for x in params:
+            if params[x] == '':
+                del(params[x])
 
         # Reuse the session if any has been provided
         if self.environ.session:

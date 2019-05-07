@@ -468,9 +468,9 @@ class Confirm(Service):
                 'mobile_phone': p.mobile_phone
             }
             # Remove empty strings from input data
-            for k in input_data.keys():
-                if input_data[k] == '':
-                    del (input_data[k])
+            for x in input_data:
+                if input_data[x] == '':
+                    del (input_data[x])
             guest = self.invoke('guest.upsert', input_data, environ=environ,
                                 as_bunch=True)
             if environ.status_code == OK:
@@ -499,9 +499,9 @@ class Confirm(Service):
                 'uuid': uuid
             }
             # Remove empty strings from input data
-            for k in input_data.keys():
-                if input_data[k] == '':
-                    del (input_data[k])
+            for x in input_data:
+                if input_data[x] == '':
+                    del (input_data[x])
             booking = self.invoke('booking.create', input_data,
                                   environ=environ, as_bunch=True)
             if environ.status_code == CREATED:

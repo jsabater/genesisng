@@ -15,7 +15,7 @@ class Get(Service):
 
     Channel ``/genesisng/logins/{id}/get``.
 
-    Uses `SimpleIO`_.
+    Uses `SimpleIO`_ and `JSON Schema`_.
 
     The password is never sent back to the client side.
 
@@ -58,6 +58,7 @@ class Get(Service):
             self.response.headers['Last-Modified'] = cache_data.last_write_http
             self.response.headers['ETag'] = cache_data.hash
             self.response.payload = cache_data.value
+            self.logger.info('Cache data value contains: %s' % cache_data.value)
             return
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
@@ -68,6 +69,7 @@ class Get(Service):
                 # Save the record in the cache, minus the password
                 result = result.asdict(exclude=['password'])
                 cache_data = cache.set(cache_key, result, details=True)
+                self.logger.info('Cache data value set to: %s' % cache_data.value)
 
                 # Set cache headers in response
                 if cache_data:
@@ -128,14 +130,14 @@ class Validate(Service):
         """
 
         conn = self.user_config.genesisng.database.connection
-        validate = self.user_config.genesisng.security.login_validation
+        vtype = self.user_config.genesisng.security.login_validation_type
         username = self.request.input.username
         password = self.request.input.password
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
 
             result = None
-            if validate == 'database':
+            if vtype == 'database':
                 # Send the clear-text password to the database for verification
                 result = session.query(Login).\
                     filter(and_(Login.username == username,
@@ -408,8 +410,11 @@ class List(Service):
 
     Uses `SimpleIO`_.
 
-    Stores the returned records in the ``logins`` cache (minus the password).
-    Returns a ``Cache-Control`` header.
+    Stores the returned record set and each of the records individually in the
+    ``logins`` cache (minus the password). Returns a ``Cache-Control`` header.
+    The key for the set is made up from the values of all the parameters,
+    except the fields projection, and they key for each individual record is
+    the id.
 
     Returns ``NO_CONTENT`` if the returned list is empty, or ``OK`` otherwise.
 
@@ -563,9 +568,9 @@ class List(Service):
             search = None
 
         # Check whether a copy exists in the cache
-        cache_key = 'page:%s|size:%s|criteria:%s|direction:%s|filters:[%s]|operator:%s|search:%s' % (
+        cache_key = 'page:%s|size:%s|criteria:%s|direction:%s|filters:%s|operator:%s|search:%s' % (
             page, size, criteria, direction, str(filters), operator, search)
-        self.logger.info('Cache key to store the list is: %s' % cache_key)
+        self.logger.info('Cache key to retrieve/store the list is: %s' % cache_key)
         cache = self.cache.get_cache('builtin', 'logins')
         cache_data = cache.get(cache_key, details=True)
         if cache_data:
@@ -631,6 +636,7 @@ class List(Service):
 
             # Return result
             if result:
+                self.logger.info('Result is: %s' % result)
                 # Store the whole result set as well as each item in the cache.
                 # Useful for paginated listings.
 
@@ -641,10 +647,12 @@ class List(Service):
                 for r in result:
                     # Items are WriteableKeyedTuples.
                     # Passwords have already been excluded.
-                    cache.set('id:%s' % r.id, r._asdict())
+                    # cache.set('id:%s' % r.id, r._asdict())
+                    self.logger.info('Result row type is %s and value is: %s' % (type(r), r))
+                    self.logger.info('id of the row is: %s' % r[id])
                     lod.append(r._asdict())
 
-                cache.set(cache_key, lod)
+                # cache.set(cache_key, lod)
 
                 # If fields projection apply, remove unwanted fields
                 # before assigning the list of dicts to the payload.

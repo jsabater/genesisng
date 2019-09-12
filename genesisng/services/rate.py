@@ -59,7 +59,7 @@ class Get(Service):
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
             result = session.query(Rate).\
-                filter(and_(Rate.id == id_, Rate.published .is_(True))).\
+                filter(and_(Rate.id == id_, Rate.published.is_(True))).\
                 one_or_none()
 
             if result:

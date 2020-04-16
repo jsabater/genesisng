@@ -1,5 +1,6 @@
 bcrypt
 configparser
+dictalchemy
 hashids
 httplib2
 nanoid
@@ -9,5 +10,4 @@ psycopg2-binary
 sphinx
 sphinx_rtd_theme
 sqlalchemy
-zato-apitest
 

@@ -1,13 +1,13 @@
-bcrypt
-configparser
-dictalchemy
-hashids
-httplib2
-nanoid
-passlib
-psycopg2
-psycopg2-binary
-sphinx
-sphinx_rtd_theme
-sqlalchemy
+bcrypt==3.1.7
+configparser==3.7.1
+dictalchemy==0.1.2.6
+hashids==1.2.0
+httplib2==0.8
+nanoid==2.0.0
+passlib==1.7.1
+psycopg2==2.7.4
+psycopg2-binary==2.7.4
+sphinx==1.7.5
+sphinx_rtd_theme==0.4.3
+sqlalchemy==1.3.12
 

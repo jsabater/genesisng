@@ -65,8 +65,7 @@ Restart *PostgreSQL* for the changes to take effect.
 As `postgres` user, add the `HSTORE`, `uuid-ossp`, `PG_TRGM` and `pgcrypto`
 extensions to the `template1` database.
 
-```
-#!bash
+```bash
 psql --dbname=template1 --command="CREATE EXTENSION PG_TRGM"
 psql --dbname=template1 --command='CREATE EXTENSION "uuid-ossp"'
 psql --dbname=template1 --command="CREATE EXTENSION pgcrypto"
@@ -79,7 +78,7 @@ manually.
 
 To do so, first, as your user:
 
-```
+```bash
 cd /usr/local/src
 sudo git clone https://github.com/iCyberon/pg_hashids.git
 cd pg_hashids
@@ -93,7 +92,7 @@ Then as `postgres` user:
 
 Also as `postgres` user, you can now create the `genesisng` user and database:
 
-```
+```bash
 createuser --no-createdb --no-createrole --no-superuser genesisng
 createdb --encoding=UTF8 --owner=genesisng --template=template1 genesisng
 ```
@@ -102,7 +101,7 @@ createdb --encoding=UTF8 --owner=genesisng --template=template1 genesisng
 
 First of all, as your user, clone the repository:
 
-```
+```bash
 cd path/to/your/projects
 git clone git@github.com:jsabater/genesisng.git
 cd genesisng
@@ -110,9 +109,7 @@ cd genesisng
 
 Install some Python 3 system packages:
 
-```
-sudo apt install --yes python3 python3-dev python3-pip python3-venv python3-wheel
-```
+`sudo apt install --yes python3 python3-dev python3-pip python3-venv python3-wheel`
 
 Install the system packages required by the project:
 
@@ -129,7 +126,7 @@ source ~/venvs/genesisng/bin/activate
 
 Optionally, set something like this at the end of your `~/.bashrc` file:
 
-```
+```bash
 VENV_HOME=$HOME/venvs
 if [ -d "$HOME/path/to/genesisng" ]; then
     alias genesisng='cd ~/path/to/genesisng && source ${VENV_HOME}/genesisng/bin/activate'

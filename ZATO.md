@@ -17,7 +17,7 @@ The default configuration binds Redis to the localhost IP address, which is
 just what we need. Nonetheless, to test access to it the following command can
 be issued:
 
-```
+```bash
 $ redis-cli -h localhost -p 6379 ping
 PONG
 ```
@@ -25,7 +25,7 @@ PONG
 If in the need to reinstall Zato you will most probably have to delete all keys
 from all existing databases, which can be done through the following command:
 
-```
+```bash
 $ redis-cli -h localhost -p 6379 flushall
 OK
 ```
@@ -41,14 +41,14 @@ Create the file `/etc/apt/sources.list.d/pgdg.list` and add the following line t
 
 Import the repository signing key, and update the package lists:
 
-```
+```bash
 wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 sudo apt-get update
 ```
 
 Install PostgreSQL:
 
-```sudo apt-get install postgresql-12 postgresql-client-12 postgresql-server-dev-12```
+`sudo apt-get install postgresql-12 postgresql-client-12 postgresql-server-dev-12`
 
 Edit `/etc/postgresql/12/main/pg_hba.conf` to add access rules:
 
@@ -64,7 +64,7 @@ And reload the server:
 
 Create the user and the database. As `postgres` user:
 
-```
+```bash
 createuser --no-createdb --no-createrole --no-superuser zato
 createdb --encoding=UTF8 --owner=zato --template=template0 zato
 ```
@@ -81,7 +81,7 @@ createdb --encoding=UTF8 --owner=zato --template=template0 zato
 
 Install Docker, as per instructions at [Digital Ocean](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-18-04):
 
-```
+```bash
 sudo apt install apt-transport-https ca-certificates curl software-properties-common
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
@@ -119,7 +119,7 @@ You are now `root` inside the container.
 From outside of the container, use the `docker` command to find out the id and
 check the name of the container:
 
-```
+```bash
 $ docker ps --all
 CONTAINER ID   IMAGE          COMMAND       CREATED              STATUS              PORTS   NAMES
 886355a5e310   ubuntu:18.04   "/bin/bash"   About a minute ago   Up About a minute           zato
@@ -141,7 +141,7 @@ You can get a bash terminal, as `root` user, with the following command:
 
 Update the packages list and, optionally, upgrade the installed packages:
 
-```
+```bash
 apt update
 apt upgrade --yes
 ```
@@ -156,7 +156,7 @@ Optionally, install some helpers also as system packages:
 
 Create the `zato` user and set a password:
 
-```
+```bash
 groupadd zato
 useradd --comment "Zato Enterprise Service Bus" --home-dir /opt/zato --create-home --shell /bin/bash --gid zato zato
 adduser zato sudo
@@ -165,14 +165,14 @@ passwd zato
 
 Become zato and clone the repository:
 
-```
+```bash
 su - zato
 git clone https://github.com/zatosource/zato
 ```
 
 Compile and install:
 
-```
+```bash
 cd zato
 ./code/install.sh -p python3
 ```
@@ -180,7 +180,7 @@ cd zato
 To test that the connection from inside the container to PostgreSQL is working
 fine, use the following commands:
 
-```
+```bash
 $ sudo apt install --yes postgresql-client
 $ psql --host=localhost --username=zato --dbname=zato --tuples-only --no-align --command="SELECT 1"
 1
@@ -191,7 +191,7 @@ version 10.12, which should have no problem connecting to a more modern server.
 To test that the connection from inside the container to PostgreSQL is working
 fine, use the following commands:
 
-```
+```bash
 $ sudo apt install --yes redis-tools
 $ redis-cli -h localhost -p 6379 ping
 PONG
@@ -201,7 +201,7 @@ PONG
 
 Create a cluster using the quickstart option:
 
-```
+```bash
 $ mkdir --parents /opt/zato/env/qs-1
 $ /opt/zato/zato/code/bin/zato quickstart create --odb_host localhost --odb_port 5432 --odb_user zato --odb_db_name zato --odb_password '' --kvdb_password '' /opt/zato/env/qs-1/ postgresql localhost 6379
 [1/9] Certificate authority created
@@ -223,7 +223,7 @@ Visit https://zato.io/support for more information and support options
 Edit the `zato` user’s profile file `~/.profile` to add the binaries to the
 path:
 
-```
+```bash
 # set PATH so it includes user's private bin if it exists
 if [ -d "$HOME/zato/code/bin" ] ; then
     PATH="$HOME/zato/code/bin:$PATH"
@@ -237,7 +237,7 @@ Re-log as the `zato` user or reload the configuration:
 Change the given password for the `admin` user, that will be required when
 accessing the web administration panel, by using the following command:
 
-```
+```bash
 $ zato update password --password <your-password> ~/env/qs-1/web-admin/ admin
 Changing password for user 'admin'
 OK
@@ -245,7 +245,7 @@ OK
 
 Start the cluster to test that the installation was correct:
 
-```
+```bash
 $ /opt/zato/env/qs-1/zato-qs-start.sh
 Starting Zato cluster quickstart-726934
 Checking configuration

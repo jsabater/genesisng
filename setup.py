@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -16,7 +16,7 @@ setup(name='genesisng',
       author_email='jsabater@gmail.com',
       license='MIT',
       keywords='sqlalchemy zato api services',
-      packages=setuptools.find_packages(),
+      packages=find_packages(),
       classifiers=[
          "Programming Language :: Python :: 3",
          "License :: OSI Approved :: MIT License",
@@ -25,6 +25,7 @@ setup(name='genesisng',
       install_requires=[
         'bcrypt',
         'configparser',
+        'dictalchemy'
         'hashids',
         'httplib2',
         'nanoid',
@@ -35,5 +36,6 @@ setup(name='genesisng',
         'sphinx_rtd_theme',
         'sqlalchemy'
       ],
+      python_requires='>=3.6',
       include_package_data=True,
       zip_safe=False)

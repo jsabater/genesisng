@@ -2,12 +2,16 @@
 
 A prototype application to demonstrate the many features of Zato when using
 SQLAlchemy to access a database, but also used to test a number of libraries,
-both for Python and for PostgreSQL.
+both for Python and for PostgreSQL. The concept is roughly based on a previous
+test project called [genesis][https://bitbucket.org/jsabater/genesis].
 
 It features a services back-end for a boutique hotel management system. Many of
 its features are not supposed to make strict sense in the real world, but
 rather show how a functionality is meant to be used or just some of its
 possibilities.
+
+It started being a Python 2.7 project but now it only supports Python 3.6 or
+greater.
 
 ## Current features
 

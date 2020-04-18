@@ -1,5 +1,17 @@
 include LICENSE
 include README.md
-inclue genesisng/sql/*.sql
-include genesisng/config.ini
+include INSTALL.md
+include ZATO.md
 include requirements.txt
+include pyproject.toml
+
+include src/genesisng/sql/*.sql
+include src/genesisng/config.ini
+
+# Documentation
+include docs/Makefile docs/docutils.conf
+recursive-include docs *.png
+recursive-include docs *.svg
+recursive-include docs *.py
+recursive-include docs *.rst
+prune docs/_build

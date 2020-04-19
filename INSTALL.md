@@ -209,50 +209,66 @@ This will install the package at the following location:
 
 ## Zato configuration
 
-**OLD VERSION - NEEDS UPDATING**
+It is now the time to configure Zato to execute our application.
 
-Make the package available to Zato as an extra path to the library:
-
-`ln --symbolic /opt/genesisng /opt/zato/zato/code/zato_extra_paths/genesisng`
-
-Edit the configuration files of both servers (located at
-`/opt/zato/env/qs-1/server1/config/repo/server.conf` and
-`/opt/zato/env/qs-1/server2/config/repo/server.conf`) to add the application
-local configuration file:
+In order for the local configuration of the application to be available when
+Zato executes our services, edit the configuration files of both servers
+(located at `/opt/zato/env/qs-1/server1/config/repo/server.conf` and
+`/opt/zato/env/qs-1/server2/config/repo/server.conf`):
 
 ```
 [user_config]
 # All paths are either absolute or relative to the directory server.conf is in
-genesisng=/opt/genesisng/genesisng/config.ini
+genesisng=/opt/zato/zato/code/lib/python3.6/site-packages/genesisng/config.ini
+```
+
+In order for Zato to know which services it has to import upon start-up, edit
+the service sources files of both servers (located at
+`/opt/zato/env/qs-1/server1/config/repo/service-sources.txt` and
+`/opt/zato/env/qs-1/server2/config/repo/service-sources.txt`):
+
+```
+# List your service sources below, each on a separate line.
+/opt/zato/zato/code/lib/python3.6/site-packages/genesisng/services
 ```
 
 Restart the server for the changes to take effect. As `zato` user:
 
 `/opt/zato/env/qs-1/zato-qs-restart.sh`
 
-From the working copy of the repository outside of the Docker container
-(`~/path/to/genesisng`), hot-deploy the services:
+Whenever you make changes to your services and there is no need to deploy
+anything else but the module containing the services, you can hot-deploy it by
+copying the Python module from your development environment to the Docker
+container where Zato is being executed:
 
 ```
-cd ~/path/to/genesisng
-for f in genesisng/services/*.py; do docker cp $f zato:/opt/zato/env/qs-1/server1/pickup/incoming/services/; done
+cd ~/Projects/genesisng/src/genesisng/services
+docker cp module.py zato:/opt/zato/env/qs-1/server1/pickup/incoming/services/
 ```
 
-Load the cluster configuration from the backup found at the `config.yml` file.
-This will restore the following configuration items:
+Finally, we need to use the web administration interface to configure the
+following aspects:
 
-* User configuration
-* Extra paths
-* Channels
+1. An outgoing connection to the SQL database (Connections: Outgoing: SQL).
+2. Cache definitions for each module (Connections: Cache: Built-in).
+3. REST channels for our services (Connection: Channels: REST).
 
-`zato enmasse /opt/zato/env/qs-1/server1 --input /opt/genesisng/config.yml --import --replace-odb-objects`
+Or you can import the cluster configuration from the backup found at the
+`config.yml` file. For that, first copy the file from the local repository to
+the Docker container:
 
-This configuration was originally created manually through the web admin panel
-and later exported into a file by executing the following command:
+`docker cp --archive config.yml zato:/opt/zato/`
+
+Then, inside the Docker container, as `zato` user, import the file:
+
+`zato enmasse /opt/zato/env/qs-1/server1 --input /opt/zato/config.yml --import --replace-odb-objects`
+
+If you make any changes via the web administration panel and want to export
+them to keep your configuration file updated, use the following command as
+`zato` user inside the Docker container:
 
 `zato enmasse /opt/zato/env/qs-1/server1 --export-odb --dump-format yaml`
 
-Finally, it was copied to the repository outside of the Docker container by
-using the following command:
+And bring it back to your local repository by using the following command:
 
-`docker cp zato:/opt/zato/env/qs-1/config.yml ~/path/to/genesisng/`
+`docker cp zato:/opt/zato/env/qs-1/config.yml ~/Projects/genesisng/`

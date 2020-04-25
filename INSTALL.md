@@ -272,3 +272,11 @@ them to keep your configuration file updated, use the following command as
 And bring it back to your local repository by using the following command:
 
 `docker cp zato:/opt/zato/env/qs-1/config.yml ~/Projects/genesisng/`
+
+## Execute the application
+
+From the command line, either inside the Docker container or in your local
+repository outside of the Docker container, any service can be called via
+REST by using [curl](http://curl.haxx.se/):
+
+`curl -v -g "http://localhost:11223/genesisng/guests/list"; echo ""`

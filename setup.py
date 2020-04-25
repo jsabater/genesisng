@@ -29,6 +29,7 @@ setup(name='genesisng',
       ],
       install_requires=[
         'bcrypt',
+        'bunch',
         'configparser',
         'dictalchemy',
         'hashids',

@@ -6,9 +6,11 @@ from zato.server.service import Service
 from zato.server.service import Integer, Date, DateTime, ListOfDicts
 from zato.server.service import Dict, List
 from genesisng.schema.guest import Guest
+from genesisng.util.config import parse_args
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
+from bunch import Bunch
 
 
 class Get(Service):
@@ -570,27 +572,29 @@ class List(Service):
     Includes the count of records returned.
     """
 
-    criteria_allowed = ('id', 'name', 'surname', 'gender', 'email',
-                        'birthdate', 'country')
-    direction_allowed = ('asc', 'desc')
-    filters_allowed = ('id', 'name', 'surname', 'gender', 'email', 'passport',
-                       'birthdate', 'address1', 'address2', 'locality',
-                       'postcode', 'province', 'country', 'home_phone',
-                       'mobile_phone')
-    comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
-    operators_allowed = ('and', 'or')
-    fields_allowed = ('id', 'name', 'surname', 'gender', 'email', 'passport',
-                      'birthdate', 'address1', 'address2', 'locality',
-                      'postcode', 'province', 'country', 'home_phone',
-                      'mobile_phone', 'deleted')
-    search_allowed = ('id', 'name', 'surname', 'gender', 'email', 'passport',
-                      'birthdate', 'address1', 'address2', 'locality',
-                      'postcode', 'province', 'country', 'home_phone',
-                      'mobile_phone', 'deleted')
+    # Allowed fields to be used as criteria, filter by, field projection or
+    # to be search in using a search term.
+    allowed = Bunch({
+        'criteria': ('id', 'name', 'surname', 'gender', 'email',
+                     'birthdate', 'country'),
+        'filters': ('id', 'name', 'surname', 'gender', 'email',
+                    'passport', 'birthdate', 'address1', 'address2',
+                    'locality', 'postcode', 'province', 'country',
+                    'home_phone', 'mobile_phone'),
+        'fields': ('id', 'name', 'surname', 'gender', 'email',
+                   'passport', 'birthdate', 'address1', 'address2',
+                   'locality', 'postcode', 'province', 'country',
+                   'home_phone', 'mobile_phone', 'deleted'),
+        'search': ('id', 'name', 'surname', 'gender', 'email',
+                   'passport', 'birthdate', 'address1', 'address2',
+                   'locality', 'postcode', 'province', 'country',
+                   'home_phone', 'mobile_phone', 'deleted')
+    })
 
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort'),
-                          List('filters'), List('operator'), List('search'))
+                          List('filters'), List('operator'), List('fields'),
+                          List('search'))
         output_optional = ('id', 'name', 'surname', 'gender', 'email',
                            'passport', Date('birthdate'), 'address1',
                            'address2', 'locality', 'postcode', 'province',
@@ -642,161 +646,104 @@ class List(Service):
         :rtype: list
         """
 
-        conn = self.user_config.genesisng.database.connection
-        default_page_size = int(
-            self.user_config.genesisng.pagination.default_page_size)
-        max_page_size = int(
-            self.user_config.genesisng.pagination.max_page_size)
         cols = Guest.__table__.columns
 
-        # TODO: Have these default values in user config?
-        default_criteria = 'id'
-        default_direction = 'asc'
-        default_operator = 'and'
+        # Database connection
+        conn = self.user_config.genesisng.database.connection
 
-        # Page number
-        try:
-            page = int(self.request.input.page[0])
-        except (ValueError, KeyError, IndexError):
-            page = 1
-
-        # Page size
-        try:
-            size = int(self.request.input.size[0])
-        except (ValueError, KeyError, IndexError):
-            size = default_page_size
-
-        # Order by
-        try:
-            criteria, direction = self.request.input.sort[0].lower().split('|')
-        except (ValueError, KeyError, IndexError, AttributeError):
-            criteria = default_criteria
-            direction = default_direction
-
-        # Filters
-        try:
-            filters = self.request.input.filters
-            operator = self.request.input.operator[0]
-        except (ValueError, KeyError, IndexError):
-            filters = []
-            operator = default_operator
-
-        # Fields projection
-        try:
-            fields = self.request.input.fields
-        except (ValueError, KeyError):
-            fields = []
-
-        # Search
-        try:
-            search = self.request.input.search[0]
-        except (ValueError, KeyError, IndexError):
-            search = None
-
-        # Check and adjust parameter values
-
-        # Handle pagination
-        page = 1 if page < 1 else page
-        size = default_page_size if size < 1 else size
-        size = default_page_size if size > max_page_size else size
-
-        # Handle sorting
-        if criteria not in self.criteria_allowed:
-            criteria = default_criteria
-        if direction not in self.direction_allowed:
-            direction = default_direction
-
-        # Handle filtering
-        conditions = []
-        for filter_ in filters:
-            field, comparison, value = filter_.split('|')
-            if field in self.filters_allowed and \
-               comparison in self.comparisons_allowed:
-                conditions.append((field, comparison, value))
-        if operator not in self.operators_allowed:
-            operator = default_operator
-
-        # Handle fields projection
-        columns = []
-        for f in fields:
-            if f in self.fields_allowed:
-                columns.append(f)
-
-        # Handle search
-        if not self.search_allowed:
-            search = None
+        # Parse received arguments
+        params = parse_args(self.request.input, self.allowed,
+                            self.user_config.genesisng.pagination)
 
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(func.count().over().label('count'))
 
-            # Add columns
-            if not columns:
-                columns = self.fields_allowed
-
-            for c in columns:
+            # Add columns to get a flat row of columns rather than a row with
+            # a Guest object
+            for c in self.allowed['fields']:
                 query = query.add_columns(cols[c])
 
             # Prepare filters
-            if conditions:
-                clauses = []
-                for c in conditions:
-                    f, o, v = c
-                    if o == 'lt':
-                        clauses.append(cols[f] < v)
-                    elif o == 'lte':
-                        clauses.append(cols[f] <= v)
-                    elif o == 'eq':
-                        clauses.append(cols[f] == v)
-                    elif o == 'ne':
-                        clauses.append(cols[f] != v)
-                    elif o == 'gte':
-                        clauses.append(cols[f] >= v)
-                    elif o == 'gt':
-                        clauses.append(cols[f] > v)
-                if operator == 'or':
-                    query = query.filter(or_(*clauses))
-                else:
-                    query = query.filter(and_(*clauses))
+            clauses = []
+            for c in params['conditions']:
+                # field, operator, value
+                f, o, v = c
+                if o == 'lt':
+                    clauses.append(cols[f] < v)
+                elif o == 'lte':
+                    clauses.append(cols[f] <= v)
+                elif o == 'eq':
+                    clauses.append(cols[f] == v)
+                elif o == 'ne':
+                    clauses.append(cols[f] != v)
+                elif o == 'gte':
+                    clauses.append(cols[f] >= v)
+                elif o == 'gt':
+                    clauses.append(cols[f] > v)
+            if params['operator'] == 'or':
+                query = query.filter(or_(*clauses))
+            else:
+                query = query.filter(and_(*clauses))
 
-            # Search
-            if search:
+            # Search. Add ilike clauses if there is a search term.
+            if params['search']:
                 clauses = []
-                for s in self.search_allowed:
-                    clauses.append(cols[s].ilike(search))
+                for s in self.paging['search']:
+                    clauses.append(cols[s].ilike(params['search']))
                 query = query.filter(or_(*clauses))
 
             # Order by
-            if direction == 'asc':
-                query = query.order_by(cols[criteria].asc())
+            if params['direction'] == 'asc':
+                query = query.order_by(cols[params['criteria']].asc())
             else:
-                query = query.order_by(cols[criteria].desc())
+                query = query.order_by(cols[params['criteria']].desc())
 
             # Calculate limit and offset
-            limit = size
-            offset = size * (page - 1)
+            limit = params['size']
+            offset = params['size'] * (params['page'] - 1)
             query = query.offset(offset)
             query = query.limit(limit)
 
             # Execute query
             result = query.all()
 
-            # Return result
-            if result:
-                # Store results in the cache only if all fields were retrieved
-                if not fields:
-                    cache = self.cache.get_cache('builtin', 'guests')
-                    for r in result:
-                        # Items are already dictionaries.
-                        cache_key = 'id:%s' % r.id
-                        cache.set(cache_key, r)
-
-                self.response.status_code = OK
-                self.response.payload[:] = result
-                self.response.headers['Cache-Control'] = 'no-cache'
-            else:
+            # Return now if no rows were returned
+            if not result:
                 self.response.status_code = NO_CONTENT
                 self.response.headers['Cache-Control'] = 'no-cache'
+                return
+
+            # Each row is a WritableKeyedTuple, which can be directly saved
+            # into the cache collection.
+            cache = self.cache.get_cache('builtin', 'guests')
+
+            # Get a list of the fields to be removed
+            # Add the count until genesisng.util.payload is implemented
+            diff = list(set(result[0].keys()) -
+                        set(params['columns'] + ['count']))
+
+            # Empty list for the processed rows (dicts)
+            thinner_result = []
+
+            # Loop the result set
+            for r in result:
+
+                # Store each row in the cache
+                cache_key = 'id:%s' % r.id
+                cache.set(cache_key, r)
+
+                # Remove unwanted fields from the result
+                if params['columns']:
+                    d = {key: getattr(r._elem, key)
+                         for key in r._elem.keys() if key not in diff}
+                    thinner_result.append(d)
+                else:
+                    thinner_result.append(r)
+
+            self.response.status_code = OK
+            self.response.payload[:] = thinner_result
+            self.response.headers['Cache-Control'] = 'no-cache'
 
 
 class Bookings(Service):

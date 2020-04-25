@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='genesisng',
-      version='0.2',
+      version='0.3',
       author='Jaume Sabater',
       author_email='jsabater@gmail.com',
       description='Example package on how to use SQLAlchemy within Zato',

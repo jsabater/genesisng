@@ -53,9 +53,9 @@ Install PostgreSQL:
 Edit `/etc/postgresql/12/main/pg_hba.conf` to add access rules:
 
 ```
-# IPv6 local connections:
-host    zato            zato            ::1/128                 trust
-host    all             all             ::1/128                 md5
+# IPv4 local connections:
+host    zato            zato            127.0.0.1/32            trust
+host    all             all             127.0.0.1/32            md5
 ```
 
 And reload the server:
@@ -69,7 +69,7 @@ createuser --no-createdb --no-createrole --no-superuser zato
 createdb --encoding=UTF8 --owner=zato --template=template0 zato
 ```
 
-In case of having to reinstall Zato it will be necessary to recreate the zato
+In case of having to reinstall Zato it will be necessary to recreate the `zato`
 database, which can be done through the following commands:
 
 ```
@@ -91,7 +91,7 @@ sudo apt install docker-ce
 sudo systemctl status docker
 ```
 
-Add your username to the docker group so there’s no need to use sudo to launch
+Add your username to the docker group so there’s no need to use sudo to manage
 the container:
 
 `sudo usermod -aG docker ${USER}`
@@ -102,7 +102,7 @@ Apply the changes:
 
 ## Ubuntu image inside Docker
 
-Install the Ubuntu 18.04 Docker official image from its
+Install the Ubuntu 18.04 official image from the Docker
 [hub](https://hub.docker.com/_/ubuntu):
 
 `docker pull ubuntu:18.04`
@@ -186,9 +186,10 @@ $ psql --host=localhost --username=zato --dbname=zato --tuples-only --no-align -
 1
 ```
 
-Please note that the previous command will install the PostgreSQL client
-version 10.12, which should have no problem connecting to a more modern server.
-To test that the connection from inside the container to PostgreSQL is working
+Note that the previous command will install the PostgreSQL client version
+10.12, which should have no problem connecting to a more modern server.
+
+To test that the connection from inside the container to Redis is working
 fine, use the following commands:
 
 ```bash
@@ -197,9 +198,9 @@ $ redis-cli -h localhost -p 6379 ping
 PONG
 ```
 
-## Zato cluster
+## Zato environment
 
-Create a cluster using the quickstart option:
+Create a complete Zato environment using the quickstart option:
 
 ```bash
 $ mkdir --parents /opt/zato/env/qs-1
@@ -259,7 +260,12 @@ Checking configuration
 [8/8] Web admin started
 Zato cluster quickstart-726934 started
 Visit https://zato.io/support for more information and support options
+```
 
+Optionally, check the running processes to get a better understanding of what
+has been accomplished so far:
+
+```bash
 $ ps --user zato x
   PID TTY      STAT   TIME COMMAND
    44 pts/0    S      0:00 -su

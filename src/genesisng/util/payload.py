@@ -4,19 +4,24 @@ from bunch import Bunch
 
 class Payload(Bunch):
     """Defines the skeleton of a payload to be returned by a service."""
-    payload = None
+    data = None
+    meta = None
+    pagination = None
+    error = None
 
     def __init__(self):
-        default = {
-            'data': {},
-            'meta': {
-                'page': None,
-                'size': None,
-                'count': None
-            },
-            'error': {
-                'code': None,
-                'message': None
-            }
+        data = {}
+        meta = {}
+        pagination = {
+            'page': None,
+            'size': None,
+            'count': None
         }
-        self.payload = Bunch(default)
+        error = {
+            'code': None,
+            'message': None
+        }
+        self.data = data
+        self.meta = meta
+        self.pagination = pagination
+        self.error = error

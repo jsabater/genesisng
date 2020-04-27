@@ -2,15 +2,11 @@
 from bunch import Bunch
 
 
-class Payload(object):
+class Payload(Bunch):
     """Defines the skeleton of a payload to be returned by a service."""
-    data = None
-    meta = None
-    pagination = None
-    error = None
 
-    def __init__(self, page=None, size=None, count=None):
-        self.data = {}
+    def __init__(self, page=None, size=None, count=None, data={}):
+        self.data = data
         self.meta = {}
         self.pagination = Bunch({
             'page': page,
@@ -21,3 +17,7 @@ class Payload(object):
             'code': None,
             'message': None
         })
+
+    def set_error(self, code=None, message=None):
+        self.error.code = code
+        self.error.message = message

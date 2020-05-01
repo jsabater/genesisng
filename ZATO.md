@@ -148,11 +148,11 @@ apt upgrade --yes
 
 Install a number of dependencies in the form of system packages:
 
-`apt install --yes python3 python3-dev python3-pip git`
+`apt install --yes python3 python3-dev python3-pip git sudo`
 
 Optionally, install some helpers also as system packages:
 
-`apt install --yes apt-utils ccze dialog htop mc net-tools sudo tzdata vim`
+`apt install --yes apt-utils ccze dialog htop mc net-tools tzdata vim`
 
 Create the `zato` user and set a password:
 

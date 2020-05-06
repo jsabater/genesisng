@@ -556,7 +556,8 @@ class List(Service):
 
     Uses `SimpleIO`_.
 
-    Stores the returned records in the ``guests`` cache. Returns a
+    Stores every retrieved row as a cache item in the ``guests`` cache
+    collection, which will be later used in the ``Get`` service. Returns a
     ``Cache-Control`` header.
 
     Returns ``NO_CONTENT`` if the returned list is empty, or ``OK`` otherwise.
@@ -569,11 +570,13 @@ class List(Service):
     In case of error, it does not return ``BAD_REQUEST`` but, instead, it
     assumes the default parameter values and carries on.
 
-    Includes the count of records returned.
+    The count of records returned (``X-Genesis-Count``), the page number
+    (``X-Genesis-Page``) and the page size (``X-Genesis-Size``) are returned as
+    headers.
     """
 
-    # Allowed fields to be used as criteria, filter by, field projection or
-    # to be search in using a search term.
+    # Fields allowed in sorting criteria, filters, field projection or
+    # searched in.
     allowed = Bunch({
         'criteria': ('id', 'name', 'surname', 'gender', 'email',
                      'birthdate', 'country'),
@@ -599,7 +602,7 @@ class List(Service):
                            'passport', Date('birthdate'), 'address1',
                            'address2', 'locality', 'postcode', 'province',
                            'country', 'home_phone', 'mobile_phone',
-                           DateTime('deleted'), 'count')
+                           DateTime('deleted'))
         skip_empty_keys = True
         output_repeated = True
 
@@ -646,6 +649,7 @@ class List(Service):
         :rtype: list
         """
 
+        # Shortcut to the entity columns
         cols = Guest.__table__.columns
 
         # Database connection
@@ -657,16 +661,16 @@ class List(Service):
 
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
+            # query = session.query(Guest, func.count().over().label('count'))
             query = session.query(func.count().over().label('count'))
-
             # Add columns to get a flat row of columns rather than a row with
             # a Guest object
-            for c in self.allowed['fields']:
-                query = query.add_columns(cols[c])
+            for f in self.allowed.fields:
+                query = query.add_columns(cols[f])
 
             # Prepare filters
             clauses = []
-            for c in params['conditions']:
+            for c in params.conditions:
                 # field, operator, value
                 f, o, v = c
                 if o == 'lt':
@@ -681,27 +685,27 @@ class List(Service):
                     clauses.append(cols[f] >= v)
                 elif o == 'gt':
                     clauses.append(cols[f] > v)
-            if params['operator'] == 'or':
+            if params.operator == 'or':
                 query = query.filter(or_(*clauses))
             else:
                 query = query.filter(and_(*clauses))
 
-            # Search. Add ilike clauses if there is a search term.
-            if params['search']:
+            # Search: add ilike clauses if there is a search term.
+            if params.search:
                 clauses = []
-                for s in self.paging['search']:
-                    clauses.append(cols[s].ilike(params['search']))
+                for s in self.paging.search:
+                    clauses.append(cols[s].ilike(params.search))
                 query = query.filter(or_(*clauses))
 
             # Order by
-            if params['direction'] == 'asc':
-                query = query.order_by(cols[params['criteria']].asc())
+            if params.direction == 'asc':
+                query = query.order_by(cols[params.criteria].asc())
             else:
-                query = query.order_by(cols[params['criteria']].desc())
+                query = query.order_by(cols[params.criteria].desc())
 
             # Calculate limit and offset
-            limit = params['size']
-            offset = params['size'] * (params['page'] - 1)
+            limit = params.size
+            offset = params.size * (params.page - 1)
             query = query.offset(offset)
             query = query.limit(limit)
 
@@ -716,34 +720,45 @@ class List(Service):
 
             # Each row is a WritableKeyedTuple, which can be directly saved
             # into the cache collection.
-            cache = self.cache.get_cache('builtin', 'guests')
+            try:
+                cache = self.cache.get_cache('builtin', 'guests')
+            except Exception:
+                self.logger.error("Could not get the 'guests' cache collection. Results will not be cached.")
 
             # Get a list of the fields to be removed
-            # Add the count until genesisng.util.payload is implemented
-            diff = list(set(result[0].keys()) -
-                        set(params['columns'] + ['count']))
+            diff = ['count']
+            if params.columns:
+                diff += list(set(result[0].keys()) - set(params.columns))
+                # diff += list(set(Guest) - set(params.columns))
 
             # Empty list for the processed rows (dicts)
-            thinner_result = []
+            data = []
 
             # Loop the result set
             for r in result:
-
                 # Store each row in the cache
-                cache_key = 'id:%s' % r.id
-                cache.set(cache_key, r)
+                if cache is not None:
+                    self.logger.debug("Caching guest with id %s" % r.id)
+                    cache_key = 'id:%s' % r.id
+                    cache.set(cache_key, r)
+                    # self.logger.debug("Caching guest with id %s" % r.Guest.id)
+                    # cache_key = 'id:%s' % r.Guest.id
+                    # cache.set(cache_key, r.Guest)
 
                 # Remove unwanted fields from the result
-                if params['columns']:
-                    d = {key: getattr(r._elem, key)
-                         for key in r._elem.keys() if key not in diff}
-                    thinner_result.append(d)
-                else:
-                    thinner_result.append(r)
+                d = {key: getattr(r._elem, key)
+                     for key in r._elem.keys() if key not in diff}
+                # d = {key: getattr(r.Guest, key)
+                #     for key in cols if key not in diff}
+                data.append(d)
+            params.count = r.count
 
             self.response.status_code = OK
-            self.response.payload[:] = thinner_result
+            self.response.payload[:] = data
             self.response.headers['Cache-Control'] = 'no-cache'
+            self.response.headers['X-Genesis-Page'] = str(params.page)
+            self.response.headers['X-Genesis-Size'] = str(params.size)
+            self.response.headers['X-Genesis-Count'] = str(params.count)
 
 
 class Bookings(Service):

@@ -7,6 +7,7 @@ from zato.server.service import Integer, Date, DateTime, ListOfDicts
 from zato.server.service import Dict, List
 from genesisng.schema.guest import Guest
 from genesisng.util.config import parse_args
+from genesisng.util.filters import parse_filters
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
@@ -657,38 +658,17 @@ class List(Service):
 
         # Parse received arguments
         params = parse_args(self.request.input, self.allowed,
-                            self.user_config.genesisng.pagination)
+                            self.user_config.genesisng.pagination, self.logger)
 
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            # query = session.query(Guest, func.count().over().label('count'))
             query = session.query(func.count().over().label('count'))
-            # Add columns to get a flat row of columns rather than a row with
-            # a Guest object
+            # Add columns to get a flat row of columns rather than entities
             for f in self.allowed.fields:
                 query = query.add_columns(cols[f])
 
             # Prepare filters
-            clauses = []
-            for c in params.conditions:
-                # field, operator, value
-                f, o, v = c
-                if o == 'lt':
-                    clauses.append(cols[f] < v)
-                elif o == 'lte':
-                    clauses.append(cols[f] <= v)
-                elif o == 'eq':
-                    clauses.append(cols[f] == v)
-                elif o == 'ne':
-                    clauses.append(cols[f] != v)
-                elif o == 'gte':
-                    clauses.append(cols[f] >= v)
-                elif o == 'gt':
-                    clauses.append(cols[f] > v)
-            if params.operator == 'or':
-                query = query.filter(or_(*clauses))
-            else:
-                query = query.filter(and_(*clauses))
+            query = parse_filters(params.filters, params.operator, cols, query)
 
             # Search: add ilike clauses if there is a search term.
             if params.search:
@@ -703,11 +683,9 @@ class List(Service):
             else:
                 query = query.order_by(cols[params.criteria].desc())
 
-            # Calculate limit and offset
-            limit = params.size
-            offset = params.size * (params.page - 1)
-            query = query.offset(offset)
-            query = query.limit(limit)
+            # Add limit and offset
+            query = query.offset(params.offset)
+            query = query.limit(params.limit)
 
             # Execute query
             result = query.all()
@@ -718,44 +696,40 @@ class List(Service):
                 self.response.headers['Cache-Control'] = 'no-cache'
                 return
 
-            # Each row is a WritableKeyedTuple, which can be directly saved
-            # into the cache collection.
+            # Get cache collection
             try:
                 cache = self.cache.get_cache('builtin', 'guests')
             except Exception:
-                self.logger.error("Could not get the 'guests' cache collection. Results will not be cached.")
+                self.logger.error(
+                    "Could not get the 'guests' cache collection.")
 
             # Get a list of the fields to be removed
             diff = ['count']
             if params.columns:
                 diff += list(set(result[0].keys()) - set(params.columns))
-                # diff += list(set(Guest) - set(params.columns))
 
             # Empty list for the processed rows (dicts)
-            data = []
+            payload = []
 
             # Loop the result set
             for r in result:
-                # Store each row in the cache
+                # Store each row (a WritableKeyedTuple) in the cache.
                 if cache is not None:
-                    self.logger.debug("Caching guest with id %s" % r.id)
                     cache_key = 'id:%s' % r.id
                     cache.set(cache_key, r)
-                    # self.logger.debug("Caching guest with id %s" % r.Guest.id)
-                    # cache_key = 'id:%s' % r.Guest.id
-                    # cache.set(cache_key, r.Guest)
 
                 # Remove unwanted fields from the result
                 d = {key: getattr(r._elem, key)
                      for key in r._elem.keys() if key not in diff}
-                # d = {key: getattr(r.Guest, key)
-                #     for key in cols if key not in diff}
-                data.append(d)
+                payload.append(d)
+
+            # Get the count from the last row
             params.count = r.count
 
             self.response.status_code = OK
-            self.response.payload[:] = data
+            self.response.payload[:] = payload
             self.response.headers['Cache-Control'] = 'no-cache'
+            self.response.headers['Content-Language'] = 'en'
             self.response.headers['X-Genesis-Page'] = str(params.page)
             self.response.headers['X-Genesis-Size'] = str(params.size)
             self.response.headers['X-Genesis-Count'] = str(params.count)

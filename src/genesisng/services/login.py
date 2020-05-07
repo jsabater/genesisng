@@ -3,10 +3,13 @@ from contextlib import closing
 from http.client import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, FORBIDDEN
 from zato.server.service import Service, Boolean, Integer, AsIs, List
 from genesisng.schema.login import Login
+from genesisng.util.config import parse_args
+from genesisng.util.filters import parse_filters
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 from passlib.hash import bcrypt
+from bunch import Bunch
 
 
 class Get(Service):
@@ -58,7 +61,8 @@ class Get(Service):
             self.response.headers['Last-Modified'] = cache_data.last_write_http
             self.response.headers['ETag'] = cache_data.hash
             self.response.payload = cache_data.value
-            self.logger.info('Cache data value contains: %s' % cache_data.value)
+            self.logger.info('Cache data value contains: %s' %
+                             cache_data.value)
             return
 
         with closing(self.outgoing.sql.get(conn).session()) as session:
@@ -69,7 +73,8 @@ class Get(Service):
                 # Save the record in the cache, minus the password
                 result = result.asdict(exclude=['password'])
                 cache_data = cache.set(cache_key, result, details=True)
-                self.logger.info('Cache data value set to: %s' % cache_data.value)
+                self.logger.info('Cache data value set to: %s' %
+                                 cache_data.value)
 
                 # Set cache headers in response
                 if cache_data:
@@ -356,7 +361,7 @@ class Update(Service):
         with closing(self.outgoing.sql.get(conn).session()) as session:
             try:
                 result = session.query(Login).filter(Login.id == id_).\
-                         one_or_none()
+                    one_or_none()
 
                 if result:
                     # TODO: Implement a wrapper to remove empty request keys,
@@ -429,14 +434,14 @@ class List(Service):
     Includes the count of records returned.
     """
 
-    criteria_allowed = ('id', 'username', 'name', 'surname', 'email')
-    direction_allowed = ('asc', 'desc')
-    filters_allowed = ('id', 'username', 'name', 'surname', 'email',
-                       'is_admin')
-    comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
-    operators_allowed = ('and', 'or')
-    fields_allowed = ('id', 'username', 'name', 'surname', 'email', 'is_admin')
-    search_allowed = ('username', 'name', 'surname', 'email')
+    # Fields allowed in sorting criteria, filters, field projection or
+    # searched in.
+    allowed = Bunch({
+        'criteria': ('id', 'username', 'name', 'surname', 'email'),
+        'filters': ('id', 'username', 'name', 'surname', 'email', 'is_admin'),
+        'fields': ('id', 'username', 'name', 'surname', 'email', 'is_admin'),
+        'search': ('username', 'name', 'surname', 'email')
+    })
 
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort'),
@@ -490,195 +495,137 @@ class List(Service):
         :rtype: list
         """
 
-        conn = self.user_config.genesisng.database.connection
-        cache_control = self.user_config.genesisng.cache.default_cache_control
-        default_page_size = int(
-            self.user_config.genesisng.pagination.default_page_size)
-        max_page_size = int(
-            self.user_config.genesisng.pagination.max_page_size)
+        # Shortcut to the entity columns
         cols = Login.__table__.columns
 
-        # TODO: Have these default values in user config?
-        default_criteria = 'id'
-        default_direction = 'asc'
-        default_operator = 'and'
+        # Database connection
+        conn = self.user_config.genesisng.database.connection
 
-        # Page number
-        try:
-            page = int(self.request.input.page[0])
-        except (ValueError, KeyError, IndexError):
-            page = 1
+        # Cache control default value
+        cache_control = self.user_config.genesisng.cache.default_cache_control
 
-        # Page size
-        try:
-            size = int(self.request.input.size[0])
-        except (ValueError, KeyError, IndexError):
-            size = default_page_size
-
-        # Order by
-        try:
-            criteria, direction = self.request.input.sort[0].lower().split('|')
-        except (ValueError, KeyError, IndexError, AttributeError):
-            criteria = default_criteria
-            direction = default_direction
-
-        # Filters
-        try:
-            conditions = []
-            filters = self.request.input.filters
-            for f in filters:
-                field, comparison, value = f.split('|')
-                if field in self.filters_allowed and \
-                   comparison in self.comparisons_allowed:
-                    conditions.append((field, comparison, value))
-            operator = self.request.input.operator[0]
-            if operator not in self.operators_allowed:
-                operator = default_operator
-        except (ValueError, KeyError, IndexError):
-            filters = []
-            operator = default_operator
-
-        # Fields projection is only applied right before returning the result
-        try:
-            fields = self.request.input.fields
-        except (ValueError, KeyError):
-            fields = []
-
-        # Search
-        try:
-            search = self.request.input.search[0]
-        except (ValueError, KeyError, IndexError):
-            search = None
-
-        # Check and adjust parameter values
-
-        # Handle pagination
-        page = 1 if page < 1 else page
-        size = default_page_size if size < 1 else size
-        size = default_page_size if size > max_page_size else size
-
-        # Handle sorting
-        if criteria not in self.criteria_allowed:
-            criteria = default_criteria
-        if direction not in self.direction_allowed:
-            direction = default_direction
-
-        # Handle search
-        if not self.search_allowed:
-            search = None
+        # Parse received arguments
+        params = parse_args(self.request.input, self.allowed,
+                            self.user_config.genesisng.pagination, self.logger)
 
         # Check whether a copy exists in the cache
         cache_key = 'page:%s|size:%s|criteria:%s|direction:%s|filters:%s|operator:%s|search:%s' % (
-            page, size, criteria, direction, str(filters), operator, search)
-        self.logger.info('Cache key to retrieve/store the list is: %s' % cache_key)
-        cache = self.cache.get_cache('builtin', 'logins')
-        cache_data = cache.get(cache_key, details=True)
+            params.page, params.size, params.criteria, params.direction,
+            str(params.filters), params.operator, params.search)
+        try:
+            cache = self.cache.get_cache('builtin', 'logins')
+        except Exception:
+            self.logger.error("Could not get the 'logins' cache collection.")
+        if cache is not None:
+            cache_data = cache.get(cache_key, details=True)
         if cache_data:
+            self.logger.info("Returning list of logins from the cache.")
+
+            # Get a list of the fields to be removed
+            diff = []
+            if params.columns:
+                diff += list(set(cache_data.value[0].keys()) -
+                             set(params.columns))
+
+            # Remove unwanted fields from the row
+            payload = []
+            for i in cache_data.value:
+                d = {key: i[key] for key in i.keys() if key not in diff}
+                payload.append(d)
+
             self.response.status_code = OK
-            self.response.headers['Cache-Control'] = cache_control
-            self.response.headers['Last-Modified'] = cache_data.last_write_http
-            self.response.headers['ETag'] = cache_data.hash
+            self.response.payload[:] = payload
             self.response.headers['Content-Language'] = 'en'
-            self.response.payload = cache_data.value
+            self.response.headers['Cache-Control'] = cache_control
+            self.response.headers['Last-Modified'] = str(
+                cache_data.last_write_http)
+            self.response.headers['ETag'] = str(cache_data.hash)
             return
 
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
-            query = session.query(Login, func.count().over().label('count'))
+            query = session.query(func.count().over().label('count'))
+            # Add columns to get a flat row of columns rather than entities
+            for f in self.allowed.fields:
+                query = query.add_columns(cols[f])
 
             # Prepare filters
-            # TODO: Use sqlalchemy-filters?
-            # https://pypi.org/project/sqlalchemy-filters/
-            # TODO: Use a map instead of if..else?
-            # m = {'lt': '<', 'lte': '<=', 'eq': '==', 'ne': '!=', 'gte': '>=', 'gt': '>'}
-            if conditions:
-                clauses = []
-                for c in conditions:
-                    f, o, v = c
-                    if o == 'lt':
-                        clauses.append(cols[f] < v)
-                    elif o == 'lte':
-                        clauses.append(cols[f] <= v)
-                    elif o == 'eq':
-                        clauses.append(cols[f] == v)
-                    elif o == 'ne':
-                        clauses.append(cols[f] != v)
-                    elif o == 'gte':
-                        clauses.append(cols[f] >= v)
-                    elif o == 'gt':
-                        clauses.append(cols[f] > v)
-                if operator == 'or':
-                    query = query.filter(or_(*clauses))
-                else:
-                    query = query.filter(and_(*clauses))
+            query = parse_filters(params.filters, params.operator, cols, query)
 
-            # Search
-            if search:
+            # Search: add ilike clauses if there is a search term.
+            if params.search:
                 clauses = []
-                for s in self.search_allowed:
-                    clauses.append(cols[s].ilike(search))
+                for s in self.paging.search:
+                    clauses.append(cols[s].ilike(params.search))
                 query = query.filter(or_(*clauses))
 
             # Order by
-            if direction == 'asc':
-                query = query.order_by(cols[criteria].asc())
+            if params.direction == 'asc':
+                query = query.order_by(cols[params.criteria].asc())
             else:
-                query = query.order_by(cols[criteria].desc())
+                query = query.order_by(cols[params.criteria].desc())
 
-            # Calculate limit and offset
-            limit = size
-            offset = size * (page - 1)
-            query = query.offset(offset)
-            query = query.limit(limit)
+            # Add limit and offset
+            query = query.offset(params.offset)
+            query = query.limit(params.limit)
 
             # Execute query
             result = query.all()
 
-            # Return result
-            if result:
-                self.logger.info('Result is: %s' % result)
-                # Store the whole result set as well as each item in the cache.
-                # Useful for paginated listings.
-
-                # Build the list of dicts.
-                lod = []
-
-                # While doing so, store each item.
-                for r in result:
-                    # Items are WriteableKeyedTuples.
-                    # Passwords have already been excluded.
-                    # cache.set('id:%s' % r.id, r._asdict())
-                    self.logger.info('Result row type is %s and value is: %s' % (type(r), r))
-                    self.logger.info('id of the row is: %s' % r[id])
-                    lod.append(r._asdict())
-
-                # cache.set(cache_key, lod)
-
-                # If fields projection apply, remove unwanted fields
-                # before assigning the list of dicts to the payload.
-                # Validate fields, then build the payload to be returned
-                columns = []
-                if fields:
-                    for f in fields:
-                        if f in self.fields_allowed:
-                            columns.append(field)
-
-                    payload = []
-                    for d in lod:
-                        n = {}
-                        for c in columns:
-                            n[c] = d[c]
-                        payload.append(n)
-                else:
-                    payload = lod
-
-                self.response.payload[:] = payload
-                self.response.status_code = OK
-                self.response.headers['Cache-Control'] = cache_control
-                self.response.headers['Last-Modified'] = cache_data.last_write_http
-                self.response.headers['ETag'] = cache_data.hash
-                self.response.headers['Content-Language'] = 'en'
-
-            else:
+            # Return now if no rows were returned
+            if not result:
                 self.response.status_code = NO_CONTENT
+                self.response.headers['Cache-Control'] = 'no-cache'
+                return
+
+            # Get a list of the fields to be removed
+            diff = ['count']
+            if params.columns:
+                diff += list(set(result[0].keys()) - set(params.columns))
+
+            # Empty list of dicts to be saved in the cache
+            data = []
+
+            # Empty list of dicts for the processed rows of the result set
+            payload = []
+
+            # Loop the result set
+            for r in result:
+                # Remove unwanted fields from the row
+                d = {key: getattr(r._elem, key)
+                     for key in r._elem.keys() if key not in diff}
+                payload.append(d)
+
+                # Convert each WritableKeyedTuple to a dict so that we store
+                # a list of dicts in the cache
+                d = {key: getattr(r._elem, key)
+                     for key in r._elem.keys() if key not in ['count']}
+                data.append(d)
+
+                # Store each full row (as a dict) in the cache.
+                # Passwords have already been excluded.
+                if cache is not None:
+                    cache.set('id:%s' % r.id, d)
+
+            # Store the processed result set in the cache
+            if cache is not None:
+                self.logger.info("Storing list of logins in the cache.")
+                cache_data = cache.set(cache_key, data, details=True)
+
+            # Get the count from the last row
+            params.count = r.count
+
+            self.response.status_code = OK
+            self.response.payload[:] = payload
+            self.response.headers['Content-Language'] = 'en'
+            self.response.headers['X-Genesis-Page'] = str(params.page)
+            self.response.headers['X-Genesis-Size'] = str(params.size)
+            self.response.headers['X-Genesis-Count'] = str(params.count)
+
+            if cache_data:
+                self.response.headers['Cache-Control'] = cache_control
+                self.response.headers['Last-Modified'] = str(
+                    cache_data.last_write_http)
+                self.response.headers['ETag'] = str(cache_data.hash)
+            else:
                 self.response.headers['Cache-Control'] = 'no-cache'

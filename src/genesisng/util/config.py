@@ -2,7 +2,7 @@
 from bunch import Bunch
 
 
-def parse_args(input, allowed, pagination):
+def parse_args(input, allowed, pagination, logger):
     """
     Parses arguments received through query string, checking and adjusting
     their values.
@@ -42,7 +42,12 @@ def parse_args(input, allowed, pagination):
     if size < 1:
         size = default_page_size
     if size > int(pagination.max_page_size):
+        logger.info("Discarting size: %s" % size)
         size = default_page_size
+
+    # Calculate limit and offset from page and size
+    limit = size
+    offset = size * (page - 1)
 
     # Order by is made of a criteria field and a direction.
     # Criteria can only be one of the allowed fields.
@@ -50,8 +55,10 @@ def parse_args(input, allowed, pagination):
     try:
         criteria, direction = input.sort[0].lower().split('|')
         if criteria not in allowed.criteria:
+            logger.info("Discarting criteria: %s" % criteria)
             criteria = pagination.default_criteria
         if direction not in pagination.direction_allowed:
+            logger.info("Discarting direction: %s" % direction)
             direction = pagination.default_direction
     except (ValueError, KeyError, IndexError, AttributeError):
         criteria = pagination.default_criteria
@@ -59,22 +66,34 @@ def parse_args(input, allowed, pagination):
 
     # Filters allow filtering by field and value through an operator. Multiple
     # filters are allowed, called conditions.
-    # Operators can only be 'and' or 'or', as per the config.ini file
     # You can only filter by a field that has been allowed for this entity.
     try:
         filters = input.filters
-        operator = input.operator[0]
     except (ValueError, KeyError, IndexError):
         filters = []
-        operator = pagination.default_operator
     conditions = []
-    for filter_ in filters:
-        # Field, comparison, value
-        f, c, v = filter_.split('|')
-        if f in allowed.filters and \
-           c in pagination.comparisons_allowed:
-            conditions.append((f, c, v))
+    for f in filters:
+        try:
+            field, comparison, value = f.split('|')
+            if field in allowed.filters:
+                if comparison in pagination.comparisons_allowed:
+                    conditions.append((field, comparison, value))
+                else:
+                    logger.info("Discarting filter: %s" % f)
+            else:
+                logger.info("Discarting filter: %s" % f)
+        except ValueError:
+            logger.info("Invalid filter argument: %s" % f)
+            pass
+
+    # Operator instructs how to join filters in the WHERE clause.
+    # Operator can only be 'and' or 'or', as per the config.ini file
+    try:
+        operator = input.operator[0]
+    except (ValueError, KeyError, IndexError):
+        operator = pagination.default_operator
     if operator not in pagination.operators_allowed:
+        logger.info("Discarting operator: %s" % operator)
         operator = pagination.default_operator
 
     # Fields projection allows returned a sub-set of each record.
@@ -88,6 +107,8 @@ def parse_args(input, allowed, pagination):
     for f in fields:
         if f in allowed.fields:
             columns.append(f)
+        else:
+            logger.info("Discarting projection field: %s" % f)
 
     # Search allows a term to be used to filter returned records in a
     # case-insensitive manner (ilike). Only check made here is whether search
@@ -102,9 +123,11 @@ def parse_args(input, allowed, pagination):
     return Bunch({
         'page': page,
         'size': size,
+        'limit': limit,
+        'offset': offset,
         'criteria': criteria,
         'direction': direction,
-        'conditions': conditions,
+        'filters': conditions,
         'operator': operator,
         'columns': columns,
         'search': term

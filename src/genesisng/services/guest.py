@@ -2,16 +2,15 @@
 from contextlib import closing
 from http.client import OK, NO_CONTENT, BAD_REQUEST, CREATED, CONFLICT
 from http.client import NOT_FOUND
-from zato.server.service import Service
-from zato.server.service import Integer, Date, DateTime, ListOfDicts
-from zato.server.service import Dict, List
-from genesisng.schema.guest import Guest
-from genesisng.util.config import parse_args
-from genesisng.util.filters import parse_filters
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from bunch import Bunch
+from zato.server.service import Service, Dict, List
+from zato.server.service import Integer, Date, DateTime, ListOfDicts
+from genesisng.schema.guest import Guest
+from genesisng.util.config import parse_args
+from genesisng.util.filters import parse_filters
 
 
 class Get(Service):
@@ -715,8 +714,7 @@ class List(Service):
             for r in result:
                 # Store each row (a WritableKeyedTuple) in the cache.
                 if cache is not None:
-                    cache_key = 'id:%s' % r.id
-                    cache.set(cache_key, r)
+                    cache.set('id:%s' % r.id, r)
 
                 # Remove unwanted fields from the result
                 d = {key: getattr(r._elem, key)

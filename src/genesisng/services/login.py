@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 from contextlib import closing
 from http.client import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT, FORBIDDEN
-from zato.server.service import Service, Boolean, Integer, AsIs, List
-from genesisng.schema.login import Login
-from genesisng.util.config import parse_args
-from genesisng.util.filters import parse_filters
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 from passlib.hash import bcrypt
 from bunch import Bunch
+from zato.server.service import Service, Boolean, Integer, AsIs, List
+from genesisng.schema.login import Login
+from genesisng.util.config import parse_args
+from genesisng.util.filters import parse_filters
 
 
 class Get(Service):
@@ -215,10 +215,11 @@ class Create(Service):
         :returns: All attributes of a :class:`~genesisng.schema.login.Login`
             model class, minus the password.
         :rtype: dict
+
+        .. todo:: Use `Cerberus`_ to validate input?
+        .. todo:: Return a well-formed `error response`_.
         """
 
-        # TODO: Use Cerberus to validate input?
-        # http://docs.python-cerberus.org/en/stable/
         conn = self.user_config.genesisng.database.connection
 
         p = self.request.input
@@ -252,8 +253,6 @@ class Create(Service):
                 session.rollback()
                 self.response.status_code = CONFLICT
                 self.response.headers['Cache-Control'] = 'no-cache'
-                # TODO: Return well-formed error response
-                # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
 
 
 class Delete(Service):
@@ -416,10 +415,9 @@ class List(Service):
     Uses `SimpleIO`_.
 
     Stores the returned record set and each of the records individually in the
-    ``logins`` cache (minus the password). Returns a ``Cache-Control`` header.
-    The key for the set is made up from the values of all the parameters,
-    except the fields projection, and they key for each individual record is
-    the id.
+    ``logins`` cache (minus the password). The set is the whole page and is
+    reused when going back and forth through pages. Individual records are used
+    by the ``Get`` service. Returns a ``Cache-Control`` header.
 
     Returns ``NO_CONTENT`` if the returned list is empty, or ``OK`` otherwise.
 
@@ -431,7 +429,9 @@ class List(Service):
     In case of error, it does not return ``BAD_REQUEST`` but, instead, it
     assumes the default parameter values and carries on.
 
-    Includes the count of records returned.
+    The count of records returned (``X-Genesis-Count``), the page number
+    (``X-Genesis-Page``) and the page size (``X-Genesis-Size``) are returned as
+    headers.
     """
 
     # Fields allowed in sorting criteria, filters, field projection or

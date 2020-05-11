@@ -11,30 +11,42 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
 import os
 import sys
-# sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('..'))
+import io
+import datetime
+sys.path.insert(0, os.path.abspath('../src/'))
 
 
 # -- Project information -----------------------------------------------------
 
-project = u'Genesis Next-Generation'
-copyright = u'2019, Jaume Sabater'
-author = u'Jaume Sabater'
-
+author = u''
 # The short X.Y version
-version = u'0.2'
+version = u''
+
+# Get version and author from the package __init__ file
+with io.open("../src/genesisng/__init__.py", "r") as fh:
+    for line in fh:
+        if line.startswith('__version__'):
+            delim = '"' if '"' in line else "'"
+            version = line.split(delim)[1]
+        elif line.startswith('__author__'):
+            delim = '"' if '"' in line else "'"
+            author = line.split(delim)[1]
+
+project = u'Genesis Next-Generation'
+thisyear = datetime.datetime.now().year
+copyright = u'2018-{0}, Jaume Sabater'.format(thisyear)
+
 # The full version, including alpha/beta/rc tags
-release = u'0.2'
+release = version
 
 
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
-# needs_sphinx = '1.0'
+needs_sphinx = '1.8.5'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -43,10 +55,11 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.imgmath',
-    # 'sphinx.ext.intersphinx',
-    'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    # 'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
     # 'sphinx.ext.viewcode',
+    'sphinx_rtd_theme',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -93,7 +106,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -109,7 +122,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'GenesisNext-Generationdoc'
+htmlhelp_basename = 'genesisng-doc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -117,7 +130,7 @@ htmlhelp_basename = 'GenesisNext-Generationdoc'
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
-    # 'papersize': 'letterpaper',
+    'papersize': 'a4paper',
 
     # The font size ('10pt', '11pt' or '12pt').
     #
@@ -136,7 +149,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'GenesisNext-Generation.tex', u'Genesis Next-Generation Documentation',
+    (master_doc, 'genesisng.tex', u'Genesis NG Documentation',
      u'Jaume Sabater', 'manual'),
 ]
 
@@ -146,7 +159,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'genesisnext-generation', u'Genesis Next-Generation documentation',
+    (master_doc, 'genesisng', u'Genesis NG documentation',
      [author], 1)
 ]
 
@@ -157,8 +170,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'GenesisNext-Generation', u'Genesis Next-Generation documentation',
-     author, 'GenesisNext-Generation', 'One line description of project.',
+    (master_doc, 'GenesisNG', u'Genesis NG documentation',
+     author, 'Jaume Sabater',
+     'A prototype application to demonstrate the many features of Zato when using SQLAlchemy.',
      'Miscellaneous'),
 ]
 
@@ -183,6 +197,11 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
+intersphinx_mapping = {
+    'sqlalchemy': ('https://docs.sqlalchemy.org/en/13/', None),
+    # 'python': ('https://docs.python.org/3', None)
+}
+
 # -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
@@ -190,4 +209,3 @@ todo_include_todos = True
 
 # Packages not available upon automatic extraction
 autodoc_mock_imports = ["zato"]
-

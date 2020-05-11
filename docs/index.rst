@@ -45,9 +45,6 @@ Documentation of services and classes
    schema
    services
 
-.. todolist::
-
-
 Indices and tables
 ==================
 

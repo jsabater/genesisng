@@ -29,13 +29,10 @@ from the associated table and allow the following REST API-like features:
   model class are to be returned.
 * Search, which are case insensitive and take just one term.
 
-.. automodule:: genesisng
-   :members:
-
-.. automodule:: genesisng.services
-   :members:
-
 .. _SimpleIO: https://zato.io/docs/progguide/sio.html
+.. _JSON Schema: https://zato.io/docs/progguide/json.html
+.. _Cerberus: http://docs.python-cerberus.org/en/stable/
+.. _error response: https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
 
 The login module
 ----------------

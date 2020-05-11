@@ -17,9 +17,6 @@ useful Python libraries, such as:
 
 .. _SQLAlchemy's declarative model: https://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/
 
-.. automodule:: genesisng
-   :members:
-
 .. automodule:: genesisng.schema
    :members:
 

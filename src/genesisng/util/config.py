@@ -84,7 +84,6 @@ def parse_args(input, allowed, pagination, logger):
                 logger.info("Discarting filter: %s" % f)
         except ValueError:
             logger.info("Invalid filter argument: %s" % f)
-            pass
 
     # Operator instructs how to join filters in the WHERE clause.
     # Operator can only be 'and' or 'or', as per the config.ini file

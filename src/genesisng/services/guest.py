@@ -369,8 +369,7 @@ class Update(Service):
                     # Save the record in the cache
                     cache_key = 'id:%s' % result.id
                     cache = self.cache.get_cache('builtin', 'guests')
-                    cache_data = cache.set(
-                        cache_key, result.asdict(), details=True)
+                    cache.set(cache_key, result.asdict())
 
                     self.response.status_code = OK
                     self.response.payload = result

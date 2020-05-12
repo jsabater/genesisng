@@ -356,7 +356,6 @@ class Confirm(Service):
         """
 
         conn = self.user_config.genesisng.database.connection
-        taxes_percentage = self.user_config.genesisng.availability.taxes_percentage
         p = self.request.input
 
         try:

@@ -33,11 +33,11 @@ These are the most relevant libraries used:
 
 If you don't have Git SCM, install it:
 
-`apt install --yes git`
+`apt install --yes git sudo`
 
 Optionally, install a few helper applications:
 
-`apt install --yes apt-utils ccze dialog htop mc multitail net-tools sudo tzdata vim`
+`apt install --yes apt-utils ccze dialog htop mc multitail net-tools tzdata vim`
 
 ## PostgreSQL configuration
 

@@ -68,29 +68,29 @@ class Get(Service):
                 filter(and_(Guest.id == id_, Guest.deleted.is_(None))).\
                 one_or_none()
 
-            if result:
-
-                # Save the record in the cache
-                cache_data = cache.set(
-                    cache_key, result.asdict(), details=True)
-
-                # Set cache headers in response
-                if cache_data:
-                    self.response.headers['Cache-Control'] = cache_control
-                    self.response.headers['Last-Modified'] = cache_data.\
-                        last_write_http
-                    self.response.headers['ETag'] = cache_data.hash
-                else:
-                    self.response.headers['Cache-Control'] = 'no-cache'
-
-                # Return the result
-                self.response.status_code = OK
-                self.response.headers['Content-Language'] = 'en'
-                self.response.payload = result
-            else:
+            if not result:
                 self.response.status_code = NOT_FOUND
                 self.response.headers['Cache-Control'] = 'no-cache'
                 self.response.headers['Content-Language'] = 'en'
+                return
+
+            # Save the record in the cache
+            cache_data = cache.set(
+                cache_key, result.asdict(), details=True)
+
+            # Set cache headers in response
+            if cache_data:
+                self.response.headers['Cache-Control'] = cache_control
+                self.response.headers['Last-Modified'] = cache_data.\
+                    last_write_http
+                self.response.headers['ETag'] = cache_data.hash
+            else:
+                self.response.headers['Cache-Control'] = 'no-cache'
+
+            # Return the result
+            self.response.status_code = OK
+            self.response.headers['Content-Language'] = 'en'
+            self.response.payload = result
 
 
 class Create(Service):
@@ -151,10 +151,11 @@ class Create(Service):
         :returns: All attributes of a :class:`~genesisng.schema.guest.Guest`
             model class.
         :rtype: dict
+
+        .. todo:: Use `Cerberus`_ to validate input?
+        .. todo:: Return a well-formed `error response`_.
         """
 
-        # TODO: Use Cerberus to validate input?
-        # http://docs.python-cerberus.org/en/stable/
         conn = self.user_config.genesisng.database.connection
 
         p = self.request.input
@@ -197,8 +198,6 @@ class Create(Service):
                 session.rollback()
                 self.response.status_code = CONFLICT
                 self.response.headers['Cache-Control'] = 'no-cache'
-                # TODO: Return well-formed error response
-                # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
 
 
 class Delete(Service):
@@ -237,21 +236,21 @@ class Delete(Service):
                 filter(and_(Guest.id == id_, Guest.deleted.is_(None))).\
                 one_or_none()
 
-            if result:
-                # Set deleted field
-                result.deleted = datetime.utcnow()
-                session.commit()
-                self.response.status_code = NO_CONTENT
-                self.response.headers['Cache-Control'] = 'no-cache'
-
-                # Invalidate the cache
-                cache_key = 'id:%s' % id_
-                cache = self.cache.get_cache('builtin', 'guests')
-                cache.delete(cache_key)
-
-            else:
+            if not result:
                 self.response.status_code = NOT_FOUND
                 self.response.headers['Cache-Control'] = 'no-cache'
+                return
+
+            # Set deleted field
+            result.deleted = datetime.utcnow()
+            session.commit()
+            self.response.status_code = NO_CONTENT
+            self.response.headers['Cache-Control'] = 'no-cache'
+
+            # Invalidate the cache
+            cache_key = 'id:%s' % id_
+            cache = self.cache.get_cache('builtin', 'guests')
+            cache.delete(cache_key)
 
 
 class Update(Service):
@@ -318,6 +317,8 @@ class Update(Service):
         :returns: All attributes of a :class:`~genesisng.schema.guest.Guest`
             model class.
         :rtype: dict
+
+        .. todo:: Return a well-formed `error response`_.
         """
 
         conn = self.user_config.genesisng.database.connection
@@ -330,61 +331,60 @@ class Update(Service):
                     filter(and_(Guest.id == id_, Guest.deleted.is_(None))).\
                     one_or_none()
 
-                if result:
-                    # TODO: Implement a wrapper to remove empty request keys,
-                    # or add request params to skip_empty_keys as per
-                    # https://forum.zato.io/t/leave-the-simpleio-input-optional-out-of-the-input/593/22
-                    # then use dictalchemy's .fromdict() to reduce code.
-                    # result.fromdict(self.request.input, allow_pk=True)
-
-                    # Update dictionary keys
-                    if p.name:
-                        result.name = p.name
-                    if p.surname:
-                        result.surname = p.surname
-                    if p.gender:
-                        result.gender = p.gender
-                    if p.email:
-                        result.email = p.email
-                    if p.passport:
-                        result.passport = p.passport
-                    if p.birthdate:
-                        result.birthdate = p.birthdate
-                    if p.address1:
-                        result.address1 = p.address1
-                    if p.address2:
-                        result.address2 = p.address2
-                    if p.locality:
-                        result.locality = p.locality
-                    if p.province:
-                        result.province = p.province
-                    if p.country:
-                        result.country = p.country
-                    if p.home_phone:
-                        result.home_phone = p.home_phone
-                    if p.mobile_phone:
-                        result.mobile_phone = p.mobile_phone
-                    session.commit()
-
-                    # Save the record in the cache
-                    cache_key = 'id:%s' % result.id
-                    cache = self.cache.get_cache('builtin', 'guests')
-                    cache.set(cache_key, result.asdict())
-
-                    self.response.status_code = OK
-                    self.response.payload = result
-                    self.response.headers['Cache-Control'] = 'no-cache'
-                else:
+                if not result:
                     self.response.status_code = NOT_FOUND
                     self.response.headers['Cache-Control'] = 'no-cache'
+                    return
+
+                # TODO: Implement a wrapper to remove empty request keys,
+                # or add request params to skip_empty_keys as per
+                # https://forum.zato.io/t/leave-the-simpleio-input-optional-out-of-the-input/593/22
+                # then use dictalchemy's .fromdict() to reduce code.
+                # result.fromdict(self.request.input, allow_pk=True)
+
+                # Update dictionary keys
+                if p.name:
+                    result.name = p.name
+                if p.surname:
+                    result.surname = p.surname
+                if p.gender:
+                    result.gender = p.gender
+                if p.email:
+                    result.email = p.email
+                if p.passport:
+                    result.passport = p.passport
+                if p.birthdate:
+                    result.birthdate = p.birthdate
+                if p.address1:
+                    result.address1 = p.address1
+                if p.address2:
+                    result.address2 = p.address2
+                if p.locality:
+                    result.locality = p.locality
+                if p.province:
+                    result.province = p.province
+                if p.country:
+                    result.country = p.country
+                if p.home_phone:
+                    result.home_phone = p.home_phone
+                if p.mobile_phone:
+                    result.mobile_phone = p.mobile_phone
+                session.commit()
+
+                # Save the record in the cache
+                cache_key = 'id:%s' % result.id
+                cache = self.cache.get_cache('builtin', 'guests')
+                cache.set(cache_key, result.asdict())
+
+                self.response.status_code = OK
+                self.response.payload = result
+                self.response.headers['Cache-Control'] = 'no-cache'
 
             except IntegrityError:
                 # Constraint prevents duplication of emails.
                 session.rollback()
                 self.response.status_code = CONFLICT
                 self.response.headers['Cache-Control'] = 'no-cache'
-                # TODO: Return well-formed error response
-                # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
 
 
 class Upsert(Service):
@@ -451,10 +451,11 @@ class Upsert(Service):
         :returns: All attributes of a :class:`~genesisng.schema.guest.Guest`
             model class.
         :rtype: dict
+
+        .. todo:: Use `Cerberus`_ to validate input?
+        .. todo:: Return a well-formed `error response`_.
         """
 
-        # TODO: Use Cerberus to validate input?
-        # http://docs.python-cerberus.org/en/stable/
         conn = self.user_config.genesisng.database.connection
         p = self.request.input
 
@@ -539,8 +540,6 @@ class Upsert(Service):
             self.response.status_code = CONFLICT
             self.environ.status_code = CONFLICT
             self.response.headers['Cache-Control'] = 'no-cache'
-            # TODO: Return well-formed error response
-            # https://medium.com/@suhas_chatekar/return-well-formed-error-responses-from-your-rest-apis-956b5275948
 
         # Close the session only if we created a new one
         if not self.environ.session:

@@ -2,14 +2,17 @@
 from contextlib import closing
 from http.client import OK, NO_CONTENT, BAD_REQUEST, CREATED, NOT_FOUND
 from http.client import CONFLICT, FORBIDDEN
-from zato.server.service import Service
-from zato.server.service import Integer, Float, Date, DateTime
-from zato.server.service import Dict, List, AsIs
-from genesisng.schema.booking import Booking, generate_pin
 from sqlalchemy import and_, or_, func
 from sqlalchemy.exc import IntegrityError
 from uuid import UUID
 from datetime import datetime
+from bunch import Bunch
+from zato.server.service import Service
+from zato.server.service import Integer, Float, Date, DateTime
+from zato.server.service import Dict, List, AsIs
+from genesisng.schema.booking import Booking, generate_pin
+from genesisng.util.config import parse_args
+from genesisng.util.filters import parse_filters
 
 
 class Get(Service):
@@ -850,7 +853,10 @@ class List(Service):
 
     Channel ``/genesisng/bookings/list``.
 
-    Stores the returned records in the ``bookings`` cache. Returns a
+    Uses `SimpleIO`_.
+
+    Stores every retrieved row as a cache item in the ``guests`` cache
+    collection, which will be later used in the ``Get`` service. Returns a
     ``Cache-Control`` header.
 
     Returns ``NO_CONTENT`` if the returned list is empty, or ``OK`` otherwise.
@@ -862,24 +868,25 @@ class List(Service):
     In case of error, it does not return ``BAD_REQUEST`` but, instead, it
     assumes the default parameter values and carries on.
 
-    Includes the count of records returned. It does not return hybrid
-    properties.
+    The total count of records (``X-Genesis-Count``), the page number
+    (``X-Genesis-Page``) and the page size (``X-Genesis-Size``) are returned as
+    headers. It does not return hybrid properties.
     """
 
-    criteria_allowed = ('id', 'id_guest', 'id_room', 'check_in', 'check_out')
-    direction_allowed = ('asc', 'desc')
-    filters_allowed = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
-                       'check_in', 'check_out', 'base_price', 'total_price',
-                       'status', 'meal_plan', 'extras')
-    comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
-    operators_allowed = ('and', 'or')
-    fields_allowed = ('id', 'id_guest', 'id_room', 'reserved', 'guests',
-                      'check_in', 'check_out', 'checked_in', 'checked_out',
-                      'cancelled', 'base_price', 'taxes_percentage',
-                      'taxes_value', 'total_price', 'locator', 'pin',
-                      'status', 'meal_plan', 'extras', 'uuid',
-                      'deleted', 'nights')
-    search_allowed = ()
+    # Fields allowed in sorting criteria, filters, field projection or
+    # searched in.
+    allowed = Bunch({
+        'criteria': ('id', 'id_guest', 'id_room', 'check_in', 'check_out'),
+        'filters': ('id', 'id_guest', 'id_room', 'reserved', 'guests',
+                    'check_in', 'check_out', 'base_price', 'total_price',
+                    'status', 'meal_plan', 'extras'),
+        'fields': ('id', 'id_guest', 'id_room', 'reserved', 'guests',
+                   'check_in', 'check_out', 'checked_in', 'checked_out',
+                   'cancelled', 'base_price', 'taxes_percentage',
+                   'taxes_value', 'total_price', 'locator', 'pin', 'status',
+                   'meal_plan', 'extras', 'uuid', 'deleted', 'nights'),
+        'search': ()
+    })
 
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort'),
@@ -891,11 +898,11 @@ class List(Service):
                            DateTime('cancelled'), 'base_price',
                            'taxes_percentage', 'taxes_value', 'total_price',
                            'locator', 'pin', 'status', 'meal_plan',
-                           Dict('extras'),
+                           Dict('extras'), 'uuid',
+                           # UUID('uuid'),
                            # 'uuid' # JSON serializaction error
                            # https://forum.zato.io/t/returning-uuid-types-from-services-using-json/1735
-                           'nights', 'count'
-                           )
+                           'nights', 'count')
         skip_empty_keys = True
         output_repeated = True
 
@@ -940,147 +947,88 @@ class List(Service):
         :rtype: list
         """
 
-        conn = self.user_config.genesisng.database.connection
-        default_page_size = int(
-            self.user_config.genesisng.pagination.default_page_size)
-        max_page_size = int(
-            self.user_config.genesisng.pagination.max_page_size)
+        # Shortcut to the entity columns
         cols = Booking.__table__.columns
 
-        # TODO: Have these default values in user config?
-        default_criteria = 'id'
-        default_direction = 'asc'
-        default_operator = 'and'
+        # Database connection
+        conn = self.user_config.genesisng.database.connection
 
-        # Page number
-        try:
-            page = int(self.request.input.page[0])
-        except (ValueError, KeyError, IndexError):
-            page = 1
-
-        # Page size
-        try:
-            size = int(self.request.input.size[0])
-        except (ValueError, KeyError, IndexError):
-            size = default_page_size
-
-        # Order by
-        try:
-            criteria, direction = self.request.input.sort[0].lower().split('|')
-        except (ValueError, KeyError, IndexError, AttributeError):
-            criteria = default_criteria
-            direction = default_direction
-
-        # Filters
-        try:
-            filters = self.request.input.filters
-            operator = self.request.input.operator[0]
-        except (ValueError, KeyError, IndexError):
-            filters = []
-            operator = default_operator
-
-        # Fields projection
-        try:
-            fields = self.request.input.fields
-        except (ValueError, KeyError):
-            fields = []
-
-        # Check and adjust parameter values
-
-        # Handle pagination
-        page = 1 if page < 1 else page
-        size = default_page_size if size < 1 else size
-        size = default_page_size if size > max_page_size else size
-
-        # Handle sorting
-        if criteria not in self.criteria_allowed:
-            criteria = default_criteria
-        if direction not in self.direction_allowed:
-            direction = default_direction
-
-        # Handle filtering
-        conditions = []
-        for filter_ in filters:
-            field, comparison, value = filter_.split('|')
-            if field in self.filters_allowed and \
-               comparison in self.comparisons_allowed:
-                conditions.append((field, comparison, value))
-        if operator not in (self.operators_allowed):
-            operator = default_operator
-
-        # Handle fields projection
-        columns = []
-        for f in fields:
-            if f in self.fields_allowed:
-                columns.append(f)
-
+        # Parse received arguments
+        params = parse_args(self.request.input, self.allowed,
+                            self.user_config.genesisng.pagination, self.logger)
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(func.count().over().label('count'))
-
-            # Add columns
-            if not columns:
-                columns = self.fields_allowed
-
-            for c in columns:
-                query = query.add_columns(cols[c])
+            # Add columns to get a flat row of columns rather than entities
+            for f in self.allowed.fields:
+                query = query.add_columns(cols[f])
 
             # Prepare filters
-            # TODO: Use sqlalchemy-filters?
-            # https://pypi.org/project/sqlalchemy-filters/
-            if conditions:
+            query = parse_filters(params.filters, params.operator, cols, query)
+
+            # Search: add ilike clauses if there is a search term.
+            if params.search:
                 clauses = []
-                for c in conditions:
-                    f, o, v = c
-                    if o == 'lt':
-                        clauses.append(cols[f] < v)
-                    elif o == 'lte':
-                        clauses.append(cols[f] <= v)
-                    elif o == 'eq':
-                        clauses.append(cols[f] == v)
-                    elif o == 'ne':
-                        clauses.append(cols[f] != v)
-                    elif o == 'gte':
-                        clauses.append(cols[f] >= v)
-                    elif o == 'gt':
-                        clauses.append(cols[f] > v)
-                if operator == 'or':
-                    query = query.filter(or_(*clauses))
-                else:
-                    query = query.filter(and_(*clauses))
+                for s in self.paging.search:
+                    clauses.append(cols[s].ilike(params.search))
+                query = query.filter(or_(*clauses))
 
             # Order by
-            if direction == 'asc':
-                query = query.order_by(cols[criteria].asc())
+            if params.direction == 'asc':
+                query = query.order_by(cols[params.criteria].asc())
             else:
-                query = query.order_by(cols[criteria].desc())
+                query = query.order_by(cols[params.criteria].desc())
 
-            # Calculate limit and offset
-            limit = size
-            offset = size * (page - 1)
-            query = query.offset(offset)
-            query = query.limit(limit)
+            # Add limit and offset
+            query = query.offset(params.offset)
+            query = query.limit(params.limit)
 
             # Execute query
             result = query.all()
 
-            # Return result
-            if result:
-
-                # Store results in the cache only if all fields were retrieved
-                if not fields:
-                    cache = self.cache.get_cache('builtin', 'bookings')
-                    for r in result:
-                        # Items are already dictionaries.
-                        cache_key = 'id:%s|locator:%s' % (r.id, r.locator)
-                        cache.set(cache_key, r)
-
-                self.response.status_code = OK
-                self.response.payload[:] = result
-                self.response.headers['Cache-Control'] = 'no-cache'
-            else:
+            # Return now if no rows were returned
+            if not result:
                 self.response.status_code = NO_CONTENT
                 self.response.headers['Cache-Control'] = 'no-cache'
+                return
+
+            # Get cache collection
+            try:
+                cache = self.cache.get_cache('builtin', 'bookings')
+            except Exception:
+                self.logger.error(
+                    "Could not get the 'bookings' cache collection.")
+
+            # Get a list of the fields to be removed
+            diff = ['count']
+            if params.columns:
+                diff += list(set(result[0].keys()) - set(params.columns))
+
+            # Empty list for the processed rows (dicts)
+            payload = []
+
+            # Loop the result set
+            for r in result:
+                # Store each row (a WritableKeyedTuple) in the cache.
+                if cache is not None:
+                    cache.set('id:%s|locator:%s' % (r.id, r.locator), r)
+
+                # Remove unwanted fields from the result
+                d = {key: getattr(r._elem, key)
+                     for key in r._elem.keys() if key not in diff}
+                payload.append(d)
+
+            # Get the count from the last row
+            params.count = r.count
+
+            # Return the result set
+            self.response.status_code = OK
+            self.response.payload[:] = payload
+            self.response.headers['Cache-Control'] = 'no-cache'
+            self.response.headers['Content-Language'] = 'en'
+            self.response.headers['X-Genesis-Page'] = str(params.page)
+            self.response.headers['X-Genesis-Size'] = str(params.size)
+            self.response.headers['X-Genesis-Count'] = str(params.count)
 
 
 class Restore(Service):

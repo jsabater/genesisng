@@ -429,7 +429,7 @@ class List(Service):
     In case of error, it does not return ``BAD_REQUEST`` but, instead, it
     assumes the default parameter values and carries on.
 
-    The count of records returned (``X-Genesis-Count``), the page number
+    The total count of records (``X-Genesis-Count``), the page number
     (``X-Genesis-Page``) and the page size (``X-Genesis-Size``) are returned as
     headers.
     """

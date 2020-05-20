@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from contextlib import closing
 from http.client import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
-from zato.server.service import Service, Integer, Float, List
-from genesisng.schema.room import Room
+from datetime import datetime
+from bunch import Bunch
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
+from zato.server.service import Service, Integer, Float, List
+from genesisng.schema.room import Room
+from genesisng.util.config import parse_args
+from genesisng.util.filters import parse_filters
 
 
 class Get(Service):
@@ -423,33 +426,30 @@ class List(Service):
 
     Uses `SimpleIO`_.
 
-    Stores the returned records in the ``rooms`` cache. Returns a
-    ``Cache-Control`` header.
+    Stores the returned record set and each of the records individually in the
+    ``rooms`` cache. Since the list of rooms is short, this is used every time
+    the list of rooms is listed on the website or the back-office. Individual
+    records are used by the ``Get`` service when viewing the details of a room.
+    Returns a ``Cache-Control`` header.
 
     Returns ``NO_CONTENT`` if the returned list is empty, or ``OK`` otherwise.
 
-    Pagination and sorting are always enforced. Filtering is optional. Multiple
-    filters are allowed but only one operator for all the filters. Fields
-    projection is not allowed. Search is not allowed.
+    Sorting is always enforced. Filtering, fields projection, search and
+    pagination are not allowed. Given that the result set will always be small,
+    filtering is expected to be done in the controller class or in the client.
 
     In case of error, it does not return ``BAD_REQUEST`` but, instead, it
     assumes the default parameter values and carries on.
-
-    It does not include the count of records returned, as one is expected to
-    always get the whole list of rooms.
     """
 
-    criteria_allowed = ('id', 'number')
-    direction_allowed = ('asc', 'desc')
-    filters_allowed = ('id', 'floor_no', 'sgl_beds', 'dbl_beds', 'code')
-    comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
-    operators_allowed = ('and', 'or')
-    fields_allowed = ()
-    search_allowed = ()
+    allowed = Bunch({
+        'criteria': (),
+        'filters': (),
+        'fields': (),
+        'search': ()
+    })
 
     class SimpleIO:
-        input_optional = (List('page'), List('size'), List('sort'),
-                          List('filters'), List('operator'))
         output_optional = ('id', 'floor_no', 'room_no', 'sgl_beds', 'dbl_beds',
                            'supplement', 'code', 'name', 'accommodates',
                            'number')
@@ -462,143 +462,77 @@ class List(Service):
 
         Query string parameters:
 
-        :param page: The page number. Default is 1.
-        :type page: int
-        :param size: The page size. Default is located in the user config.
-        :type size: int
-        :param sort: The sort criteria (field name) and direction (ascending
-            ``asc`` or descending ``desc``), using the pipe ``|`` as separator
-            (i.e. ``<criteria>|<direction>``. The default criteria is ``id``
-            and the default direction is ``asc``, so the default value of this
-            paramter is ``id|asc``.
-        :type sort: str
-        :param filters: A filter to process the data stream to produce the
-            desired output. Each filter is made of a field name, a comparator
-            and a value, using the pipe ``|`` as separator (i.e.
-            ``<field>|<comparator>|<value>``). Multiple occurrences of this
-            parameter are allowed. Supported comparators are ``lt`` (less
-            than), ``lte`` (less than or equal), ``eq`` (equal), ``ne`` (not
-            equal), ``gte`` (greater than or equal) and ``gt`` (greater than).
-        :type filters: str
-        :param operator: The operator to apply to or join all filters. The
-            supported operators are ``and`` and ``or``. The default value is
-            ``and``.
-        :type operator: str
-
         :returns: A list of dicts with all attributes of a
             :class:`~genesisng.schema.room.Room` model class, including the
             hybrid attributes.
         :rtype: list
         """
 
+        # Database connection
         conn = self.user_config.genesisng.database.connection
-        default_page_size = int(
-            self.user_config.genesisng.pagination.default_page_size)
-        max_page_size = int(
-            self.user_config.genesisng.pagination.max_page_size)
-        cols = Room.__table__.columns
 
-        # TODO: Have these default values in user config?
-        default_criteria = 'id'
-        default_direction = 'asc'
-        default_operator = 'and'
+        # Cache control default value
+        cache_control = self.user_config.genesisng.cache.default_cache_control
 
-        # Page number
+        # Check whether a copy exists in the cache
+        cache_key = 'all'
         try:
-            page = int(self.request.input.page[0])
-        except (ValueError, KeyError, IndexError):
-            page = 1
+            cache = self.cache.get_cache('builtin', 'rooms')
+        except Exception:
+            self.logger.error("Could not get the 'rooms' cache collection.")
+        if cache is not None:
+            cache_data = cache.get(cache_key, details=True)
+        if cache_data:
+            self.logger.info("Returning list of rooms from the cache.")
 
-        # Page size
-        try:
-            size = int(self.request.input.size[0])
-        except (ValueError, KeyError, IndexError):
-            size = default_page_size
+            self.response.status_code = OK
+            self.response.payload[:] = cache_data.value
+            self.response.headers['Content-Language'] = 'en'
+            self.response.headers['Cache-Control'] = cache_control
+            self.response.headers['Last-Modified'] = str(
+                cache_data.last_write_http)
+            self.response.headers['ETag'] = str(cache_data.hash)
+            return
 
-        # Order by
-        try:
-            criteria, direction = self.request.input.sort[0].lower().split('|')
-        except (ValueError, KeyError, IndexError, AttributeError):
-            criteria = default_criteria
-            direction = default_direction
-
-        # Filters
-        try:
-            filters = self.request.input.filters
-            operator = self.request.input.operator[0]
-        except (ValueError, KeyError, IndexError):
-            filters = []
-            operator = default_operator
-
-        # Check and adjust parameter values
-
-        # Handle pagination
-        page = 1 if page < 1 else page
-        size = default_page_size if size < 1 else size
-        size = default_page_size if size > max_page_size else size
-
-        # Handle sorting
-        if criteria not in self.criteria_allowed:
-            criteria = default_criteria
-        if direction not in self.direction_allowed:
-            direction = default_direction
-
-        # Handle filtering
-        conditions = []
-        for filter_ in filters:
-            field, comparison, value = filter_.split('|')
-            if field in self.filters_allowed and \
-               comparison in self.comparisons_allowed:
-                conditions.append((field, comparison, value))
-        if operator not in self.operators_allowed:
-            operator = default_operator
-
-        # Compose query
+        # Compose and execute query
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(Room)
-
-            # Prepare filters
-            if conditions:
-                clauses = []
-                for c in conditions:
-                    f, o, v = c
-                    if o == 'lt':
-                        clauses.append(cols[f] < v)
-                    elif o == 'lte':
-                        clauses.append(cols[f] <= v)
-                    elif o == 'eq':
-                        clauses.append(cols[f] == v)
-                    elif o == 'ne':
-                        clauses.append(cols[f] != v)
-                    elif o == 'gte':
-                        clauses.append(cols[f] >= v)
-                    elif o == 'gt':
-                        clauses.append(cols[f] > v)
-                if operator == 'or':
-                    query = query.filter(or_(*clauses))
-                else:
-                    query = query.filter(and_(*clauses))
-
-            # Order by
-            if direction == 'asc':
-                query = query.order_by(cols[criteria].asc())
-            else:
-                query = query.order_by(cols[criteria].desc())
-
-            # Calculate limit and offset
-            limit = size
-            offset = size * (page - 1)
-            query = query.offset(offset)
-            query = query.limit(limit)
-
-            # Execute query
+            query = query.order_by(Room.id.asc())
             result = query.all()
 
-            # Return result
-            if result:
-                self.response.payload[:] = result
-                self.response.status_code = OK
-                self.response.headers['Cache-Control'] = 'no-cache'
-            else:
+            # Return now if no rows were returned
+            if not result:
                 self.response.status_code = NO_CONTENT
+                self.response.headers['Cache-Control'] = 'no-cache'
+                return
+
+            # Empty list of dicts to be saved in the cache
+            payload = []
+
+            # Loop the result set
+            for r in result:
+                # Convert each WritableKeyedTuple to a dict so that we store
+                # a list of dicts in the cache
+                d = r._asdict()
+                payload.append(d)
+
+                # Store each full row (as a dict) in the cache.
+                if cache is not None:
+                    cache.set('id:%s' % r.id, d)
+
+            # Store the processed result set in the cache
+            if cache is not None:
+                self.logger.info("Storing list of rooms in the cache.")
+                cache_data = cache.set(cache_key, payload, details=True)
+
+            self.response.status_code = OK
+            self.response.payload[:] = payload
+            self.response.headers['Content-Language'] = 'en'
+
+            if cache_data:
+                self.response.headers['Cache-Control'] = cache_control
+                self.response.headers['Last-Modified'] = str(
+                    cache_data.last_write_http)
+                self.response.headers['ETag'] = str(cache_data.hash)
+            else:
                 self.response.headers['Cache-Control'] = 'no-cache'

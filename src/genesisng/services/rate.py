@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 from contextlib import closing
 from http.client import OK, NO_CONTENT, CREATED, NOT_FOUND, CONFLICT
-from zato.server.service import Service, Integer, Float, Date, Boolean, List
-from genesisng.schema.rate import Rate
+from bunch import Bunch
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
+from zato.server.service import Service, Integer, Float, Date, Boolean, List
+from genesisng.schema.rate import Rate
+from genesisng.util.config import parse_args
+from genesisng.util.filters import parse_filters
 
 
 class Get(Service):
@@ -324,7 +327,8 @@ class List(Service):
 
     Uses `SimpleIO`_.
 
-    Stores the returned records in the ``rooms`` cache. Returns a
+    Stores every retrieved row as a cache item in the ``rates`` cache
+    collection, which will be later used in the ``Get`` service. Returns a
     ``Cache-Control`` header.
 
     Returns ``NO_CONTENT`` if the returned list is empty, or ``OK`` otherwise.
@@ -336,18 +340,22 @@ class List(Service):
     In case of error, it does not return ``BAD_REQUEST`` but, instead, it
     assumes the default parameter values and carries on.
 
-    It does not include the count of records returned, as one is expected to
-    always filter by seasons (i.e. years).
+    The page number (``X-Genesis-Page``) and the page size (``X-Genesis-Size``)
+    are returned as headers. It does not include the total count of records
+    (``X-Genesis-Count``), as one is expected to always filter by seasons (i.e.
+    years). This context also serves to demonstrate the difference between
+    using the entity (i.e. :class:`~genesisng.schema.rate.Rate`) or the entity
+    columns in the query.
     """
 
-    criteria_allowed = ('id', 'date_from', 'date_to', 'base_price',
-                        'bed_price')
-    direction_allowed = ('asc', 'desc')
-    filters_allowed = ('id', 'date_from', 'date_to', 'base_price', 'bed_price')
-    comparisons_allowed = ('lt', 'lte', 'eq', 'ne', 'gte', 'gt')
-    operators_allowed = ('and', 'or')
-    fields_allowed = ()
-    search_allowed = ()
+    # Fields allowed in sorting criteria, filters, field projection or
+    # searched in.
+    allowed = Bunch({
+        'criteria': ('id', 'date_from', 'date_to', 'base_price', 'bed_price'),
+        'filters': ('id', 'date_from', 'date_to', 'base_price', 'bed_price'),
+        'fields': (),
+        'search': ()
+    })
 
     class SimpleIO:
         input_optional = (List('page'), List('size'), List('sort'),
@@ -392,114 +400,66 @@ class List(Service):
         :rtype: list
         """
 
-        conn = self.user_config.genesisng.database.connection
-        default_page_size = int(
-            self.user_config.genesisng.pagination.default_page_size)
-        max_page_size = int(
-            self.user_config.genesisng.pagination.max_page_size)
+        # Shortcut to the entity columns
         cols = Rate.__table__.columns
 
-        # TODO: Have these default values in user config?
-        default_criteria = 'id'
-        default_direction = 'asc'
-        default_operator = 'and'
+        # Database connection
+        conn = self.user_config.genesisng.database.connection
 
-        # Page number
-        try:
-            page = int(self.request.input.page[0])
-        except (ValueError, KeyError, IndexError):
-            page = 1
-
-        # Page size
-        try:
-            size = int(self.request.input.size[0])
-        except (ValueError, KeyError, IndexError):
-            size = default_page_size
-
-        # Order by
-        try:
-            criteria, direction = self.request.input.sort[0].lower().split('|')
-        except (ValueError, KeyError, IndexError, AttributeError):
-            criteria = default_criteria
-            direction = default_direction
-
-        # Filters
-        try:
-            filters = self.request.input.filters
-            operator = self.request.input.operator[0]
-        except (ValueError, KeyError, IndexError):
-            filters = []
-            operator = default_operator
-
-        # Check and adjust parameter values
-
-        # Handle pagination
-        page = 1 if page < 1 else page
-        size = default_page_size if size < 1 else size
-        size = default_page_size if size > max_page_size else size
-
-        # Handle sorting
-        if criteria not in self.criteria_allowed:
-            criteria = default_criteria
-        if direction not in self.direction_allowed:
-            direction = default_direction
-
-        # Handle filtering
-        conditions = []
-        for filter_ in filters:
-            field, comparison, value = filter_.split('|')
-            if field in self.filters_allowed and \
-               comparison in self.comparisons_allowed:
-                conditions.append((field, comparison, value))
-        if operator not in self.operators_allowed:
-            operator = default_operator
+        # Parse received arguments
+        params = parse_args(self.request.input, self.allowed,
+                            self.user_config.genesisng.pagination, self.logger)
 
         # Compose query
         with closing(self.outgoing.sql.get(conn).session()) as session:
             query = session.query(Rate)
 
             # Prepare filters
-            if conditions:
+            query = parse_filters(params.filters, params.operator, cols, query)
+
+            # Search: add ilike clauses if there is a search term.
+            if params.search:
                 clauses = []
-                for c in conditions:
-                    f, o, v = c
-                    if o == 'lt':
-                        clauses.append(cols[f] < v)
-                    elif o == 'lte':
-                        clauses.append(cols[f] <= v)
-                    elif o == 'eq':
-                        clauses.append(cols[f] == v)
-                    elif o == 'ne':
-                        clauses.append(cols[f] != v)
-                    elif o == 'gte':
-                        clauses.append(cols[f] >= v)
-                    elif o == 'gt':
-                        clauses.append(cols[f] > v)
-                if operator == 'or':
-                    query = query.filter(or_(*clauses))
-                else:
-                    query = query.filter(and_(*clauses))
+                for s in self.paging.search:
+                    clauses.append(cols[s].ilike(params.search))
+                query = query.filter(or_(*clauses))
 
             # Order by
-            if direction == 'asc':
-                query = query.order_by(cols[criteria].asc())
+            if params.direction == 'asc':
+                query = query.order_by(cols[params.criteria].asc())
             else:
-                query = query.order_by(cols[criteria].desc())
+                query = query.order_by(cols[params.criteria].desc())
 
-            # Calculate limit and offset
-            limit = size
-            offset = size * (page - 1)
-            query = query.offset(offset)
-            query = query.limit(limit)
+            # Add limit and offset
+            query = query.offset(params.offset)
+            query = query.limit(params.limit)
 
             # Execute query
             result = query.all()
 
-            # Return result
-            if result:
-                self.response.payload[:] = result
-                self.response.status_code = OK
-                self.response.headers['Cache-Control'] = 'no-cache'
-            else:
+            # Return now if no rows were returned
+            if not result:
                 self.response.status_code = NO_CONTENT
                 self.response.headers['Cache-Control'] = 'no-cache'
+                return
+
+            # Get cache collection
+            try:
+                cache = self.cache.get_cache('builtin', 'rates')
+            except Exception:
+                self.logger.error(
+                    "Could not get the 'rates' cache collection.")
+
+            # Loop the result set
+            for r in result:
+                # Store each row (a WritableKeyedTuple) in the cache as a dict
+                if cache is not None:
+                    cache.set('id:%s' % r.id, r._asdict())
+
+            # Return the result set
+            self.response.payload[:] = result
+            self.response.status_code = OK
+            self.response.headers['Cache-Control'] = 'no-cache'
+            self.response.headers['Content-Language'] = 'en'
+            self.response.headers['X-Genesis-Page'] = str(params.page)
+            self.response.headers['X-Genesis-Size'] = str(params.size)

@@ -4,6 +4,7 @@ syntax: glob
 *.pyc
 
 # Sublime Text editor project files
+*.sublime-keymap
 *.sublime-project
 *.sublime-workspace
 

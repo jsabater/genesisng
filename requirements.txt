@@ -3,7 +3,7 @@ bunch==1.0.1
 configparser==3.7.1
 dictalchemy==0.1.2.7
 hashids==1.2.0
-httplib2==0.8
+httplib2==0.18.0
 nanoid==2.0.0
 passlib==1.7.1
 psycopg2==2.8.5

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from bunch import Bunch
+from typing import Dict
 
 
-def parse_args(input, allowed, pagination, logger):
+def parse_args(input, allowed: Dict, pagination, logger) -> Dict:
     """
     Parses arguments received through query string, checking and adjusting
     their values.
